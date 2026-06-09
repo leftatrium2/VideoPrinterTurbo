@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    container_name: videoprinterturbo-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./storage:/app/storage
+      - ./downloads:/app/downloads
+      - ./config.toml:/app/config.toml
+      - ./resource/songs:/app/resource/songs
+      - ./resource/fonts:/app/resource/fonts
+    environment:
+      - CORS_ALLOWED_ORIGINS=*
+    restart: unless-stopped
+    command: python main.py
+
+  webui:
+    build: .
+    container_name: videoprinterturbo-webui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./storage:/app/storage
+      - ./downloads:/app/downloads
+      - ./config.toml:/app/config.toml
+      - ./resource/songs:/app/resource/songs
+      - ./resource/fonts:/app/resource/fonts
+    environment:
+      - CORS_ALLOWED_ORIGINS=*
+    restart: unless-stopped
+    command: streamlit run ./webui/Main.py --browser.gatherUsageStats=False --server.address=0.0.0.0
+    depends_on:
+      - api
