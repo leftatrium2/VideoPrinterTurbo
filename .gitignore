@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Config
+config.toml
+
+# Storage
+storage/tasks/*
+storage/cache_videos/*
+!storage/tasks/.gitkeep
+!storage/cache_videos/.gitkeep
+
+# Downloads
+downloads/
+
+# Models (Whisper)
+/models/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
