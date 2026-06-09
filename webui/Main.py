@@ -248,33 +248,26 @@ with st.sidebar:
 
 # ── Main panel ─────────────────────────────────────────────────────
 
-col1, col2 = st.columns([3, 2])
+st.subheader(tr("Input"))
 
-with col1:
-    st.subheader(tr("Input"))
+video_url = st.text_input(
+    tr("Video URL"),
+    placeholder=tr("Video URL placeholder"),
+)
 
-    video_url = st.text_input(
-        tr("Video URL"),
-        placeholder=tr("Video URL placeholder"),
-    )
+rewrite_instruction = st.text_area(
+    tr("Rewrite Instruction"),
+    placeholder=tr("Rewrite Instruction placeholder"),
+    height=100,
+)
 
-    rewrite_instruction = st.text_area(
-        tr("Rewrite Instruction"),
-        placeholder=tr("Rewrite Instruction placeholder"),
-        height=100,
-    )
+video_script = st.text_area(
+    tr("Custom Script (optional, leave empty for AI)"),
+    placeholder=tr("Custom Script placeholder"),
+    height=100,
+)
 
-    video_script = st.text_area(
-        tr("Custom Script (optional, leave empty for AI)"),
-        placeholder=tr("Custom Script placeholder"),
-        height=100,
-    )
-
-    submitted = st.button(tr("Start Rewrite"), type="primary", use_container_width=True)
-
-with col2:
-    st.subheader(tr("Task List"))
-    tasks_placeholder = st.empty()
+submitted = st.button(tr("Start Rewrite"), type="primary", use_container_width=True)
 
 # ── Handle submission ──────────────────────────────────────────────
 
