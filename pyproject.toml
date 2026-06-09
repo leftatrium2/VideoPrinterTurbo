@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "videoprinterturbo"
+version = "0.1.0"
+description = "视频改写 AI 项目 — 下载网站视频，转录原文，LLM 改写，合成新视频并发布。"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "MIT" }
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn==0.32.1",
+    "moviepy==2.1.2",
+    "streamlit==1.45.0",
+    "edge-tts==7.2.7",
+    "openai==1.56.1",
+    "faster-whisper==1.1.0",
+    "loguru==0.7.3",
+    "toml==0.10.2",
+    "python-multipart==0.0.19",
+    "requests==2.33.1",
+    "pydub==0.25.1",
+    "yt-dlp>=2024.12.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+gemini = [
+    "google-generativeai==0.8.6",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
+    "httpx>=0.27",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
