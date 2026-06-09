@@ -22,7 +22,7 @@ def tmp_task_dir(tmp_path, monkeypatch):
     """Temp tasks directory; patches utils.task_dir() so handlers use it."""
     tasks = tmp_path / "tasks"
     tasks.mkdir()
-    monkeypatch.setattr(_utils, "task_dir", lambda sub_dir="": str(tasks))
+    monkeypatch.setattr(_utils, "task_dir", lambda sub_dir="": str(tasks / sub_dir) if sub_dir else str(tasks))
     return tasks
 
 
