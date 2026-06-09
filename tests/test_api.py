@@ -85,3 +85,62 @@ def test_get_musics_returns_list(client):
     data = response.json()["data"]
     assert "files" in data
     assert isinstance(data["files"], list)
+
+
+# ── GET /api/v1/stream/{file_path} ──────────────────────────────────────────
+
+
+def test_stream_video_ok(client, tmp_task_dir):
+    task_dir = tmp_task_dir / "task-stream-ok"
+    task_dir.mkdir()
+    video = task_dir / "final-1.mp4"
+    video.write_bytes(b"\x00" * 1024)
+
+    response = client.get("/api/v1/stream/task-stream-ok/final-1.mp4")
+    assert response.status_code == 206
+    assert "Content-Range" in response.headers
+
+
+def test_stream_path_traversal_returns_403(client, mocker):
+    """ValueError with 'path traversal' in message → 403."""
+    mocker.patch(
+        "app.controllers.v1.rewrite.file_security.resolve_path_within_directory",
+        side_effect=ValueError("path traversal detected: /etc/passwd"),
+    )
+    response = client.get("/api/v1/stream/anything")
+    assert response.status_code == 403
+
+
+def test_stream_file_not_found_returns_404(client, tmp_task_dir):
+    response = client.get("/api/v1/stream/ghost-task/missing.mp4")
+    assert response.status_code == 404
+
+
+# ── GET /api/v1/download/{file_path} ────────────────────────────────────────
+
+
+def test_download_video_ok(client, tmp_task_dir):
+    task_dir = tmp_task_dir / "task-dl-ok"
+    task_dir.mkdir()
+    video = task_dir / "final-1.mp4"
+    video.write_bytes(b"\x00" * 512)
+
+    response = client.get("/api/v1/download/task-dl-ok/final-1.mp4")
+    assert response.status_code == 200
+    assert "Content-Disposition" in response.headers
+    assert "final-1" in response.headers["Content-Disposition"]
+
+
+def test_download_path_traversal_returns_403(client, mocker):
+    """ValueError with 'path traversal' in message → 403."""
+    mocker.patch(
+        "app.controllers.v1.rewrite.file_security.resolve_path_within_directory",
+        side_effect=ValueError("path traversal detected: /etc/passwd"),
+    )
+    response = client.get("/api/v1/download/anything")
+    assert response.status_code == 403
+
+
+def test_download_file_not_found_returns_404(client, tmp_task_dir):
+    response = client.get("/api/v1/download/ghost-task/missing.mp4")
+    assert response.status_code == 404
