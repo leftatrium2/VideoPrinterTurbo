@@ -97,6 +97,8 @@ if "lang" not in st.query_params and "_lang_js_injected" not in st.session_state
         """
         <script>
         (function() {
+            // Guard: if URL already has ?lang=, Streamlit just hasn't surfaced it yet — skip.
+            if (new URL(window.top.location).searchParams.get('lang')) return;
             var saved = localStorage.getItem('vpt_lang');
             var lang;
             if (saved) {
@@ -115,6 +117,17 @@ if "lang" not in st.query_params and "_lang_js_injected" not in st.session_state
         width=1,
     )
 
+# ── Language change callback (runs before script body on widget change) ─
+
+def _on_language_change():
+    selected = st.session_state.get("top_language_selector", "")
+    if selected:
+        code = selected.split(" - ")[0].strip()
+        if code in locales:
+            st.session_state["ui_language"] = code
+            st.query_params["lang"] = code
+
+
 # ── Top bar: title + language selector ─────────────────────────────
 
 title_col, lang_col = st.columns([3, 1])
@@ -132,34 +145,21 @@ with lang_col:
             if code == st.session_state.get("ui_language", ""):
                 selected_idx = i
 
-        selected_lang = st.selectbox(
+        st.selectbox(
             tr("Language / 语言"),
             options=lang_options,
             index=selected_idx,
             key="top_language_selector",
             label_visibility="collapsed",
+            on_change=_on_language_change,
         )
-        if selected_lang:
-            code = selected_lang.split(" - ")[0].strip()
-            st.session_state["ui_language"] = code
-            # If user chose a different language than current URL param,
-            # persist to localStorage and redirect with new ?lang=
-            current_url_lang = st.query_params.get("lang")
-            if code != current_url_lang:
-                from streamlit.components.v1 import html
-
-                html(
-                    f"""
-                    <script>
-                    localStorage.setItem('vpt_lang', '{code}');
-                    var url = new URL(window.top.location);
-                    url.searchParams.set('lang', '{code}');
-                    window.top.location.replace(url.toString());
-                    </script>
-                    """,
-                    height=1,
-                    width=1,
-                )
+        # Keep localStorage in sync so first-visit detection stays accurate
+        from streamlit.components.v1 import html as _html
+        _html(
+            f"<script>try{{localStorage.setItem('vpt_lang','{st.session_state.get('ui_language','zh')}')}}catch(e){{}}</script>",
+            height=1,
+            width=1,
+        )
 
 # ── API base URL ───────────────────────────────────────────────────
 
