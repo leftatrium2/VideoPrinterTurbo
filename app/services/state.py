@@ -42,7 +42,15 @@ class MemoryState(BaseState):
     def update_task(self, task_id: str, state: int = const.TASK_STATE_PROCESSING,
                     progress: int = 0, **kwargs):
         progress = min(int(progress), 100)
-        self._tasks[task_id] = {"task_id": task_id, "state": state, "progress": progress, **kwargs}
+        existing = self._tasks.get(task_id, {})
+        # Append log entry if provided; preserve existing logs across updates
+        logs = list(existing.get("logs", []))
+        if "log" in kwargs:
+            logs.append(kwargs.pop("log"))
+        # Merge: preserve existing fields, overlay new kwargs, always set core fields last
+        self._tasks[task_id] = {**existing, **kwargs,
+                                "task_id": task_id, "state": state,
+                                "progress": progress, "logs": logs}
 
     def get_task(self, task_id: str):
         return self._tasks.get(task_id, None)
@@ -83,6 +91,17 @@ class RedisState(BaseState):
     def update_task(self, task_id: str, state: int = const.TASK_STATE_PROCESSING,
                     progress: int = 0, **kwargs):
         progress = min(int(progress), 100)
+        if "log" in kwargs:
+            log_entry = kwargs.pop("log")
+            raw = self._redis.hget(task_id, "logs")
+            try:
+                logs = ast.literal_eval(raw.decode("utf-8")) if raw else []
+                if not isinstance(logs, list):
+                    logs = []
+            except Exception:
+                logs = []
+            logs.append(log_entry)
+            kwargs["logs"] = logs
         fields = {"task_id": task_id, "state": state, "progress": progress, **kwargs}
         for field, value in fields.items():
             self._redis.hset(task_id, field, str(value))

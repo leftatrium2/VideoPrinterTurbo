@@ -11,7 +11,6 @@ import locale
 import os
 import sys
 
-import pandas as pd
 import requests
 import streamlit as st
 from loguru import logger
@@ -311,32 +310,34 @@ if st.button(tr("Refresh Task List")):
         tasks = data.get("tasks", [])
         total = data.get("total", 0)
         if tasks:
-            rows = []
+            st.caption(f"{tr('Total')} {total} {tr('tasks')}")
             for t in tasks:
                 state_val = t.get("state", 0)
-                if state_val == -1:
-                    status = tr("Failed")
-                elif state_val == 1:
-                    status = tr("Completed")
-                elif state_val == 4:
-                    status = tr("Processing")
-                else:
-                    status = f"{tr('Unknown')}({state_val})"
-
                 progress = t.get("progress", 0)
                 tid = t.get("task_id", "")
+                logs = t.get("logs") or []
                 videos = t.get("videos", []) or []
 
-                rows.append({
-                    tr("Task ID"): tid[:8] + "…" if len(tid) > 8 else tid,
-                    tr("Status"): status,
-                    tr("Progress"): f"{progress}%",
-                    tr("Videos"): len(videos),
-                })
+                if state_val == -1:
+                    icon, status = "❌", tr("Failed")
+                elif state_val == 1:
+                    icon, status = "✅", tr("Completed")
+                elif state_val == 4:
+                    icon, status = "⏳", tr("Processing")
+                else:
+                    icon, status = "❓", f"{tr('Unknown')}({state_val})"
 
-            df = pd.DataFrame(rows)
-            st.dataframe(df, use_container_width=True, hide_index=True)
-            st.caption(f"{tr('Total')} {total} {tr('tasks')}")
+                tid_short = tid[:8] + "…" if len(tid) > 8 else tid
+                with st.expander(f"{icon} {tid_short}  |  {status}  {progress}%"):
+                    st.progress(progress / 100)
+                    if logs:
+                        st.code("\n".join(logs), language=None)
+                    else:
+                        st.caption(tr("No logs"))
+                    if videos:
+                        st.write(f"**{tr('Videos')}**")
+                        for v in videos:
+                            st.markdown(f"[{v.split('/')[-1]}]({v})")
         else:
             st.info(tr("No Tasks"))
     else:
