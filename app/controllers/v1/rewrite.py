@@ -76,7 +76,7 @@ def create_rewrite_task(request: Request, body: VideoRewriteParams):
     request_id = base.get_task_id(request)
     try:
         task = {"task_id": task_id, "request_id": request_id, "params": body.model_dump()}
-        sm.state.update_task(task_id)
+        sm.state.update_task(task_id, params=body.model_dump())
         task_manager.add_task(tm.start, task_id=task_id, params=body)
         logger.success(f"Task created: {utils.to_json(task)}")
         return utils.get_response(200, task)
@@ -156,6 +156,20 @@ def delete_task(request: Request, task_id: str = Path(..., description="Task ID"
         logger.success(f"task deleted: {task_id}")
         return utils.get_response(200)
 
+    raise HttpException(task_id=task_id, status_code=404, message=f"{request_id}: task not found")
+
+
+@router.post("/tasks/{task_id}/stop", response_model=BaseResponse, summary="Stop a running task")
+def stop_task(request: Request, task_id: str = Path(..., description="Task ID")):
+    request_id = base.get_task_id(request)
+    task = sm.state.get_task(task_id)
+    if task:
+        from datetime import datetime
+        from app.models import const
+        sm.state.update_task(task_id, state=const.TASK_STATE_FAILED, stopped=True,
+                             log=f"[{datetime.now().strftime('%H:%M:%S')}] 🛑 任务已手动停止")
+        logger.success(f"task stop requested: {task_id}")
+        return utils.get_response(200)
     raise HttpException(task_id=task_id, status_code=404, message=f"{request_id}: task not found")
 
 

@@ -13,7 +13,7 @@
 
     <!-- 统计卡片 -->
     <el-row :gutter="16" class="stats-row">
-      <el-col :span="6">
+      <el-col :span="8">
         <div class="stat-card">
           <p class="stat-label">总任务数</p>
           <div class="stat-value-row">
@@ -22,7 +22,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <div class="stat-card">
           <p class="stat-label">正在下载</p>
           <div class="stat-value-row">
@@ -31,20 +31,12 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <div class="stat-card">
           <p class="stat-label">已完成</p>
           <div class="stat-value-row">
             <span class="stat-value">{{ doneCount.toLocaleString() }}</span>
             <span class="stat-badge stat-badge--primary">Success</span>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-card">
-          <p class="stat-label">存储使用</p>
-          <div class="stat-value-row">
-            <span class="stat-value">N/A</span>
           </div>
         </div>
       </el-col>
@@ -132,27 +124,6 @@
         />
       </div>
     </div>
-
-    <!-- 底部双栏 -->
-    <el-row :gutter="16" class="bottom-row">
-      <el-col :span="16">
-        <div class="status-card">
-          <h4 class="status-title">系统状态概览</h4>
-          <p class="status-desc">视频处理队列目前处于高效运行状态。所有 ASR 和 LLM 引擎均已就绪。</p>
-          <div class="status-indicators">
-            <span class="indicator indicator--green">网络良好 (12.4 MB/s)</span>
-            <span class="indicator indicator--blue">CPU 负载: 42%</span>
-          </div>
-        </div>
-      </el-col>
-      <el-col :span="8">
-        <div class="guide-card">
-          <h4 class="guide-title">快捷指南</h4>
-          <p class="guide-desc">使用"一步完成"可以直接自动执行从下载到发布的所有预设步骤。</p>
-          <RouterLink to="/one-step" class="guide-link">查看详细配置文档 →</RouterLink>
-        </div>
-      </el-col>
-    </el-row>
 
     <!-- 视频播放对话框 -->
     <el-dialog v-model="showVideoDialog" title="视频播放" width="720px" destroy-on-close>
@@ -308,28 +279,4 @@ onUnmounted(() => {
   padding: 12px 24px; border-top: 1px solid var(--color-border); background: #FAFAFA;
 }
 .pagination-info { font-size: 14px; color: var(--color-text-secondary); }
-
-.bottom-row { margin-top: 16px; }
-.status-card {
-  background: #fff; border-radius: 8px; padding: 24px;
-  border: 1px solid var(--color-border); box-shadow: var(--shadow-card); height: 100%;
-}
-.status-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--color-text-primary); }
-.status-desc { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 16px; }
-.status-indicators { display: flex; gap: 16px; }
-.indicator { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
-.indicator::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
-.indicator--green { color: var(--color-success); }
-.indicator--green::before { background: var(--color-success); }
-.indicator--blue { color: var(--color-primary); }
-.indicator--blue::before { background: var(--color-primary); }
-
-.guide-card {
-  background: var(--color-primary); border-radius: 8px; padding: 24px; color: #fff;
-  display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;
-}
-.guide-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-.guide-desc { font-size: 14px; opacity: 0.9; margin-bottom: 16px; }
-.guide-link { color: #fff; font-weight: 600; text-decoration: none; }
-.guide-link:hover { text-decoration: underline; }
 </style>

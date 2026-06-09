@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Backend Admin - 下载视频</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "text-primary": "#303133",
+                        "on-primary-container": "#003460",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed-dim": "#c5c6cb",
+                        "surface-container-highest": "#e0e2e9",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#e18500",
+                        "surface-container-low": "#f1f3fa",
+                        "danger": "#F56C6C",
+                        "primary-container": "#409eff",
+                        "on-primary-fixed": "#001c38",
+                        "warning": "#E6A23C",
+                        "inverse-surface": "#2d3136",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#ebeef4",
+                        "surface-variant": "#e0e2e9",
+                        "secondary-fixed": "#e1e2e7",
+                        "background": "#f8f9ff",
+                        "on-secondary": "#ffffff",
+                        "border-base": "#DCDFE6",
+                        "primary-fixed": "#d3e4ff",
+                        "primary-fixed-dim": "#a2c9ff",
+                        "on-tertiary-fixed-variant": "#6a3c00",
+                        "surface-container-high": "#e6e8ef",
+                        "on-secondary-fixed-variant": "#45474b",
+                        "on-tertiary-fixed": "#2d1600",
+                        "text-secondary": "#909399",
+                        "inverse-primary": "#a2c9ff",
+                        "on-background": "#181c20",
+                        "outline": "#707784",
+                        "on-primary-fixed-variant": "#004881",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#eef1f7",
+                        "on-secondary-container": "#626468",
+                        "on-tertiary-container": "#4e2a00",
+                        "on-surface-variant": "#404752",
+                        "surface-bg": "#F0F2F5",
+                        "surface-tint": "#0060a9",
+                        "success": "#67C23A",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-container": "#e1e2e7",
+                        "outline-variant": "#c0c7d4",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#ffb871",
+                        "tertiary": "#8b5000",
+                        "surface-dim": "#d7dae0",
+                        "secondary": "#5c5e62",
+                        "primary": "#0060a9",
+                        "on-surface": "#181c20",
+                        "on-secondary-fixed": "#191c1f",
+                        "tertiary-fixed": "#ffdcbe",
+                        "text-regular": "#606266",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "sidebar-width": "240px",
+                        "container-padding": "20px",
+                        "sidebar-collapsed": "64px",
+                        "margin-sm": "12px",
+                        "gutter": "16px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "code": ["courierPrime"],
+                        "headline-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "18px", "fontWeight": "500"}],
+                        "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "code": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .shadow-element { shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); }
+        .table-row-hover:hover { background-color: #f5f7fa; }
+    </style>
+</head>
+<body class="bg-surface-bg text-text-primary">
+<!-- Side Navigation Bar -->
+<aside class="fixed left-0 top-0 h-full z-50 overflow-y-auto w-sidebar-width bg-surface-container-lowest border-r border-border-base transition-all duration-200 ease-in-out" id="sidebar">
+<div class="p-6 flex items-center space-x-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-white">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">movie</span>
+</div>
+<div>
+<h1 class="text-headline-sm font-headline-sm font-bold text-primary">Backend Admin</h1>
+<p class="text-xs text-text-secondary">Management Suite</p>
+</div>
+</div>
+<nav class="mt-4 px-0">
+<div class="px-6 py-2 text-label-sm font-label-sm text-text-secondary uppercase tracking-wider">主要任务</div>
+<a class="flex items-center px-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">flash_on</span>
+<span class="text-label-md font-label-md">一步完成</span>
+</a>
+<div class="relative group">
+<button class="w-full flex items-center justify-between px-6 py-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="text-label-md font-label-md">分步处理</span>
+</div>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<div class="bg-surface-container-lowest">
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-primary border-l-2 border-primary font-bold bg-primary-container/10 transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">下载任务</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">文档提取</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">LLM 改写</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">TTS 处理</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">素材搜索</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">发布</span>
+</a>
+</div>
+</div>
+<div class="px-6 py-4 text-label-sm font-label-sm text-text-secondary uppercase tracking-wider">系统管理</div>
+<div class="relative group">
+<button class="w-full flex items-center justify-between px-6 py-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200">
+<div class="flex items-center space-x-3">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md">系统设置</span>
+</div>
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<div class="bg-surface-container-lowest">
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">ASR配置</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">LLM 配置</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">素材配置</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">发布配置</span>
+</a>
+<a class="flex items-center pl-14 pr-6 py-3 space-x-3 text-text-regular hover:text-primary hover:bg-surface-container-low transition-colors duration-200" href="#">
+<span class="text-label-md font-label-md">TTS 配置</span>
+</a>
+</div>
+</div>
+</nav>
+</aside>
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 right-0 h-16 ml-sidebar-width w-[calc(100%-240px)] bg-surface-container-lowest border-b border-border-base z-40 flex justify-between items-center px-container-padding">
+<div class="flex items-center space-x-4">
+<nav class="flex text-text-secondary space-x-2 text-sm">
+<span class="hover:text-primary cursor-pointer">分步处理</span>
+<span>/</span>
+<span class="text-text-primary font-medium">下载任务</span>
+</nav>
+</div>
+<div class="flex items-center space-x-6">
+<div class="flex space-x-4 text-text-secondary">
+<button class="hover:text-primary transition-all duration-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hover:text-primary transition-all duration-300">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<button class="hover:text-primary transition-all duration-300">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="flex items-center space-x-3 cursor-pointer group">
+<div class="text-right">
+<p class="text-sm font-medium group-hover:text-primary">Admin User</p>
+<p class="text-xs text-text-secondary">Super Administrator</p>
+</div>
+<img alt="User Avatar" class="w-10 h-10 rounded-full border border-border-base" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0xkK0K0Mc4KOK9AjeDCPPXZ_DD_ykLEfaElJjCkzYpaXpxBEoPMpdbxfAPOhjw1P8ZEdQTHPM1nYrLTJBISaeaYDVJ73PieWFstf5XH069v6J_OFxQAn3ZFCbn3rno749Rn4fuod329HtcXFzWzqtZzk8-2rVUDxuDz3ZPDu3WOJWcbxIYGsyN5C1MuuKWJLvzWs8RYk8ZpCazy9vPw_g0527bSU3fvsie2B5L7UajbYc62UwlhBjM5-xxXvkOfDXiATBt9ADqLg"/>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width pt-16 min-h-screen">
+<div class="p-container-padding">
+<!-- Page Header -->
+<div class="flex justify-between items-center mb-6">
+<div>
+<h2 class="text-headline-md font-headline-md text-text-primary">视频列表</h2>
+<p class="text-body-md font-body-md text-text-secondary">管理和监控您的视频下载任务状态</p>
+</div>
+<button class="flex items-center space-x-2 px-4 py-2 bg-primary-container text-white rounded-lg hover:opacity-90 transition-all font-medium shadow-sm">
+<span class="material-symbols-outlined text-lg">download</span>
+<span>下载视频</span>
+</button>
+</div>
+<!-- Bento Stats Grid (Added for modern UI feel) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-gutter">
+<div class="bg-white p-6 rounded-xl border border-border-base shadow-[0_2px_12px_0_rgba(0,0,0,0.05)]">
+<p class="text-text-secondary text-sm font-medium">总任务数</p>
+<div class="flex items-baseline space-x-2 mt-2">
+<span class="text-3xl font-bold text-text-primary">1,284</span>
+<span class="text-success text-xs font-medium">+12%</span>
+</div>
+</div>
+<div class="bg-white p-6 rounded-xl border border-border-base shadow-[0_2px_12px_0_rgba(0,0,0,0.05)]">
+<p class="text-text-secondary text-sm font-medium">正在下载</p>
+<div class="flex items-baseline space-x-2 mt-2">
+<span class="text-3xl font-bold text-text-primary">3</span>
+<span class="text-warning text-xs font-medium animate-pulse">Running</span>
+</div>
+</div>
+<div class="bg-white p-6 rounded-xl border border-border-base shadow-[0_2px_12px_0_rgba(0,0,0,0.05)]">
+<p class="text-text-secondary text-sm font-medium">已完成</p>
+<div class="flex items-baseline space-x-2 mt-2">
+<span class="text-3xl font-bold text-text-primary">1,278</span>
+<span class="text-primary text-xs font-medium">Success</span>
+</div>
+</div>
+<div class="bg-white p-6 rounded-xl border border-border-base shadow-[0_2px_12px_0_rgba(0,0,0,0.05)]">
+<p class="text-text-secondary text-sm font-medium">存储使用</p>
+<div class="flex items-baseline space-x-2 mt-2">
+<span class="text-3xl font-bold text-text-primary">84%</span>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-danger h-full w-[84%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Table Section -->
+<div class="bg-white rounded-xl border border-border-base shadow-[0_2px_12px_0_rgba(0,0,0,0.1)] overflow-hidden">
+<div class="px-6 py-4 border-b border-border-base flex justify-between items-center bg-[#FAFAFA]">
+<h3 class="font-bold text-text-primary">任务明细</h3>
+<div class="flex space-x-2">
+<div class="relative">
+<input class="pl-10 pr-4 py-2 border border-border-base rounded-lg text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none w-64" placeholder="搜索地址或路径..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary text-sm">search</span>
+</div>
+<button class="p-2 border border-border-base rounded-lg text-text-secondary hover:text-primary hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-[#FAFAFA] text-text-secondary text-label-md">
+<tr>
+<th class="px-6 py-4 font-semibold">地址</th>
+<th class="px-6 py-4 font-semibold">本地路径</th>
+<th class="px-6 py-4 font-semibold">状态</th>
+<th class="px-6 py-4 font-semibold text-right">操作</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-base"><tr class="table-row-hover transition-colors"><td class="px-6 py-4"><div class="flex items-center space-x-2"><span class="material-symbols-outlined text-primary text-sm">link</span><a class="text-primary hover:underline text-body-md truncate max-w-xs" href="#">https://www.youtube.com/shorts/W7VcnL6YZw8</a></div></td><td class="px-6 py-4"><code class="bg-surface-container px-2 py-1 rounded text-code text-text-regular">storage/cache_videos/202606091345.mp4</code></td><td class="px-6 py-4"><span class="text-body-md text-text-primary">完成</span></td><td class="px-6 py-4"><div class="flex justify-end space-x-2"><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary-container text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>播放</span></button><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary-container text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>下一步</span></button><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>一步完成</span></button></div></td></tr><tr class="table-row-hover transition-colors"><td class="px-6 py-4"><div class="flex items-center space-x-2"><span class="material-symbols-outlined text-primary text-sm">link</span><a class="text-primary hover:underline text-body-md truncate max-w-xs" href="#">https://www.youtube.com/watch?v=nlvJmU1aZ4M</a></div></td><td class="px-6 py-4"><code class="bg-surface-container px-2 py-1 rounded text-code text-text-regular">storage/cache_videos/202606091345.mp4</code></td><td class="px-6 py-4"><span class="text-body-md text-text-primary">完成</span></td><td class="px-6 py-4"><div class="flex justify-end space-x-2"><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary-container text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>播放</span></button><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary-container text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>下一步</span></button><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>一步完成</span></button></div></td></tr><tr class="table-row-hover transition-colors"><td class="px-6 py-4"><div class="flex items-center space-x-2"><span class="material-symbols-outlined text-primary text-sm">link</span><a class="text-primary hover:underline text-body-md truncate max-w-xs" href="#">https://www.youtube.com/watch?v=XkzmO83RWzw</a></div></td><td class="px-6 py-4"></td><td class="px-6 py-4"><span class="text-body-md text-danger">失败，查看日志</span></td><td class="px-6 py-4"><div class="flex justify-end space-x-2"><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary-container text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>重试</span></button><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary-container text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>下一步</span></button><button class="flex items-center space-x-1 px-3 py-1.5 bg-primary text-white rounded hover:opacity-90 transition-all text-sm font-medium"><span>一步完成</span></button></div></td></tr></tbody>
+</table>
+</div>
+<!-- Table Footer/Pagination -->
+<div class="px-6 py-4 border-t border-border-base flex items-center justify-between bg-[#FAFAFA]">
+<span class="text-sm text-text-secondary">显示 1 到 3 项，共 3 项</span>
+<div class="flex items-center space-x-1">
+<button class="p-1.5 border border-border-base rounded hover:bg-surface-container-low text-text-secondary">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="px-3 py-1 border border-primary bg-primary text-white rounded text-sm">1</button>
+<button class="px-3 py-1 border border-border-base rounded hover:bg-surface-container-low text-sm">2</button>
+<button class="px-3 py-1 border border-border-base rounded hover:bg-surface-container-low text-sm">3</button>
+<button class="p-1.5 border border-border-base rounded hover:bg-surface-container-low text-text-secondary">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Asymmetric Support Section -->
+<div class="mt-gutter flex flex-col lg:flex-row gap-gutter">
+<div class="flex-1 bg-white p-6 rounded-xl border border-border-base shadow-[0_2px_12px_0_rgba(0,0,0,0.05)] relative overflow-hidden">
+<div class="relative z-10">
+<h4 class="text-headline-sm font-bold text-text-primary mb-2">系统状态概览</h4>
+<p class="text-body-md text-text-secondary mb-4">视频处理队列目前处于高效运行状态。所有 ASR 和 LLM 引擎均已就绪。</p>
+<div class="flex space-x-4">
+<div class="flex items-center text-sm text-success font-medium">
+<span class="w-2 h-2 rounded-full bg-success mr-2"></span>
+                                网络良好 (12.4 MB/s)
+                            </div>
+<div class="flex items-center text-sm text-primary font-medium">
+<span class="w-2 h-2 rounded-full bg-primary mr-2"></span>
+                                CPU 负载: 42%
+                            </div>
+</div>
+</div>
+<!-- Decorative element -->
+<div class="absolute -right-4 -bottom-4 w-32 h-32 bg-primary/5 rounded-full"></div>
+</div>
+<div class="w-full lg:w-1/3 bg-primary-container p-6 rounded-xl shadow-[0_4px_20px_0_rgba(64,158,255,0.2)] text-white flex flex-col justify-between">
+<div>
+<h4 class="text-headline-sm font-bold mb-2">快捷指南</h4>
+<p class="text-body-md opacity-90 mb-4">使用“一步完成”可以直接自动执行从下载到发布的所有预设步骤。</p>
+</div>
+<a class="inline-flex items-center text-white font-bold hover:underline" href="#">
+                        查看详细配置文档
+                        <span class="material-symbols-outlined ml-2 text-sm">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Sidebar toggle functionality (simplified for demo)
+        const sidebar = document.getElementById('sidebar');
+        // Mobile responsiveness could be added here
+    </script>
+</body></html>

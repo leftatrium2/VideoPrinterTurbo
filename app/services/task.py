@@ -31,6 +31,11 @@ def _log(msg: str) -> str:
     return f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
 
 
+def _is_stopped(task_id: str) -> bool:
+    t = sm.state.get_task(task_id)
+    return t is not None and t.get("stopped") is True
+
+
 def start(task_id: str, params: VideoRewriteParams, stop_at: str = "video"):
     """Main pipeline entry point — called from the task queue."""
     logger.info(f"start task: {task_id}, stop_at: {stop_at}")
@@ -69,6 +74,8 @@ def start(task_id: str, params: VideoRewriteParams, stop_at: str = "video"):
                          log=_log("① 视频下载完成"))
 
     # ── ② Extract / transcribe original text ─────────────────────────
+    if _is_stopped(task_id):
+        return
     sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=20,
                          log=_log("② 开始提取 / 转录原文..."))
 
@@ -109,6 +116,8 @@ def start(task_id: str, params: VideoRewriteParams, stop_at: str = "video"):
         return {"transcript": original_text, "segments": transcript_segments}
 
     # ── ③ LLM rewrite ──────────────────────────────────────────────
+    if _is_stopped(task_id):
+        return
     sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=35,
                          log=_log("③ 调用 LLM 改写文案..."))
 
@@ -166,6 +175,8 @@ def start(task_id: str, params: VideoRewriteParams, stop_at: str = "video"):
         return {"script": video_script, "terms": search_terms}
 
     # ── ④ TTS audio generation ──────────────────────────────────────
+    if _is_stopped(task_id):
+        return
     sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=50,
                          log=_log("④ 开始 TTS 配音..."))
 
@@ -200,6 +211,8 @@ def start(task_id: str, params: VideoRewriteParams, stop_at: str = "video"):
         return {"audio_file": audio_file, "audio_duration": audio_duration}
 
     # ── ⑤ Search video materials ────────────────────────────────────
+    if _is_stopped(task_id):
+        return
     sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=65,
                          log=_log("⑤ 搜索视频素材..."))
 
@@ -243,6 +256,8 @@ def start(task_id: str, params: VideoRewriteParams, stop_at: str = "video"):
         return {"materials": downloaded_videos}
 
     # ── ⑥ Compose final video ───────────────────────────────────────
+    if _is_stopped(task_id):
+        return
     sm.state.update_task(task_id, state=const.TASK_STATE_PROCESSING, progress=80,
                          log=_log("⑥ 开始合成视频..."))
 

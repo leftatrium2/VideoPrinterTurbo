@@ -61,6 +61,13 @@
     "tasks": "个任务",
     "Language": "语言",
     "Video": "视频",
-    "No logs": "暂无日志"
+    "No logs": "暂无日志",
+    "Stop": "停止",
+    "Delete": "删除",
+    "Edit": "编辑",
+    "Cancel Edit": "取消编辑",
+    "Editing task": "正在编辑任务",
+    "Task stop requested": "已请求停止任务",
+    "Task deleted": "任务已删除"
   }
 }

@@ -14,10 +14,7 @@ env/
 config.toml
 
 # Storage
-storage/tasks/*
-storage/cache_videos/*
-!storage/tasks/.gitkeep
-!storage/cache_videos/.gitkeep
+storage/
 
 # Downloads
 downloads/
@@ -37,3 +34,16 @@ Thumbs.db
 
 # Logs
 *.log
+
+# db
+db/
+
+# error
+error/
+
+# spec
+docs/
+
+.playwright-mcp/
+.claude/
+.pytest_cache/

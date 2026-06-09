@@ -61,6 +61,13 @@
     "tasks": "tasks",
     "Language": "Language",
     "Video": "Video",
-    "No logs": "No logs yet"
+    "No logs": "No logs yet",
+    "Stop": "Stop",
+    "Delete": "Delete",
+    "Edit": "Edit",
+    "Cancel Edit": "Cancel Edit",
+    "Editing task": "Editing task",
+    "Task stop requested": "Stop requested",
+    "Task deleted": "Task deleted"
   }
 }

@@ -1,180 +1,103 @@
 <template>
   <div class="page-wrapper">
+    <!-- 页头 -->
     <div class="page-header">
       <div>
         <h2 class="page-title">一步完成</h2>
-        <p class="page-subtitle">填写参数后自动执行从下载到发布的完整流程</p>
+        <p class="page-subtitle">高效完成您的自动化任务流</p>
       </div>
+      <el-button :icon="List" @click="drawerOpen = true">任务列表</el-button>
     </div>
 
-    <el-row :gutter="16">
-      <!-- 左栏：表单 -->
-      <el-col :span="10">
-        <el-card class="form-card">
-          <template #header><span class="card-title">任务参数</span></template>
+    <!-- 居中表单卡片 -->
+    <div class="form-card">
+        <div class="card-header">
+          <el-icon class="card-header-icon"><Tickets /></el-icon>
+          <span class="card-header-title">输入</span>
+        </div>
 
-          <el-form :model="form" label-position="top" @submit.prevent="handleSubmit">
-            <el-form-item label="视频 URL" required>
-              <el-input v-model="form.video_url" placeholder="请输入 YouTube / Bilibili 等视频地址" clearable />
-            </el-form-item>
+        <el-form :model="form" label-position="top" @submit.prevent="handleSubmit">
+          <el-form-item label="视频链接">
+            <el-input
+              v-model="form.video_url"
+              placeholder="https://www.youtube.com/watch?v=... 或 https://www.bilibili.com/video/..."
+              clearable
+            />
+          </el-form-item>
 
-            <el-form-item label="改写指令">
-              <el-input
-                v-model="form.rewrite_instruction"
-                type="textarea" :rows="3"
-                placeholder="描述你想要的改写风格或重点，留空则使用默认指令"
-              />
-            </el-form-item>
+          <el-form-item label="改写指令">
+            <el-input
+              v-model="form.rewrite_instruction"
+              type="textarea"
+              :rows="3"
+              placeholder="例如：把这段视频的解说词改成英文，风格更活泼，适合短视频传播"
+            />
+          </el-form-item>
 
-            <el-form-item label="自定义脚本（可选，留空则 AI 生成）">
-              <el-input
-                v-model="form.video_script"
-                type="textarea" :rows="3"
-                placeholder="直接提供解说词，将跳过 LLM 改写步骤"
-              />
-            </el-form-item>
+          <el-form-item label="自定义文案（可选，留空到 AI 自动改写）">
+            <el-input
+              v-model="form.video_script"
+              type="textarea"
+              :rows="4"
+              placeholder="如果留空，AI 会根据视频字幕和改写指令自动生成新文案"
+            />
+          </el-form-item>
 
-            <el-collapse v-model="advancedOpen" class="advanced-collapse">
-              <el-collapse-item title="高级参数" name="advanced">
-                <el-row :gutter="12">
-                  <el-col :span="24">
-                    <el-form-item label="语音名称">
-                      <el-input v-model="form.voice_name" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="语速">
-                      <el-slider v-model="form.voice_rate" :min="0.5" :max="2.0" :step="0.1" show-input input-size="small" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="背景音量">
-                      <el-slider v-model="form.bgm_volume" :min="0" :max="1" :step="0.1" show-input input-size="small" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="背景音乐">
-                      <el-select v-model="form.bgm_type" style="width: 100%">
-                        <el-option label="随机" value="random" />
-                        <el-option label="无" value="none" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="宽高比">
-                      <el-select v-model="form.video_aspect" style="width: 100%">
-                        <el-option label="竖屏 9:16" value="9:16" />
-                        <el-option label="横屏 16:9" value="16:9" />
-                        <el-option label="方形 1:1" value="1:1" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="素材来源">
-                      <el-select v-model="form.video_source" style="width: 100%">
-                        <el-option label="Pexels" value="pexels" />
-                        <el-option label="Pixabay" value="pixabay" />
-                        <el-option label="本地" value="local" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="字幕位置">
-                      <el-select v-model="form.subtitle_position" style="width: 100%">
-                        <el-option label="底部" value="bottom" />
-                        <el-option label="顶部" value="top" />
-                        <el-option label="居中" value="center" />
-                      </el-select>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="字幕">
-                      <el-switch v-model="form.subtitle_enabled" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="自动发布">
-                      <el-switch v-model="form.auto_publish" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="视频数量">
-                      <el-input-number v-model="form.video_count" :min="1" :max="5" style="width: 100%" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="片段时长 (s)">
-                      <el-input-number v-model="form.video_clip_duration" :min="2" :max="15" style="width: 100%" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="字体大小">
-                      <el-input-number v-model="form.font_size" :min="30" :max="120" style="width: 100%" />
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="8">
-                    <el-form-item label="线程数">
-                      <el-input-number v-model="form.n_threads" :min="1" :max="8" style="width: 100%" />
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-              </el-collapse-item>
-            </el-collapse>
+          <el-button
+            native-type="submit"
+            :loading="submitting"
+            class="submit-btn"
+            size="large"
+          >
+            <el-icon v-if="!submitting"><Promotion /></el-icon>
+            开始改写
+          </el-button>
+        </el-form>
+      </div>
 
-            <el-button
-              type="primary" native-type="submit"
-              :loading="submitting"
-              style="width: 100%; margin-top: 16px;"
-              size="large"
-            >开始改写</el-button>
-          </el-form>
-        </el-card>
-      </el-col>
+    <!-- 任务列表 Drawer -->
+    <el-drawer
+      v-model="drawerOpen"
+      title="任务列表"
+      direction="rtl"
+      size="420px"
+    >
+      <div class="drawer-toolbar">
+        <el-button size="small" :loading="store.loading" @click="store.fetchTasks()">刷新</el-button>
+      </div>
 
-      <!-- 右栏：任务列表 -->
-      <el-col :span="14">
-        <el-card class="task-card">
-          <template #header>
-            <div class="task-header">
-              <span class="card-title">任务列表</span>
-              <el-button size="small" :loading="store.loading" @click="store.fetchTasks()">刷新</el-button>
-            </div>
-          </template>
+      <div v-if="store.tasks.length === 0 && !store.loading" class="empty-tip">
+        暂无任务，提交后将在此显示
+      </div>
 
-          <div v-if="store.tasks.length === 0 && !store.loading" class="empty-tip">
-            暂无任务，提交后将在此显示
+      <div v-for="task in store.tasks" :key="task.task_id" class="task-item">
+        <div class="task-row">
+          <div class="task-left">
+            <el-tag :type="stateTagType(task.state)" size="small">{{ stateLabel(task.state) }}</el-tag>
+            <span class="task-id">{{ task.task_id.slice(0, 8) }}…</span>
           </div>
-
-          <div v-for="task in store.tasks" :key="task.task_id" class="task-item">
-            <div class="task-row">
-              <div class="task-left">
-                <el-tag :type="stateTagType(task.state)" size="small">{{ stateLabel(task.state) }}</el-tag>
-                <span class="task-id">{{ task.task_id.slice(0, 8) }}…</span>
-              </div>
-              <div class="task-actions">
-                <el-button size="small" type="danger" plain :disabled="task.state !== 4" @click="handleStop(task.task_id)">停止</el-button>
-                <el-button size="small" @click="handleEdit(task)">编辑</el-button>
-                <el-button size="small" type="danger" @click="handleDelete(task.task_id)">删除</el-button>
-              </div>
-            </div>
-
-            <el-progress v-if="task.state === 4" :percentage="task.progress" :stroke-width="4" style="margin-top: 8px;" />
-
-            <el-collapse v-if="task.logs?.length" style="margin-top: 8px;">
-              <el-collapse-item :title="`日志 (${task.logs.length} 条)`">
-                <pre class="log-block">{{ task.logs.join('\n') }}</pre>
-              </el-collapse-item>
-            </el-collapse>
-
-            <div v-if="task.videos?.length" class="video-list">
-              <a v-for="v in task.videos" :key="v" :href="v" target="_blank" class="video-link">
-                {{ v.split('/').pop() }}
-              </a>
-            </div>
+          <div class="task-actions">
+            <el-button size="small" type="danger" plain :disabled="task.state !== 4" @click="handleStop(task.task_id)">停止</el-button>
+            <el-button size="small" @click="handleEdit(task)">编辑</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(task.task_id)">删除</el-button>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+
+        <el-progress v-if="task.state === 4" :percentage="task.progress" :stroke-width="4" style="margin-top: 8px;" />
+
+        <el-collapse v-if="task.logs?.length" style="margin-top: 8px;">
+          <el-collapse-item :title="`日志 (${task.logs.length} 条)`">
+            <pre class="log-block">{{ task.logs.join('\n') }}</pre>
+          </el-collapse-item>
+        </el-collapse>
+
+        <div v-if="task.videos?.length" class="video-list">
+          <a v-for="v in task.videos" :key="v" :href="v" target="_blank" class="video-link">
+            {{ v.split('/').pop() }}
+          </a>
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -182,13 +105,14 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { List, Tickets, Promotion } from '@element-plus/icons-vue'
 import { useTaskStore } from '@/stores/task'
 import { postRewrite, stopTask, deleteTask, type RewriteParams, type Task } from '@/services/api'
 
 const store = useTaskStore()
 const route = useRoute()
 const submitting = ref(false)
-const advancedOpen = ref<string[]>([])
+const drawerOpen = ref(false)
 
 const form = ref<RewriteParams>({
   video_url: '',
@@ -218,13 +142,14 @@ function stateTagType(state: number): 'success' | 'warning' | 'danger' | 'info' 
 }
 
 async function handleSubmit() {
-  if (!form.value.video_url) { ElMessage.error('请输入视频 URL'); return }
+  if (!form.value.video_url) { ElMessage.error('请输入视频链接'); return }
   submitting.value = true
   try {
     const result = await postRewrite(form.value)
     ElMessage.success(`任务已提交: ${result.task_id.slice(0, 8)}…`)
     await store.fetchTasks()
     store.startPolling()
+    drawerOpen.value = true
   } catch (e: any) {
     ElMessage.error(e.message ?? '提交失败')
   } finally {
@@ -256,6 +181,7 @@ async function handleDelete(taskId: string) {
 function handleEdit(task: Task) {
   if (task.params) {
     Object.assign(form.value, task.params)
+    drawerOpen.value = false
     ElMessage.info('已将参数回填到表单')
   }
 }
@@ -275,26 +201,69 @@ onUnmounted(() => {
 
 <style scoped>
 .page-wrapper { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 32px;
+}
 .page-title { font-size: 20px; font-weight: 600; color: var(--color-text-primary); }
 .page-subtitle { font-size: 14px; color: var(--color-text-secondary); margin-top: 4px; }
-.card-title { font-weight: 600; color: var(--color-text-primary); }
-.form-card, .task-card { border-radius: 8px; }
-.advanced-collapse { border: none; }
-.task-header { display: flex; justify-content: space-between; align-items: center; }
+
+/* 居中卡片 */
+.form-card {
+  max-width: 90%;
+  margin: 0 auto;
+  background: #fff; border-radius: 8px;
+  border: 1px solid var(--color-border); box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 24px; border-bottom: 1px solid var(--color-border);
+  background: #fff;
+}
+.card-header-icon { font-size: 16px; color: var(--color-primary); }
+.card-header-title { font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+
+:deep(.el-form) { padding: 24px; }
+:deep(.el-form-item) { margin-bottom: 20px; }
+:deep(.el-form-item__label) {
+  font-size: 14px; font-weight: 500; color: var(--color-text-primary);
+  padding-bottom: 6px;
+}
+
+.submit-btn {
+  width: 100%; margin-top: 8px;
+  background: #F87171; border-color: #F87171; color: #fff;
+  font-size: 15px; font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.submit-btn:hover { background: #EF4444; border-color: #EF4444; }
+.submit-btn:active { background: #DC2626; border-color: #DC2626; }
+
+/* Drawer */
+.drawer-toolbar {
+  display: flex; justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
 .empty-tip { text-align: center; color: var(--color-text-secondary); padding: 40px 0; font-size: 14px; }
+
 .task-item { padding: 12px 0; border-bottom: 1px solid var(--color-border); }
 .task-item:last-child { border-bottom: none; }
 .task-row { display: flex; justify-content: space-between; align-items: center; }
 .task-left { display: flex; align-items: center; gap: 8px; }
 .task-id { font-size: 13px; color: var(--color-text-secondary); font-family: monospace; }
 .task-actions { display: flex; gap: 4px; }
+
 .log-block {
   font-size: 12px; font-family: monospace;
   background: #f5f5f5; border-radius: 4px; padding: 8px;
   white-space: pre-wrap; word-break: break-all;
   max-height: 200px; overflow-y: auto;
 }
+
 .video-list { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
 .video-link { font-size: 13px; color: var(--color-primary); text-decoration: none; }
 .video-link:hover { text-decoration: underline; }

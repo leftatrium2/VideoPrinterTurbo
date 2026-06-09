@@ -187,6 +187,26 @@ def _api_post(path: str, body: dict) -> dict | None:
         return None
 
 
+def _api_delete(path: str) -> bool:
+    try:
+        r = requests.delete(f"{_api_base}{path}", timeout=10)
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        st.error(f"{tr('Cannot connect to API service.')} ({e})")
+        return False
+
+
+def _api_stop(task_id: str) -> bool:
+    try:
+        r = requests.post(f"{_api_base}/api/v1/tasks/{task_id}/stop", timeout=10)
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        st.error(f"{tr('Cannot connect to API service.')} ({e})")
+        return False
+
+
 # ── Sidebar ────────────────────────────────────────────────────────
 
 with st.sidebar:
@@ -249,19 +269,33 @@ with st.sidebar:
 
 st.subheader(tr("Input"))
 
+# Pre-fill from edit action
+_edit_params = st.session_state.get("edit_task_params", {})
+if _edit_params:
+    edit_notice_col, cancel_col = st.columns([4, 1])
+    with edit_notice_col:
+        st.info(tr("Editing task") + f": {_edit_params.get('task_id', '')[:8]}…")
+    with cancel_col:
+        if st.button(tr("Cancel Edit"), use_container_width=True):
+            st.session_state.pop("edit_task_params", None)
+            st.rerun()
+
 video_url = st.text_input(
     tr("Video URL"),
+    value=_edit_params.get("video_url", ""),
     placeholder=tr("Video URL placeholder"),
 )
 
 rewrite_instruction = st.text_area(
     tr("Rewrite Instruction"),
+    value=_edit_params.get("rewrite_instruction", ""),
     placeholder=tr("Rewrite Instruction placeholder"),
     height=100,
 )
 
 video_script = st.text_area(
     tr("Custom Script (optional, leave empty for AI)"),
+    value=_edit_params.get("video_script", ""),
     placeholder=tr("Custom Script placeholder"),
     height=100,
 )
@@ -299,6 +333,7 @@ if submitted:
             task_id = result.get("task_id", "")
             st.success(f"{tr('Task submitted')}: {task_id}")
             st.info(tr("Task is being processed, click Refresh to check progress."))
+            st.session_state.pop("edit_task_params", None)
         else:
             st.error(tr("Task submission failed, please check the API server."))
 
@@ -338,6 +373,29 @@ if st.button(tr("Refresh Task List")):
                         st.write(f"**{tr('Videos')}**")
                         for v in videos:
                             st.markdown(f"[{v.split('/')[-1]}]({v})")
+
+                    # Action buttons
+                    btn_cols = st.columns(3)
+                    with btn_cols[0]:
+                        stop_disabled = state_val != 4
+                        if st.button(tr("Stop"), key=f"stop_{tid}", disabled=stop_disabled,
+                                     use_container_width=True):
+                            if _api_stop(tid):
+                                st.success(tr("Task stop requested"))
+                                st.rerun()
+                    with btn_cols[1]:
+                        if st.button(tr("Delete"), key=f"del_{tid}", type="primary",
+                                     use_container_width=True):
+                            if _api_delete(f"/api/v1/tasks/{tid}"):
+                                st.success(tr("Task deleted"))
+                                st.rerun()
+                    with btn_cols[2]:
+                        task_params = t.get("params") or {}
+                        if st.button(tr("Edit"), key=f"edit_{tid}", use_container_width=True):
+                            st.session_state["edit_task_params"] = {
+                                **task_params, "task_id": tid
+                            }
+                            st.rerun()
         else:
             st.info(tr("No Tasks"))
     else:
