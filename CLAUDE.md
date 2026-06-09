@@ -268,7 +268,7 @@ tests/
 
 ## 前端（Vue 3）
 
-`front/` 目录为 Vite + Vue 3 + Element Plus 管理后台前端，还原 `prototype/2026-06-09` 设计稿。
+`front/` 目录为 Vite + Vue 3 + Element Plus 管理后台前端，参照 `prototype/2026-06-09-*` 系列设计稿实现。
 原 `webui/`（Streamlit）已废弃，保留代码但不再维护。
 
 ### 启动命令
@@ -293,12 +293,52 @@ cd front && npx vitest run
 
 ```
 front/src/
-├── components/    # AppLayout（侧边栏+顶栏）、PlaceholderPage
-├── services/      # api.ts — 全部 API 调用封装
-├── stores/        # task.ts — Pinia 任务状态 + 5s 轮询
+├── components/
+│   ├── AppLayout.vue     # 布局容器（组合 AppSidebar + AppTopbar）
+│   ├── AppSidebar.vue    # 公共侧边栏（一步完成 / 工作流 / 系统配置三级导航）
+│   ├── AppTopbar.vue     # 公共顶栏（三级面包屑 + 铃铛 + 用户头像）
+│   └── PlaceholderPage.vue
+├── services/             # api.ts — 全部 API 调用封装
+├── stores/               # task.ts — Pinia 任务状态 + 5s 轮询
+├── router/               # index.ts — 所有路由，meta.breadcrumb 定义三级面包屑
 ├── views/
-│   ├── OneStep.vue              # 一步完成（完整实现）
-│   ├── download/DownloadTask.vue # 下载任务（完整实现）
-│   └── steps/ settings/        # 各占位页（马上完成）
-└── styles/variables.css         # 全局 CSS 变量
+│   ├── OneStep.vue                      # 一步完成（居中表单卡片 + 任务列表 Drawer）
+│   ├── download/DownloadTask.vue        # 下载任务（统计卡片 + 任务明细表格）
+│   ├── steps/
+│   │   ├── StepsOverview.vue            # 分步处理概览（流水线卡片）
+│   │   ├── DocExtract.vue               # 文档提取（表格：地址/本地路径/文档来源/操作）
+│   │   ├── LLMRewrite.vue               # LLM 改写（表格）
+│   │   ├── TTS.vue                      # TTS 处理（表格）
+│   │   ├── Material.vue                 # 素材搜索（表格）
+│   │   └── Publish.vue                  # 发布（表格 + 视频播放）
+│   └── settings/
+│       ├── SettingsOverview.vue         # 系统配置概览（分类卡片）
+│       ├── ASR.vue                      # ASR 配置（表单）
+│       ├── LLM.vue                      # LLM 配置（表单）
+│       ├── MaterialConfig.vue           # 素材配置（表单）
+│       ├── PublishConfig.vue            # 发布配置（表单）
+│       └── TTSConfig.vue                # TTS 配置（表单）
+└── styles/variables.css                 # 全局 CSS 变量
 ```
+
+### 路由结构
+
+所有页面挂载在 `AppLayout` 下，路由 `meta.breadcrumb` 为三级数组，格式：
+`['VideoPrinterTurbo', '工作流' | '系统配置', '页面名称']`
+
+| 路径 | 组件 |
+|---|---|
+| `/one-step` | OneStep |
+| `/steps` | StepsOverview |
+| `/steps/download` | DownloadTask |
+| `/steps/doc-extract` | DocExtract |
+| `/steps/llm-rewrite` | LLMRewrite |
+| `/steps/tts` | TTS |
+| `/steps/material` | Material |
+| `/steps/publish` | Publish |
+| `/settings` | SettingsOverview |
+| `/settings/asr` | ASR |
+| `/settings/llm` | LLM |
+| `/settings/material` | MaterialConfig |
+| `/settings/publish-config` | PublishConfig |
+| `/settings/tts-config` | TTSConfig |
