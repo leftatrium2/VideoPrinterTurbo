@@ -2,8 +2,8 @@
 
 视频改写 AI 项目：下载视频 → 转录原文 → LLM 改写 → TTS 配音 → 搜索素材 → 合成新视频 → 发布。
 
-- **Stack:** Python 3.11+, FastAPI + uvicorn, Streamlit, moviepy, yt-dlp, edge-tts, faster-whisper, openai
-- **Entry point:** `main.py`（API server），`webui/Main.py`（Streamlit UI）
+- **Stack:** Python 3.11+, FastAPI + uvicorn, moviepy, yt-dlp, edge-tts, faster-whisper, openai; Vue 3 + Element Plus（前端）
+- **Entry point:** `main.py`（API server），`front/`（Vue 前端，替代已废弃的 `webui/`）
 - **Remote:** `git@github.com:leftatrium2/VideoPrinterTurbo.git`
 
 ## 快速命令
@@ -265,3 +265,40 @@ tests/
 - 修改 `app/plugins/` 下任何文件后需重启 API server（插件在启动时注册）
 - 视频合成依赖系统级 `ffmpeg`，Docker 镜像已内置；本地开发需自行安装
 - 素材搜索和 LLM 调用需要网络；国内用户建议在 `config.toml` 中配置 `[proxy]`
+
+## 前端（Vue 3）
+
+`front/` 目录为 Vite + Vue 3 + Element Plus 管理后台前端，还原 `prototype/2026-06-09` 设计稿。
+原 `webui/`（Streamlit）已废弃，保留代码但不再维护。
+
+### 启动命令
+
+```shell
+# 先启动后端 API（:8080），再启动前端
+cd front && npm install && npm run dev   # http://localhost:5173
+
+# 前端构建
+cd front && npm run build
+
+# 前端测试
+cd front && npx vitest run
+```
+
+### API 代理
+
+开发模式下 Vite 自动将 `/api/*` 代理到 `http://localhost:8080`。
+生产构建需单独配置反向代理。
+
+### 目录说明
+
+```
+front/src/
+├── components/    # AppLayout（侧边栏+顶栏）、PlaceholderPage
+├── services/      # api.ts — 全部 API 调用封装
+├── stores/        # task.ts — Pinia 任务状态 + 5s 轮询
+├── views/
+│   ├── OneStep.vue              # 一步完成（完整实现）
+│   ├── download/DownloadTask.vue # 下载任务（完整实现）
+│   └── steps/ settings/        # 各占位页（马上完成）
+└── styles/variables.css         # 全局 CSS 变量
+```
