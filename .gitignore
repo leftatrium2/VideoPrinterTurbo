@@ -47,3 +47,5 @@ docs/
 .playwright-mcp/
 .claude/
 .pytest_cache/
+
+app/.env

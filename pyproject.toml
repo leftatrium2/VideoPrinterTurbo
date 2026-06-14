@@ -24,6 +24,13 @@ dependencies = [
     "pydub==0.25.1",
     "yt-dlp>=2024.12.0",
     "pydantic>=2.0.0",
+    "tencentcloud-sdk-python-common[async]>=3.1.111",
+    "tencentcloud-sdk-python[async]>=3.1.111",
+    "sqlalchemy>=2.0.50",
+    "pydantic-settings>=2.14.1",
+    "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.3",
+    "apscheduler>=3.11.2",
 ]
 
 [project.optional-dependencies]
@@ -41,3 +48,6 @@ testpaths = ["tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv]
+index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
