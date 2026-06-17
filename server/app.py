@@ -11,15 +11,18 @@ from routers.material_config import router as material_config_router
 from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
 from server.service.task_manager import task_manager
+from utils.database import database
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ========== 应用启动时执行（只运行一次） ==========
     task_manager.start()
+    database.start()
     yield  # 服务正式开始运行，接收请求
     # ========== 应用关闭时执行（服务停止前） ==========
     task_manager.stop()
+    database.stop()
 
 
 app = FastAPI(

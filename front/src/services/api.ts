@@ -1,73 +1,62 @@
 import axios from 'axios'
 
 export interface Task {
-  task_id: string
-  state: number
-  progress: number
-  logs: string[]
-  videos: string[]
-  params?: Record<string, unknown>
+  id: number
+  task_url: string
+  create_time: string
+  is_deleted: number
+  status: number  // 0=pending, 1=running, 2=done, -1=failed
+  task_id: number
+  error_code: number
+  error_desc: string
+  local_path?: string
 }
 
 export interface TaskListResult {
   tasks: Task[]
-  total: number
+  total?: number
 }
 
-export interface RewriteParams {
-  video_url: string
-  rewrite_instruction?: string
-  video_script?: string
-  voice_name?: string
-  voice_rate?: number
+export interface AddTaskParams {
+  task_url: string
+  transcription_mode?: string
+  llm_enabled?: boolean
+  llm_prompt?: string
+  output_mode?: string
+  tts_service?: string
+  tts_voice?: string
+  tts_volume?: number
+  tts_speed?: number
+  subtitle_font?: string
+  subtitle_position?: string
+  subtitle_position_custom?: string
+  subtitle_color?: string
+  subtitle_stroke_color?: string
+  subtitle_stroke_width?: number
+  subtitle_size?: number
   bgm_type?: string
   bgm_volume?: number
-  subtitle_enabled?: boolean
-  subtitle_position?: string
-  video_aspect?: string
   video_source?: string
-  auto_publish?: boolean
-  publish_platforms?: string[]
+  video_concat_mode?: string
+  video_transition?: string
+  video_aspect?: string
+  video_fragment_duration?: number
   video_count?: number
-  video_clip_duration?: number
-  font_size?: number
-  n_threads?: number
 }
 
-async function request<T>(
-  promise: Promise<{ data: { status: number; data?: T; message?: string } }>
-): Promise<T> {
+async function request<T>(promise: Promise<{ data: T }>): Promise<T> {
   const res = await promise
-  if (res.data.status !== 200) {
-    throw new Error(res.data.message ?? '请求失败')
-  }
-  return res.data.data as T
+  return res.data
 }
 
 export function getTasks(page: number, pageSize: number): Promise<TaskListResult> {
-  return request(axios.get('/api/v1/tasks', { params: { page, page_size: pageSize } }))
+  return request(axios.get('/api/tasks/', { params: { page, page_size: pageSize } }))
 }
 
-export function getTask(id: string): Promise<Task> {
-  return request(axios.get(`/api/v1/tasks/${id}`))
-}
-
-export function postRewrite(params: RewriteParams): Promise<{ task_id: string }> {
-  return request(axios.post('/api/v1/rewrite', params))
-}
-
-export function deleteTask(id: string): Promise<void> {
-  return request(axios.delete(`/api/v1/tasks/${id}`))
-}
-
-export function stopTask(id: string): Promise<void> {
-  return request(axios.post(`/api/v1/tasks/${id}/stop`))
+export function addTask(params: AddTaskParams): Promise<{ message: string }> {
+  return request(axios.post('/api/tasks/add', params))
 }
 
 export function streamUrl(path: string): string {
-  return `/api/v1/stream/${path}`
-}
-
-export function downloadUrl(path: string): string {
-  return `/api/v1/download/${path}`
+  return `/api/stream/${path}`
 }

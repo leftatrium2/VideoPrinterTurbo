@@ -1,14 +1,28 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
-
 from config.config import config
-
-sqlite_url = config["database"]["url"]
-engine = create_async_engine(sqlite_url, connect_args={'check_same_thread': False}, echo=True)
-
-async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from utils.logger import logger
 
 
-async def get_db():
-    async with async_session_maker() as session:
-        yield session
+class DataBase(object):
+    engine = None
+
+    def start(self):
+        logger.info(f"DataBase {config['database']['url']} started")
+        self.engine = create_async_engine(
+            config["database"]["url"],
+            echo=True
+        )
+
+    def stop(self):
+        logger.info(f"DataBase stopped")
+        if self.engine:
+            self.engine.dispose()
+
+    async def get_db(self):
+        async_session = sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
+        async with async_session() as session:
+            yield session
+
+
+database = DataBase()

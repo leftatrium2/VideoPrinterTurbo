@@ -5,31 +5,23 @@
         <el-icon><Film /></el-icon>
       </div>
       <div class="logo-text">
-        <h1>VideoPrinterTurbo</h1>
+        <h1>Backend Admin</h1>
         <p>Management Suite</p>
       </div>
     </div>
 
     <nav class="nav">
-      <RouterLink to="/one-step" class="nav-item" active-class="nav-item--active">
-        <el-icon><Lightning /></el-icon>
-        <span>一步完成</span>
+      <RouterLink to="/add-task" class="nav-item" active-class="nav-item--active">
+        <el-icon><Plus /></el-icon>
+        <span>添加任务</span>
       </RouterLink>
 
-      <div class="nav-section-label">工作流</div>
-
-      <RouterLink
-        v-for="item in workflowItems"
-        :key="item.to"
-        :to="item.to"
-        class="nav-item"
-        active-class="nav-item--active"
-      >
-        <el-icon><component :is="item.icon" /></el-icon>
-        <span>{{ item.label }}</span>
+      <RouterLink to="/tasks" class="nav-item" active-class="nav-item--active">
+        <el-icon><List /></el-icon>
+        <span>任务列表</span>
       </RouterLink>
 
-      <div class="nav-section-label">系统配置</div>
+      <div class="nav-section-label">系统设置</div>
 
       <RouterLink
         v-for="item in configItems"
@@ -47,28 +39,16 @@
 
 <script setup lang="ts">
 import {
-  Film, Lightning,
-  Grid, Download, Document, Edit, Headset, Picture, Promotion,
-  Setting, Microphone, Search, Share, Tools,
+  Film, Plus, List,
+  Microphone, MagicStick, Picture, Promotion, Headset,
 } from '@element-plus/icons-vue'
 
-const workflowItems = [
-  { to: '/steps', label: '分步处理', icon: Grid },
-  { to: '/steps/download', label: '下载任务', icon: Download },
-  { to: '/steps/doc-extract', label: '文档提取', icon: Document },
-  { to: '/steps/llm-rewrite', label: 'LLM 改写', icon: Edit },
-  { to: '/steps/tts', label: 'TTS 处理', icon: Headset },
-  { to: '/steps/material', label: '素材搜索', icon: Picture },
-  { to: '/steps/publish', label: '发布', icon: Promotion },
-]
-
 const configItems = [
-  { to: '/settings', label: '配置', icon: Setting },
   { to: '/settings/asr', label: 'ASR 配置', icon: Microphone },
-  { to: '/settings/llm', label: 'LLM 配置', icon: Setting },
-  { to: '/settings/material', label: '素材配置', icon: Search },
-  { to: '/settings/publish-config', label: '发布配置', icon: Share },
-  { to: '/settings/tts-config', label: 'TTS 配置', icon: Tools },
+  { to: '/settings/llm', label: 'LLM 配置', icon: MagicStick },
+  { to: '/settings/material', label: '素材配置', icon: Picture },
+  { to: '/settings/publish-config', label: '发布配置', icon: Promotion },
+  { to: '/settings/tts-config', label: 'TTS 配置', icon: Headset },
 ]
 </script>
 
@@ -95,7 +75,7 @@ const configItems = [
 .nav { padding-bottom: 24px; }
 
 .nav-section-label {
-  padding: 12px 24px 4px;
+  padding: 16px 24px 4px;
   font-size: 12px; font-weight: 500; color: var(--color-text-secondary);
   text-transform: uppercase; letter-spacing: 0.05em;
 }

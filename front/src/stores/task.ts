@@ -7,7 +7,7 @@ export const useTaskStore = defineStore('task', () => {
   const total = ref(0)
   const loading = ref(false)
   const page = ref(1)
-  const pageSize = ref(20)
+  const pageSize = ref(10)
   let pollingTimer: ReturnType<typeof setInterval> | null = null
 
   async function fetchTasks() {
@@ -15,7 +15,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       const result = await getTasks(page.value, pageSize.value)
       tasks.value = result.tasks
-      total.value = result.total
+      total.value = result.total ?? result.tasks.length
     } finally {
       loading.value = false
     }
@@ -24,7 +24,7 @@ export const useTaskStore = defineStore('task', () => {
   function startPolling() {
     if (pollingTimer !== null) return
     pollingTimer = setInterval(() => {
-      if (tasks.value.some(t => t.state === 4)) {
+      if (tasks.value.some(t => t.status === 1)) {
         fetchTasks()
       }
     }, 5000)

@@ -16,7 +16,7 @@ describe('task store', () => {
   })
 
   it('fetchTasks 更新 tasks 和 total', async () => {
-    const mockTasks = [{ task_id: 'abc', state: 1, progress: 100, logs: [], videos: [] }]
+    const mockTasks = [{ id: 1, task_url: 'https://youtube.com/watch?v=test', create_time: '2026-06-09 13:45', is_deleted: 0, status: 2, task_id: 1, error_code: 0, error_desc: '' }]
     vi.mocked(api.getTasks).mockResolvedValue({ tasks: mockTasks, total: 1 })
 
     const { useTaskStore } = await import('./task')

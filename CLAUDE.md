@@ -2,343 +2,387 @@
 
 视频改写 AI 项目：下载视频 → 转录原文 → LLM 改写 → TTS 配音 → 搜索素材 → 合成新视频 → 发布。
 
-- **Stack:** Python 3.11+, FastAPI + uvicorn, moviepy, yt-dlp, edge-tts, faster-whisper, openai; Vue 3 + Element Plus（前端）
-- **Entry point:** `main.py`（API server），`front/`（Vue 前端，替代已废弃的 `webui/`）
-- **Remote:** `git@github.com:leftatrium2/VideoPrinterTurbo.git`
+---
+
+## 协作分工规则
+
+**Claude 只负责 `front/` 目录的开发。**
+
+- `front/` — Claude 可读、可写，完全负责
+- `server/` — Claude 只可读，**不能修改任何文件**
+- 其余根目录文件（`pyproject.toml`、`docker-compose.yml` 等）— 用户负责
+
+---
+
+## 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 后端 | Python 3.11+, FastAPI + uvicorn, SQLAlchemy (async) + aiosqlite |
+| 前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router |
+| 视频处理 | moviepy, yt-dlp, edge-tts, faster-whisper |
+| 数据库 | SQLite（`server/db/VideoPrinterTurbo.db`） |
+
+---
 
 ## 快速命令
 
 ```shell
-# 依赖安装
-uv sync --frozen
-pip install -e ".[gemini]"   # 需要 Gemini 支持时
+# 启动后端（用户负责）
+cd server && uvicorn app:app --host 0.0.0.0 --port 8080
 
-# 启动 API server
-uv run python main.py        # http://localhost:8080
-
-# 启动 WebUI（新终端）
-uv run streamlit run webui/Main.py --browser.gatherUsageStats=False
-
-# Docker 一键启动
-docker-compose up            # api :8080, webui :8501
-
-# 语法检查（无测试套件时用）
-python -m py_compile <file>
-find app webui -name "*.py" | xargs python -m py_compile
-```
-
-## 配置
-
-首次运行需要复制配置文件并填写 API Key：
-
-```shell
-cp config.example.toml config.toml
-```
-
-关键配置项（`config.toml`）：
-- `llm_provider` — `openai` / `deepseek` / `gemini`
-- `material_provider` — `pexels` / `pixabay`（需对应 API Key）
-- `transcriber_provider` — `whisper` / `subtitle_extractor`
-- `subtitle_provider` — `edge` / `whisper`
-- `enable_redis = true` — 切换到 Redis 队列和状态（默认内存）
-- `[ui] language` — 固定默认语言（留空则自动检测）
-
-## 项目结构
-
-```
-VideoPrinterTurbo/
-├── main.py                       # uvicorn 入口
-├── pyproject.toml                # 依赖管理
-├── config.example.toml / config.toml
-│
-├── app/
-│   ├── asgi.py                   # FastAPI 实例 + CORS + 异常处理 + 静态文件
-│   ├── router.py                 # APIRouter 聚合
-│   ├── config/config.py          # TOML → AppConfig/WhisperConfig/ProxyConfig
-│   │
-│   ├── controllers/
-│   │   ├── base.py               # 公共依赖 (get_task_id, verify_token)
-│   │   ├── manager/
-│   │   │   ├── base_manager.py   # TaskManager 抽象（并发控制 + 队列）
-│   │   │   ├── memory_manager.py # InMemoryTaskManager (queue.Queue)
-│   │   │   └── redis_manager.py  # RedisTaskManager (Redis List)
-│   │   └── v1/rewrite.py         # API 端点定义
-│   │
-│   ├── models/
-│   │   ├── const.py              # 任务状态常量（-1/1/4）
-│   │   ├── exception.py          # HttpException
-│   │   └── schema.py             # Pydantic 模型（VideoRewriteParams, TranscriptSegment 等）
-│   │
-│   ├── plugins/                  # ⭐ 插件体系（6 类扩展点）
-│   │   ├── base.py               # BasePlugin + PluginType + PluginRegistry
-│   │   ├── downloader/           # BaseDownloader + YtDlpDownloader
-│   │   ├── transcriber/          # BaseTranscriber + WhisperTranscriber + SubtitleExtractor
-│   │   ├── llm/                  # BaseLLMProvider + OpenAIProvider + GeminiProvider
-│   │   ├── material/             # BaseMaterialSearcher + PexelsSearcher + PixabaySearcher
-│   │   └── publisher/            # BasePublisher + UploadPostPublisher
-│   │
-│   ├── services/
-│   │   ├── task.py               # 管线编排器（7 步骤）
-│   │   ├── video_rewrite.py      # moviepy + ffmpeg 合成
-│   │   ├── voice.py              # edge-tts TTS
-│   │   ├── subtitle.py           # Whisper 字幕生成
-│   │   └── state.py              # 任务状态（MemoryState / RedisState）
-│   │
-│   └── utils/
-│       ├── utils.py              # 路径/UUID/JSON/SRT 工具
-│       └── file_security.py      # 白名单路径校验（防目录穿越）
-│
-├── webui/
-│   ├── Main.py                   # Streamlit 前端
-│   └── i18n/{zh,en}.json         # 国际化语言文件（60 keys）
-│
-├── resource/
-│   ├── fonts/                    # 字幕字体
-│   ├── songs/                    # 背景音乐
-│   └── public/index.html         # 静态首页
-│
-├── storage/tasks/                # 任务输出目录（运行时产物）
-├── downloads/                    # yt-dlp 下载临时目录（运行时产物）
-├── Dockerfile                    # Python 3.11-slim + ffmpeg
-└── docker-compose.yml            # api(:8080) + webui(:8501)
-```
-
-## API 端点
-
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| `POST` | `/api/v1/rewrite` | 提交视频改写任务 |
-| `GET` | `/api/v1/tasks` | 分页查询所有任务 |
-| `GET` | `/api/v1/tasks/{id}` | 查询单个任务状态和结果 |
-| `DELETE` | `/api/v1/tasks/{id}` | 删除任务及产物 |
-| `GET` | `/api/v1/stream/{path}` | 视频流播放（Range 支持）|
-| `GET` | `/api/v1/download/{path}` | 视频文件下载 |
-| `GET` | `/api/v1/musics` | 背景音乐列表 |
-
-## 管线流程（`services/task.py:start()`）
-
-7 个步骤顺序执行，每步更新进度，可通过 `stop_at` 参数跳过后续步骤：
-
-```
-POST /api/v1/rewrite  { video_url, rewrite_instruction, ... }
-  │
-  ├─ ① 下载（5~15）   yt-dlp → VideoPackage { video_path, audio_path, subtitle_path, metadata }
-  ├─ ② 转录（20~30）  优先内嵌字幕（SRT/VTT/ASS），回退 faster-whisper ASR
-  ├─ ③ LLM 改写（35~45）  原文 + 指令 → 新解说词 + search_terms
-  ├─ ④ TTS（50~60）   edge-tts → 语音文件 + 时间轴字幕
-  ├─ ⑤ 素材搜索（65~75）  Pexels / Pixabay → 本地视频路径列表
-  ├─ ⑥ 视频合成（80~95）  moviepy + ffmpeg → final-{n}.mp4
-  └─ ⑦ 发布（98，可选）  TikTok / Instagram → PublishResult
-```
-
-## 插件体系
-
-6 类扩展点，每类一个抽象基类 + 自动注册：
-
-| 类型 | 基类 | 核心方法 | 已实现 | 可扩展方向 |
-|---|---|---|---|---|
-| `downloader` | `BaseDownloader` | `download(url) → VideoPackage` | `YtDlpDownloader` | Bilibili、本地文件 |
-| `transcriber` | `BaseTranscriber` | `transcribe(audio)` / `extract_subtitles(video)` | `WhisperTranscriber`, `SubtitleExtractor` | 阿里云 ASR、Azure 语音 |
-| `llm` | `BaseLLMProvider` | `rewrite()` / `generate_script()` / `generate_terms()` / `translate()` | `OpenAIProvider`, `GeminiProvider` | 文心一言、Claude |
-| `material` | `BaseMaterialSearcher` | `search()` / `download()` | `PexelsSearcher`, `PixabaySearcher` | 本地素材、腾讯云 |
-| `publisher` | `BasePublisher` | `publish(video) → PublishResult` | `UploadPostPublisher` | 抖音、快手 |
-
-**注册机制：** `BasePlugin.__init_subclass__` 自动调用 `PluginRegistry.register()`，新插件只需继承并设置 `type` / `name` 即可，无需手动注册。
-
-### 新增插件示例
-
-```python
-class MyDownloader(BaseDownloader):
-    type = PluginType.DOWNLOADER
-    name = "my_downloader"
-
-    def validate_config(self): ...
-    def download(self, url: str) -> VideoPackage: ...
-```
-
-## 设计模式
-
-- **Plugin Registry** — 自动注册 + 通过 `get_default(config_key)` 从配置获取默认实现
-- **Strategy** — 每类插件对应一种接口，运行时按配置切换实现
-- **Abstract Factory** — `controllers/manager/` 和 `services/state.py` 支持 Memory / Redis 双实现
-- **Pipeline** — `services/task.py:start()` 为管线编排器，每步独立、可跳过
-- **Template Method** — `TaskManager` 定义骨架，子类实现队列细节
-
-## 开发约定
-
-### 错误处理
-
-- **API 层**：raise `HttpException`（继承 `HTTPException`）
-- **插件层**：raise `RuntimeError`
-- 不要在插件内部吞掉异常后返回 `None`
-
-### 配置访问
-
-```python
-from app.config.config import config
-value = config.app.get("key", default)
-```
-
-### 文件路径安全
-
-所有涉及用户输入路径的操作必须通过白名单校验：
-
-```python
-from app.utils.file_security import resolve_path_within_directory
-safe_path = resolve_path_within_directory(user_path, allowed_root)
-```
-
-### 状态与队列
-
-- `services/state.py` 的全局 `state` 管理任务状态
-- `controllers/manager/` 的 `task_manager` 管理并发队列
-- Memory / Redis 切换由 `config.enable_redis` 控制，业务代码无需感知
-
-### WebUI 国际化
-
-所有 Streamlit 组件文本用 `tr()` 包裹：
-
-```python
-st.button(tr("Start Rewrite"))
-```
-
-语言文件位于 `webui/i18n/*.json`，扁平 key-value 结构，key 为英文标识符，找不到时原样返回 key（英文降级）。
-
-**语言选择优先级（高→低）：**
-1. URL 参数 `?lang=xx`（JS 写入）
-2. `config.toml [ui] language`
-3. 系统区域（`locale.getlocale()`）
-4. 默认 `"zh"`
-
-新增文本时同步更新 `zh.json` 和 `en.json`；新增语言只需在 `webui/i18n/` 下添加对应 JSON 文件。
-
-## 依赖说明
-
-- Python `>=3.11,<3.13`（`.python-version` 锁定）
-- 使用 `uv` 管理依赖，通过 `pyproject.toml` 修改后运行 `uv sync`
-- Gemini 为可选依赖组：`pip install -e ".[gemini]"`
-- Whisper `large-v3` 首次运行自动下载（约 3GB）
-
-## 测试
-
-```shell
-# 安装测试依赖
-uv sync --extra dev
-
-# 运行全部测试
-uv run pytest
-
-# 运行特定模块
-uv run pytest tests/test_api.py -v
-uv run pytest tests/test_file_security.py -v
-```
-
-### 测试结构
-
-```
-tests/
-├── conftest.py              # 共用 fixture（见下方说明）
-├── test_file_security.py    # 路径穿越防护（6 个用例）
-├── test_utils.py            # 纯工具函数（10 个用例）
-├── test_schema.py           # Pydantic 模型校验（5 个用例）
-├── test_plugin_registry.py  # 插件注册表（6 个用例）
-├── test_state.py            # MemoryState（7 个用例）
-└── test_api.py              # API 集成测试（14 个用例）
-```
-
-### Fixture 说明
-
-| Fixture | 作用 |
-|---|---|
-| `state` | 注入独立 `MemoryState`，替换全局 `sm.state` |
-| `client` | FastAPI `TestClient`，依赖 `state` + `tmp_task_dir` |
-| `mock_task_manager` | 将 `task_manager.add_task` patch 为 no-op，阻止管线运行 |
-| `tmp_task_dir` | 临时任务目录，patch `utils.task_dir()` 返回值 |
-| `isolated_registry` | 保存/恢复 `PluginRegistry._plugins`，防止插件注册跨测试泄漏 |
-
-所有测试**不需要**真实 API Key 或网络连接。
-
-## 注意事项
-
-- `config.toml` 含 API Key，不要提交（已在 `.gitignore`）
-- `storage/` 和 `downloads/` 为运行时产物，不要提交
-- 修改 `app/plugins/` 下任何文件后需重启 API server（插件在启动时注册）
-- 视频合成依赖系统级 `ffmpeg`，Docker 镜像已内置；本地开发需自行安装
-- 素材搜索和 LLM 调用需要网络；国内用户建议在 `config.toml` 中配置 `[proxy]`
-
-## 前端（Vue 3）
-
-`front/` 目录为 Vite + Vue 3 + Element Plus 管理后台前端，参照 `prototype/2026-06-09-*` 系列设计稿实现。
-原 `webui/`（Streamlit）已废弃，保留代码但不再维护。
-
-### 启动命令
-
-```shell
-# 先启动后端 API（:8080），再启动前端
+# 启动前端（Claude 负责）
 cd front && npm install && npm run dev   # http://localhost:5173
 
-# 前端构建
-cd front && npm run build
+# 前端类型检查
+cd front && npx vue-tsc --noEmit
 
 # 前端测试
 cd front && npx vitest run
+
+# 前端构建
+cd front && npm run build
 ```
 
-### API 代理
+---
 
-开发模式下 Vite 自动将 `/api/*` 代理到 `http://localhost:8080`。
-生产构建需单独配置反向代理。
+## Server API 端点（只读参考）
 
-### 目录说明
+后端运行在 `http://localhost:8080`，前端通过 Vite 代理（`/api/*` → `http://localhost:8080/*`，去除 `/api` 前缀）访问。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `GET` | `/` | 查询所有未删除任务（有真实数据） |
+| `GET` | `/tasks/` | 查询任务列表（stub，返回 `{"tasks": []}` ） |
+| `POST` | `/tasks/add` | 新建任务（stub，返回 `{"message": "任务添加成功"}` ） |
+| `GET` | `/llm_config/` | LLM 配置（stub） |
+| `GET` | `/asr_tts_config/` | ASR/TTS 配置（stub） |
+| `GET` | `/material_config/` | 素材配置（stub） |
+| `GET` | `/publish_config/` | 发布配置（stub） |
+
+**数据库表（`vpt_tasks`）：**
 
 ```
-front/src/
-├── components/
-│   ├── AppLayout.vue     # 布局容器（组合 AppSidebar + AppTopbar）
-│   ├── AppSidebar.vue    # 公共侧边栏（一步完成 / 工作流 / 系统配置三级导航）
-│   ├── AppTopbar.vue     # 公共顶栏（三级面包屑 + 铃铛 + 用户头像）
-│   └── PlaceholderPage.vue
-├── services/             # api.ts — 全部 API 调用封装
-├── stores/               # task.ts — Pinia 任务状态 + 5s 轮询
-├── router/               # index.ts — 所有路由，meta.breadcrumb 定义三级面包屑
-├── views/
-│   ├── OneStep.vue                      # 一步完成（居中表单卡片 + 任务列表 Drawer）
-│   ├── download/DownloadTask.vue        # 下载任务（统计卡片 + 任务明细表格）
-│   ├── steps/
-│   │   ├── StepsOverview.vue            # 分步处理概览（流水线卡片）
-│   │   ├── DocExtract.vue               # 文档提取（表格：地址/本地路径/文档来源/操作）
-│   │   ├── LLMRewrite.vue               # LLM 改写（表格）
-│   │   ├── TTS.vue                      # TTS 处理（表格）
-│   │   ├── Material.vue                 # 素材搜索（表格）
-│   │   └── Publish.vue                  # 发布（表格 + 视频播放）
-│   └── settings/
-│       ├── SettingsOverview.vue         # 系统配置概览（分类卡片）
-│       ├── ASR.vue                      # ASR 配置（表单）
-│       ├── LLM.vue                      # LLM 配置（表单）
-│       ├── MaterialConfig.vue           # 素材配置（表单）
-│       ├── PublishConfig.vue            # 发布配置（表单）
-│       └── TTSConfig.vue                # TTS 配置（表单）
-└── styles/variables.css                 # 全局 CSS 变量
+id, task_url, create_time, is_deleted, status, task_id, error_code, error_desc
 ```
 
-### 路由结构
+状态码：`0` 待处理 / `1` 进行中 / `2` 完成 / `-1` 失败
 
-所有页面挂载在 `AppLayout` 下，路由 `meta.breadcrumb` 为三级数组，格式：
-`['VideoPrinterTurbo', '工作流' | '系统配置', '页面名称']`
+---
 
-| 路径 | 组件 |
+## 前端目录结构
+
+```
+front/
+├── index.html
+├── vite.config.ts          # 代理: /api/* → localhost:8080/*（rewrite 去除 /api 前缀）
+├── package.json            # Vue 3, Element Plus, Pinia, Vue Router, Vitest
+└── src/
+    ├── main.ts             # 挂载 App，注册 EP icons / Pinia / Router
+    ├── App.vue             # 根组件（仅 <RouterView />）
+    ├── styles/
+    │   └── variables.css   # 全局 CSS 变量（颜色、间距、阴影）
+    ├── router/
+    │   └── index.ts        # 路由表（见下方）
+    ├── services/
+    │   ├── api.ts          # axios 封装 + Task 接口 + API 函数
+    │   └── api.test.ts     # Vitest 单元测试
+    ├── stores/
+    │   ├── task.ts         # Pinia store：任务列表 + 5s 轮询
+    │   └── task.test.ts    # Vitest 单元测试
+    ├── components/
+    │   ├── AppLayout.vue       # 布局壳（侧边栏 + 顶栏 + <RouterView>）
+    │   ├── AppSidebar.vue      # 固定侧边栏（240px）
+    │   ├── AppTopbar.vue       # 固定顶栏（面包屑 + 铃铛 + 头像）
+    │   └── PlaceholderPage.vue # "功能建设中"占位页
+    └── views/
+        ├── AddTask.vue     # 添加任务（8 个功能区块 + 开始任务按钮）
+        └── TaskList.vue    # 任务列表（表格 + 分页 + FAB）
+```
+
+---
+
+## 路由结构
+
+所有页面挂载在 `AppLayout` 下，`meta.breadcrumb` 驱动顶栏面包屑。
+
+| 路径 | 组件 | 面包屑 |
+|---|---|---|
+| `/` | → redirect | → `/add-task` |
+| `/add-task` | `AddTask.vue` | `['添加任务', '添加新任务']` |
+| `/tasks` | `TaskList.vue` | `['VideoPrinterTurbo', '任务列表']` |
+| `/settings/asr` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', 'ASR 配置']` |
+| `/settings/llm` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', 'LLM 配置']` |
+| `/settings/material` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', '素材配置']` |
+| `/settings/publish-config` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', '发布配置']` |
+| `/settings/tts-config` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', 'TTS 配置']` |
+
+---
+
+## 设计系统（`systematic_precision`）
+
+```
+页面背景:   #F0F2F5   --color-bg-page
+卡片背景:   #FFFFFF   --color-bg-card
+主色:       #409EFF   --color-primary
+主色深:     #0060a9   --color-primary-dark
+文字主:     #303133   --color-text-primary
+文字常规:   #606266   --color-text-regular
+文字次要:   #909399   --color-text-secondary
+边框:       #DCDFE6   --color-border
+卡片阴影:   0 2px 12px 0 rgba(0,0,0,0.1)   --shadow-card
+侧边栏宽:  240px      --sidebar-width
+顶栏高:     64px      --topbar-height
+```
+
+字体：Inter（正文 14px/400，标签 14px/500，标题 16–28px/600）
+
+卡片圆角：8px；按钮/输入框圆角：4px
+
+---
+
+## 侧边栏导航
+
+```
+[Backend Admin]
+[Management Suite]
+
++ 添加任务  →  /add-task
+≡ 任务列表  →  /tasks
+
+系统设置
+🎙 ASR 配置    →  /settings/asr
+✨ LLM 配置    →  /settings/llm
+🖼 素材配置    →  /settings/material
+▷  发布配置    →  /settings/publish-config
+🎧 TTS 配置    →  /settings/tts-config
+```
+
+激活样式：primary 蓝色文字 + 左侧 2px 蓝色竖条 + 浅蓝底色。
+
+---
+
+## 添加任务页（`AddTask.vue`）
+
+页面由 8 个卡片区块纵向排列，底部为"开始任务"按钮。
+
+每个区块结构：
+```
+┌─────────────────────────────────────────────┐
+│ [图标] [复选框?] 区块名称         使用说明 🔘│  ← border-bottom
+├─────────────────────────────────────────────┤
+│  表单字段...                                 │
+└─────────────────────────────────────────────┘
+```
+
+- "下载视频"无复选框（必填）；其余 7 个区块均有复选框作为"是否启用该步骤"开关
+- 复选框状态存于 `enabled` reactive 对象，不影响内容显示（内容始终展示）
+- "使用说明"点击触发 `el-popover`，内容见下方
+
+### 各区块字段规格
+
+#### ① 下载视频（无复选框）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| 视频链接 | `el-input` + append 按钮 | 占位符：请输入抖音/Bilibili/Youtube视频链接 |
+| 检查链接 | `el-button`（append slot） | 当前为 stub（功能开发中） |
+
+使用说明弹框内容：填入视频播放页的URL地址，然后点击"检查链接"，如果弹出成功后，再继续往下进行，如果提示无法下载，可以在 GitHub 上面提 issue 给作者。
+
+---
+
+#### ② 音频转文字（默认启用）
+
+| 字段 | 类型 | 选项 |
+|---|---|---|
+| 选择音频转换方式 | `el-select` | Whisper Large v3 (推荐) / 从字幕提取 / 从ASR转换 |
+
+使用说明：有两种方式将视频中的语音转换为文字，"从字幕提取"适合 YouTube 等带有自动字幕的视频网站；"从ASR转换"将直接提取视频中的语音并转为文字（除非是 YouTube 视频，否则建议使用 ASR 方式，避免出错）。
+
+---
+
+#### ③ LLM 改写（默认关闭）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| LLM 提示词 (Prompt) | `el-input type="textarea"` rows=4 | 占位符：请输入改写要求... |
+
+使用说明：选择 LLM 改写，并将提示词填入，会将当前提取到的文字经过 LLM 改写后重新输出。
+
+---
+
+#### ④ 输出到语音（默认启用）
+
+| 字段 | 类型 | 选项 / 范围 |
+|---|---|---|
+| TTS 服务 | `el-select`（全宽） | Edge TTS / Azure TTS V1 / Azure TTS V2 / SiliconFlow TTS / Google Gemini TTS / Xiaomi MiMo TTS |
+| 声音角色 | `el-select` + 测试按钮 | zh-CN-XiaoXiaoNeural / zh-CN-YunXiNeural / zh-CN-XiaoYiNeural |
+| 语音音量 | `el-slider` | 1.0–2.0，step 0.1；标签实时显示当前值 |
+| 速度 | `el-slider` | 1.0–2.0，step 0.1；标签实时显示当前值 |
+
+音量和速度滑块并排（两列布局）。
+
+使用说明："输出到语音"将把处理好的文字通过 TTS 方式转换为语音，并合并到新的视频中。
+
+---
+
+#### ⑤ 输出到字幕（默认关闭）
+
+| 字段 | 类型 | 选项 / 范围 |
+|---|---|---|
+| 字体 | `el-select` | 思源黑体 Bold / 思源黑体 Regular / 微软雅黑 Bold / 微软雅黑 Regular / Charm Bold / Charm Regular |
+| 位置 | `el-select` | 底部居中（推荐）/ 顶部居中 / 中间 / 自定义（70，离顶部70%位置） |
+| 自定义位置 | `el-input`（条件显示） | 当位置选"自定义"时出现，默认值 "70" |
+| 字幕颜色 | `<input type="color">` + hex 显示 | 默认 #ffffff（白色） |
+| 描边颜色 | `<input type="color">` + hex 显示 | 默认 #000000（黑色） |
+| 字幕大小 | `el-slider` | 30–100，默认 60 |
+
+字幕颜色 / 描边颜色并排（两列布局）。
+
+使用说明："输出到字幕"原视频中的语音不动，只是将处理好的文本转为字幕，添加到新的视频中。
+
+---
+
+#### ⑥ 背景音乐（默认启用）
+
+| 字段 | 类型 | 选项 / 说明 |
+|---|---|---|
+| 选择 BGM 库 | `el-select`（全宽） | 推荐轻快背景乐 / 推荐舒缓背景乐 / 随机背景音乐 / 无背景音乐 |
+| 上传本地音频 | `el-upload` drag 区域（始终显示） | accept="audio/*"，auto-upload=false |
+| 背景音乐音量 | `el-slider`（左右各一个扬声器图标 🔉 🔊） | 0.0–1.0，step 0.05，默认 0.5 |
+
+上传区域与音量控制并排（两列布局）。
+
+使用说明：选择相关的背景音乐后，将会将此背景音乐合并到新的视频中。
+
+---
+
+#### ⑦ 视频覆盖（默认启用）
+
+**第一行（3 列 select）：**
+
+| 字段 | 选项 |
 |---|---|
-| `/one-step` | OneStep |
-| `/steps` | StepsOverview |
-| `/steps/download` | DownloadTask |
-| `/steps/doc-extract` | DocExtract |
-| `/steps/llm-rewrite` | LLMRewrite |
-| `/steps/tts` | TTS |
-| `/steps/material` | Material |
-| `/steps/publish` | Publish |
-| `/settings` | SettingsOverview |
-| `/settings/asr` | ASR |
-| `/settings/llm` | LLM |
-| `/settings/material` | MaterialConfig |
-| `/settings/publish-config` | PublishConfig |
-| `/settings/tts-config` | TTSConfig |
+| 视频源 | Pexels / Pixabay / 本地文件（选"本地文件"后显示上传区域） |
+| 拼接模式 | 顺序拼接 / 随机拼接（推荐） |
+| 转场模式 | 无转场 / 随机转场 / 渐入 / 渐出 / 淡入淡出 / 滑动入 / 滑动出 |
+
+**第二行（3 列）：**
+
+| 字段 | 类型 | 选项 |
+|---|---|---|
+| 视频比例 | `el-select` | 9:16 (竖屏) / 16:9 (横屏) |
+| 视频片段最大时长(秒) | `el-input type="number"` | 默认 10 |
+| 同时生成视频数量 | `el-input type="number"` | 默认 1，最大 5 |
+
+使用说明：点击"视频覆盖"复选框后，将从 Pexels 等网站获取短视频进行拼接。
+
+---
+
+#### ⑧ 发布（默认关闭）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| 发布设置 (JSON 配置或描述) | `el-input type="textarea"` rows=5 readonly | 占位内容：`{ 'platform': 'douyin', 'auto_publish': true, ... }` |
+
+使用说明：此功能暂未开放。
+
+---
+
+### 提交逻辑
+
+点击"开始任务"：
+1. 校验 `task_url` 非空
+2. 按各 `enabled.*` 标志决定哪些字段写入请求体
+3. 调用 `POST /api/tasks/add`
+4. 成功后 `ElMessage.success` + 跳转 `/tasks`
+
+---
+
+## 任务列表页（`TaskList.vue`）
+
+### 布局
+
+```
+[Task List 标题]                          [+ 新建任务 按钮]
+┌──────────────────────────────────────────────────────┐
+│ 地址(Address) │ 本地路径(Local Path) │ 状态 │ 操作  │
+│ ...           │ ...                  │ ...  │ ...   │
+├──────────────────────────────────────────────────────┤
+│ Showing X to Y of Z entries     [< 1 2 3 ... 129 >] │
+└──────────────────────────────────────────────────────┘
+                                          [+ FAB 按钮]
+```
+
+### 表格列
+
+| 列 | 内容 |
+|---|---|
+| 地址 (Address) | URL 超链接 + 状态图标；下方显示 "Added: YYYY-MM-DD HH:mm" |
+| 本地路径 (Local Path) | 文件路径，无路径显示 "— No path assigned —"（斜体灰色） |
+| 状态 (Status) | `el-tag`：完成(success绿) / 失败(danger红) / 进行中(warning橙) / 待处理(info灰)；失败时额外显示"查看日志"链接 |
+| 操作 (Operations) | 完成 → [播放] [编辑]；失败 → [重试] [编辑]；其他 → [编辑] |
+
+### 状态码映射
+
+| status 值 | 标签 | Tag type |
+|---|---|---|
+| `2` | 完成 | success |
+| `1` | 进行中 | warning |
+| `0` | 待处理 | info |
+| `-1` | 失败 | danger |
+
+### 功能
+
+- **播放**：弹出 `el-dialog`（800px），内含 `<video controls autoplay>` 指向 `/api/stream/{local_path}`
+- **查看日志**：弹出 `el-dialog`（600px），显示 `task.error_desc`（`<pre>` 等宽字体）
+- **重试**：重新调用 `POST /api/tasks/add`（携带原 `task_url`），刷新列表
+- **编辑**：跳转 `/add-task?video_url=<encoded_url>`
+- **新建任务 / FAB**：跳转 `/add-task`
+- **轮询**：每 5 秒自动刷新，仅当列表中有 `status === 1`（进行中）的任务时触发
+
+### 分页
+
+- `store.pageSize = 10`
+- `el-pagination` layout: `prev, pager, next, jumper`
+- 翻页时调用 `store.fetchTasks()`
+
+---
+
+## API 封装（`src/services/api.ts`）
+
+```typescript
+// Task 接口（对应 vpt_tasks 表）
+interface Task {
+  id: number
+  task_url: string
+  create_time: string
+  is_deleted: number
+  status: number          // 0/1/2/-1
+  task_id: number
+  error_code: number
+  error_desc: string
+  local_path?: string
+}
+
+getTasks(page, pageSize)  // GET /api/tasks/
+addTask(params)           // POST /api/tasks/add
+streamUrl(path)           // returns /api/stream/{path}
+```
+
+响应格式为服务器直接返回的 JSON（无 `{status, data}` 包装层）。
+
+---
+
+## 前端测试
+
+```shell
+cd front && npx vitest run
+```
+
+测试文件：
+- `src/services/api.test.ts` — getTasks 端点、addTask 端点、网络错误、streamUrl
+- `src/stores/task.test.ts` — fetchTasks、loading flag、轮询生命周期
+
+当前 7 个用例全部通过。
