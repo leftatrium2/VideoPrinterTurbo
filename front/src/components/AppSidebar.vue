@@ -5,23 +5,23 @@
         <el-icon><Film /></el-icon>
       </div>
       <div class="logo-text">
-        <h1>Backend Admin</h1>
-        <p>Management Suite</p>
+        <h1>VideoPrinterTurbo</h1>
+        <p>{{ t('sidebar.managementSuite') }}</p>
       </div>
     </div>
 
     <nav class="nav">
       <RouterLink to="/add-task" class="nav-item" active-class="nav-item--active">
         <el-icon><Plus /></el-icon>
-        <span>添加任务</span>
+        <span>{{ t('sidebar.addTask') }}</span>
       </RouterLink>
 
       <RouterLink to="/tasks" class="nav-item" active-class="nav-item--active">
         <el-icon><List /></el-icon>
-        <span>任务列表</span>
+        <span>{{ t('sidebar.taskList') }}</span>
       </RouterLink>
 
-      <div class="nav-section-label">系统设置</div>
+      <div class="nav-section-label">{{ t('sidebar.systemSettings') }}</div>
 
       <RouterLink
         v-for="item in configItems"
@@ -31,24 +31,27 @@
         active-class="nav-item--active"
       >
         <el-icon><component :is="item.icon" /></el-icon>
-        <span>{{ item.label }}</span>
+        <span>{{ t(item.labelKey) }}</span>
       </RouterLink>
     </nav>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import {
   Film, Plus, List,
   Microphone, MagicStick, Picture, Promotion, Headset,
 } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
+
 const configItems = [
-  { to: '/settings/asr', label: 'ASR 配置', icon: Microphone },
-  { to: '/settings/llm', label: 'LLM 配置', icon: MagicStick },
-  { to: '/settings/material', label: '素材配置', icon: Picture },
-  { to: '/settings/publish-config', label: '发布配置', icon: Promotion },
-  { to: '/settings/tts-config', label: 'TTS 配置', icon: Headset },
+  { to: '/settings/asr',            labelKey: 'sidebar.asrConfig',      icon: Microphone },
+  { to: '/settings/llm',            labelKey: 'sidebar.llmConfig',      icon: MagicStick },
+  { to: '/settings/material',       labelKey: 'sidebar.materialConfig', icon: Picture },
+  { to: '/settings/publish-config', labelKey: 'sidebar.publishConfig',  icon: Promotion },
+  { to: '/settings/tts-config',     labelKey: 'sidebar.ttsConfig',      icon: Headset },
 ]
 </script>
 

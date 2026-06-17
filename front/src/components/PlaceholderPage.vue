@@ -2,14 +2,17 @@
   <div class="placeholder-page">
     <div class="placeholder-card">
       <el-icon class="placeholder-icon"><Tools /></el-icon>
-      <h2>此功能正在建设中</h2>
-      <p>敬请期待</p>
+      <h2>{{ t('placeholder.building') }}</h2>
+      <p>{{ t('placeholder.comingSoon') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Tools } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

@@ -11,11 +11,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import AppSidebar from './AppSidebar.vue'
 import AppTopbar from './AppTopbar.vue'
 
 const route = useRoute()
-const breadcrumbs = computed(() => (route.meta.breadcrumb as string[]) ?? [])
+const { t } = useI18n()
+
+const breadcrumbs = computed(() =>
+  ((route.meta.breadcrumb as string[]) ?? []).map(key => t(key))
+)
 </script>
 
 <style scoped>

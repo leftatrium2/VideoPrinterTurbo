@@ -19,7 +19,7 @@
 | 层 | 技术 |
 |---|---|
 | 后端 | Python 3.11+, FastAPI + uvicorn, SQLAlchemy (async) + aiosqlite |
-| 前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router |
+| 前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia + Vue Router + Vue I18n |
 | 视频处理 | moviepy, yt-dlp, edge-tts, faster-whisper |
 | 数据库 | SQLite（`server/db/VideoPrinterTurbo.db`） |
 
@@ -78,12 +78,16 @@ front/
 ├── vite.config.ts          # 代理: /api/* → localhost:8080/*（rewrite 去除 /api 前缀）
 ├── package.json            # Vue 3, Element Plus, Pinia, Vue Router, Vitest
 └── src/
-    ├── main.ts             # 挂载 App，注册 EP icons / Pinia / Router
+    ├── main.ts             # 挂载 App，注册 EP icons / Pinia / Router / I18n
     ├── App.vue             # 根组件（仅 <RouterView />）
     ├── styles/
     │   └── variables.css   # 全局 CSS 变量（颜色、间距、阴影）
+    ├── i18n/
+    │   ├── index.ts        # createI18n + detectLocale + setLocale
+    │   ├── zh.ts           # 中文翻译
+    │   └── en.ts           # 英文翻译
     ├── router/
-    │   └── index.ts        # 路由表（见下方）
+    │   └── index.ts        # 路由表（meta.breadcrumb 存 i18n 键）
     ├── services/
     │   ├── api.ts          # axios 封装 + Task 接口 + API 函数
     │   └── api.test.ts     # Vitest 单元测试
@@ -91,9 +95,9 @@ front/
     │   ├── task.ts         # Pinia store：任务列表 + 5s 轮询
     │   └── task.test.ts    # Vitest 单元测试
     ├── components/
-    │   ├── AppLayout.vue       # 布局壳（侧边栏 + 顶栏 + <RouterView>）
-    │   ├── AppSidebar.vue      # 固定侧边栏（240px）
-    │   ├── AppTopbar.vue       # 固定顶栏（面包屑 + 铃铛 + 头像）
+    │   ├── AppLayout.vue       # 布局壳（侧边栏 + 顶栏 + <RouterView>），翻译面包屑键
+    │   ├── AppSidebar.vue      # 固定侧边栏（240px），文本通过 t() 获取
+    │   ├── AppTopbar.vue       # 固定顶栏（面包屑 + 语言选择器 + 铃铛）
     │   └── PlaceholderPage.vue # "功能建设中"占位页
     └── views/
         ├── AddTask.vue     # 添加任务（8 个功能区块 + 开始任务按钮）
@@ -104,18 +108,45 @@ front/
 
 ## 路由结构
 
-所有页面挂载在 `AppLayout` 下，`meta.breadcrumb` 驱动顶栏面包屑。
+所有页面挂载在 `AppLayout` 下，`meta.breadcrumb` 存 **i18n 键**，`AppLayout` 调用 `t(key)` 翻译后传给 `AppTopbar`。
 
-| 路径 | 组件 | 面包屑 |
+| 路径 | 组件 | 面包屑键 |
 |---|---|---|
 | `/` | → redirect | → `/add-task` |
-| `/add-task` | `AddTask.vue` | `['添加任务', '添加新任务']` |
-| `/tasks` | `TaskList.vue` | `['VideoPrinterTurbo', '任务列表']` |
-| `/settings/asr` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', 'ASR 配置']` |
-| `/settings/llm` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', 'LLM 配置']` |
-| `/settings/material` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', '素材配置']` |
-| `/settings/publish-config` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', '发布配置']` |
-| `/settings/tts-config` | `PlaceholderPage` | `['VideoPrinterTurbo', '配置', 'TTS 配置']` |
+| `/add-task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.addTaskNew']` |
+| `/tasks` | `TaskList.vue` | `['breadcrumb.appName', 'breadcrumb.taskList']` |
+| `/settings/asr` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr']` |
+| `/settings/llm` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
+| `/settings/material` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material']` |
+| `/settings/publish-config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
+| `/settings/tts-config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
+
+---
+
+## 国际化（i18n）
+
+- 依赖：`vue-i18n@9`（composition API 模式，`legacy: false`）
+- 支持语言：**中文（zh）** 和 **英文（en）**
+- 语言选择器：顶栏右上角 `el-select` 下拉框
+
+**Locale 检测逻辑（`src/i18n/index.ts`）：**
+1. 读取 `localStorage.getItem('vpt_lang')`，有值则直接使用
+2. 否则读取 `navigator.language`，以 `zh` 开头 → 中文，否则 → 英文
+
+**切换语言：** 调用 `setLocale('zh' | 'en')`，同步写入 `localStorage`。
+
+**翻译文件结构（`src/i18n/zh.ts` / `en.ts`）：**
+
+```
+lang.*         — 语言选项显示名称
+sidebar.*      — 侧边栏导航文本
+breadcrumb.*   — 路由面包屑键（路由 meta 存键，AppLayout 翻译）
+addTask.*      — 添加任务页所有文本（区块标题、字段、选项、帮助文本、消息）
+taskList.*     — 任务列表页所有文本
+placeholder.*  — 占位页文本
+```
+
+**扩展新语言：** 在 `src/i18n/` 新建 `<locale>.ts`，在 `index.ts` 的 `messages` 中注册，并在 `AppTopbar.vue` 的 `el-option` 中添加选项。
 
 ---
 

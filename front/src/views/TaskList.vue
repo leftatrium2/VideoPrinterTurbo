@@ -3,9 +3,9 @@
 
     <!-- Page header bar -->
     <div class="page-header">
-      <span class="page-title">Task List</span>
+      <span class="page-title">{{ t('taskList.title') }}</span>
       <el-button type="primary" :icon="Plus" @click="router.push('/add-task')">
-        新建任务
+        {{ t('taskList.newTask') }}
       </el-button>
     </div>
 
@@ -18,8 +18,8 @@
         :header-cell-style="{ background: '#FAFAFA', color: '#606266', fontWeight: '500', fontSize: '13px' }"
         :row-style="{ fontSize: '13px' }"
       >
-        <!-- 地址 -->
-        <el-table-column label="地址 (Address)" min-width="300">
+        <!-- Address -->
+        <el-table-column :label="t('taskList.address')" min-width="300">
           <template #default="{ row }">
             <div class="address-cell">
               <el-icon :class="['status-dot-icon', statusIconClass(row.status)]">
@@ -35,16 +35,16 @@
           </template>
         </el-table-column>
 
-        <!-- 本地路径 -->
-        <el-table-column label="本地路径 (Local Path)" width="280">
+        <!-- Local path -->
+        <el-table-column :label="t('taskList.localPath')" width="280">
           <template #default="{ row }">
             <span v-if="row.local_path" class="local-path">{{ row.local_path }}</span>
-            <span v-else class="no-path">— No path assigned —</span>
+            <span v-else class="no-path">{{ t('taskList.noPath') }}</span>
           </template>
         </el-table-column>
 
-        <!-- 状态 -->
-        <el-table-column label="状态 (Status)" width="160">
+        <!-- Status -->
+        <el-table-column :label="t('taskList.status')" width="160">
           <template #default="{ row }">
             <div class="status-cell">
               <el-tag :type="statusTagType(row.status)" size="small" class="status-tag">
@@ -56,13 +56,13 @@
                 href="#"
                 class="log-link"
                 @click.prevent="openLogDialog(row)"
-              >查看日志 (View Logs)</a>
+              >{{ t('taskList.viewLogs') }}</a>
             </div>
           </template>
         </el-table-column>
 
-        <!-- 操作 -->
-        <el-table-column label="操作 (Operations)" width="200" fixed="right">
+        <!-- Operations -->
+        <el-table-column :label="t('taskList.operations')" width="200" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button
@@ -72,7 +72,7 @@
                 plain
                 :icon="VideoPlay"
                 @click="openPlayDialog(row)"
-              >播放</el-button>
+              >{{ t('taskList.play') }}</el-button>
               <el-button
                 v-if="row.status === -1"
                 size="small"
@@ -80,13 +80,13 @@
                 plain
                 :icon="Refresh"
                 @click="handleRetry(row)"
-              >重试</el-button>
+              >{{ t('taskList.retry') }}</el-button>
               <el-button
                 size="small"
                 plain
                 :icon="Edit"
                 @click="handleEdit(row)"
-              >编辑</el-button>
+              >{{ t('taskList.edit') }}</el-button>
             </div>
           </template>
         </el-table-column>
@@ -95,7 +95,7 @@
       <!-- Footer: count + pagination -->
       <div class="table-footer">
         <span class="entry-count">
-          Showing {{ entryStart }} to {{ entryEnd }} of {{ store.total }} entries
+          {{ t('taskList.showing', { start: entryStart, end: entryEnd, total: store.total }) }}
         </span>
         <el-pagination
           v-model:current-page="store.page"
@@ -110,12 +110,12 @@
     </div>
 
     <!-- FAB -->
-    <button class="fab" @click="router.push('/add-task')" title="新建任务">
+    <button class="fab" @click="router.push('/add-task')" :title="t('taskList.newTask')">
       <el-icon><Plus /></el-icon>
     </button>
 
     <!-- Video play dialog -->
-    <el-dialog v-model="playDialogVisible" title="视频播放" width="800px" destroy-on-close>
+    <el-dialog v-model="playDialogVisible" :title="t('taskList.videoPlay')" width="800px" destroy-on-close>
       <video
         v-if="selectedTask?.local_path"
         :src="streamUrl(selectedTask.local_path)"
@@ -123,12 +123,12 @@
         autoplay
         style="width: 100%; border-radius: 4px;"
       ></video>
-      <p v-else style="text-align:center; color: var(--color-text-secondary);">暂无视频文件</p>
+      <p v-else style="text-align:center; color: var(--color-text-secondary);">{{ t('taskList.noVideo') }}</p>
     </el-dialog>
 
     <!-- Log dialog -->
-    <el-dialog v-model="logDialogVisible" title="错误日志" width="600px" destroy-on-close>
-      <pre class="log-content">{{ selectedTask?.error_desc || '无错误信息' }}</pre>
+    <el-dialog v-model="logDialogVisible" :title="t('taskList.errorLog')" width="600px" destroy-on-close>
+      <pre class="log-content">{{ selectedTask?.error_desc || t('taskList.noError') }}</pre>
     </el-dialog>
 
   </div>
@@ -137,6 +137,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Plus, VideoPlay, Refresh, Edit, CircleCheckFilled, CircleCloseFilled, Loading, Clock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useTaskStore } from '@/stores/task'
@@ -144,6 +145,7 @@ import { addTask, streamUrl, type Task } from '@/services/api'
 
 const router = useRouter()
 const store = useTaskStore()
+const { t } = useI18n()
 
 const playDialogVisible = ref(false)
 const logDialogVisible = ref(false)
@@ -167,10 +169,10 @@ const entryEnd = computed(() => {
 })
 
 function statusLabel(status: number): string {
-  if (status === 2) return '完成'
-  if (status === 1) return '进行中'
-  if (status === -1) return '失败'
-  return '待处理'
+  if (status === 2) return t('taskList.statusComplete')
+  if (status === 1) return t('taskList.statusInProgress')
+  if (status === -1) return t('taskList.statusFailed')
+  return t('taskList.statusPending')
 }
 
 function statusTagType(status: number): 'success' | 'danger' | 'warning' | 'info' {
@@ -224,10 +226,10 @@ function openLogDialog(task: Task) {
 async function handleRetry(task: Task) {
   try {
     await addTask({ task_url: task.task_url })
-    ElMessage.success('已重新提交任务')
+    ElMessage.success(t('taskList.retrySuccess'))
     store.fetchTasks()
   } catch {
-    ElMessage.error('重试失败')
+    ElMessage.error(t('taskList.retryFailed'))
   }
 }
 

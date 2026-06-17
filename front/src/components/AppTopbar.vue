@@ -12,16 +12,34 @@
     </nav>
 
     <div class="topbar-actions">
+      <el-select
+        v-model="currentLocale"
+        size="small"
+        class="lang-select"
+        @change="onLocaleChange"
+      >
+        <el-option value="zh" :label="t('lang.zh')" />
+        <el-option value="en" :label="t('lang.en')" />
+      </el-select>
       <el-icon class="action-icon"><Bell /></el-icon>
-      <el-avatar :size="32" class="user-avatar">A</el-avatar>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowRight, Bell } from '@element-plus/icons-vue'
+import { setLocale } from '@/i18n'
 
 defineProps<{ breadcrumbs: string[] }>()
+
+const { t, locale } = useI18n()
+const currentLocale = ref(locale.value as 'zh' | 'en')
+
+function onLocaleChange(val: 'zh' | 'en') {
+  setLocale(val)
+}
 </script>
 
 <style scoped>
@@ -47,10 +65,5 @@ defineProps<{ breadcrumbs: string[] }>()
 .action-icon { font-size: 20px; color: var(--color-text-secondary); cursor: pointer; transition: color 0.2s; }
 .action-icon:hover { color: var(--color-primary); }
 
-.user-avatar {
-  cursor: pointer;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 14px; font-weight: 600;
-}
+.lang-select { width: 90px; }
 </style>

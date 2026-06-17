@@ -12,41 +12,41 @@ const router = createRouter({
         {
           path: 'add-task',
           component: () => import('@/views/AddTask.vue'),
-          meta: { breadcrumb: ['添加任务', '添加新任务'] }
+          meta: { breadcrumb: ['breadcrumb.addTask', 'breadcrumb.addTaskNew'] },
         },
         {
           path: 'tasks',
           component: () => import('@/views/TaskList.vue'),
-          meta: { breadcrumb: ['VideoPrinterTurbo', '任务列表'] }
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.taskList'] },
         },
         {
           path: 'settings/asr',
           component: () => import('@/components/PlaceholderPage.vue'),
-          meta: { breadcrumb: ['VideoPrinterTurbo', '配置', 'ASR 配置'] }
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr'] },
         },
         {
           path: 'settings/llm',
           component: () => import('@/components/PlaceholderPage.vue'),
-          meta: { breadcrumb: ['VideoPrinterTurbo', '配置', 'LLM 配置'] }
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm'] },
         },
         {
           path: 'settings/material',
           component: () => import('@/components/PlaceholderPage.vue'),
-          meta: { breadcrumb: ['VideoPrinterTurbo', '配置', '素材配置'] }
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material'] },
         },
         {
           path: 'settings/publish-config',
           component: () => import('@/components/PlaceholderPage.vue'),
-          meta: { breadcrumb: ['VideoPrinterTurbo', '配置', '发布配置'] }
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig'] },
         },
         {
           path: 'settings/tts-config',
           component: () => import('@/components/PlaceholderPage.vue'),
-          meta: { breadcrumb: ['VideoPrinterTurbo', '配置', 'TTS 配置'] }
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig'] },
         },
-      ]
-    }
-  ]
+      ],
+    },
+  ],
 })
 
 export default router

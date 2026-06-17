@@ -1,78 +1,78 @@
 <template>
   <div class="add-task-page">
 
-    <!-- Section 1: 下载视频 (no checkbox — always required) -->
+    <!-- Section 1: Download Video (no checkbox — always required) -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><Download /></el-icon>
-          <span class="section-title">下载视频</span>
+          <span class="section-title">{{ t('addTask.downloadVideo') }}</span>
         </div>
-        <HelpPopover content="填入视频播放页的URL地址，然后点击「检查链接」，如果弹出成功后，再继续往下进行，如果提示无法下载，可以在 GitHub 上面提 issue 给作者。" />
+        <HelpPopover :content="t('addTask.helpDownload')" />
       </div>
       <div class="section-body">
-        <div class="field-label">视频链接</div>
-        <el-input v-model="form.task_url" placeholder="请输入抖音/Bilibili/Youtube视频链接" size="large">
+        <div class="field-label">{{ t('addTask.videoUrl') }}</div>
+        <el-input v-model="form.task_url" :placeholder="t('addTask.videoUrlPlaceholder')" size="large">
           <template #append>
-            <el-button :icon="Link" @click="handleCheckLink">检查链接</el-button>
+            <el-button :icon="Link" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
           </template>
         </el-input>
       </div>
     </div>
 
-    <!-- Section 2: 音频转文字 -->
+    <!-- Section 2: Audio to Text -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><User /></el-icon>
           <el-checkbox v-model="enabled.transcription" class="section-toggle" />
-          <span class="section-title">音频转文字</span>
+          <span class="section-title">{{ t('addTask.audioToText') }}</span>
         </div>
-        <HelpPopover content="有两种方式将视频中的语音转换为文字：「从字幕提取」适合 YouTube 等带有自动字幕的视频网站；「从ASR转换」直接提取视频中的语音并转为文字（除非是 YouTube 视频，否则建议使用 ASR 方式，避免出错）。" />
+        <HelpPopover :content="t('addTask.helpTranscription')" />
       </div>
       <div class="section-body">
-        <div class="field-label">选择音频转换方式</div>
+        <div class="field-label">{{ t('addTask.transcriptionMode') }}</div>
         <el-select v-model="form.transcription_mode" class="full-width">
-          <el-option label="Whisper Large v3 (推荐)" value="whisper-large-v3" />
-          <el-option label="从字幕提取" value="subtitle" />
-          <el-option label="从ASR转换" value="asr" />
+          <el-option :label="t('addTask.whisperLarge')" value="whisper-large-v3" />
+          <el-option :label="t('addTask.fromSubtitle')" value="subtitle" />
+          <el-option :label="t('addTask.fromAsr')" value="asr" />
         </el-select>
       </div>
     </div>
 
-    <!-- Section 3: LLM 改写 -->
+    <!-- Section 3: LLM Rewrite -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><EditPen /></el-icon>
           <el-checkbox v-model="enabled.llm" class="section-toggle" />
-          <span class="section-title">LLM 改写</span>
+          <span class="section-title">{{ t('addTask.llmRewrite') }}</span>
         </div>
-        <HelpPopover content="选择 LLM 改写，并将提示词填入，会将当前提取到的文字经过 LLM 改写后重新输出。" />
+        <HelpPopover :content="t('addTask.helpLlm')" />
       </div>
       <div class="section-body">
-        <div class="field-label">LLM 提示词 (Prompt)</div>
+        <div class="field-label">{{ t('addTask.llmPrompt') }}</div>
         <el-input
           v-model="form.llm_prompt"
           type="textarea"
           :rows="4"
-          placeholder="请输入改写要求，例如：请将以下文案改写成幽默风趣的短视频脚本..."
+          :placeholder="t('addTask.llmPromptPlaceholder')"
         />
       </div>
     </div>
 
-    <!-- Section 4: 输出到语音 -->
+    <!-- Section 4: Output to Voice -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><User /></el-icon>
           <el-checkbox v-model="enabled.voice_output" class="section-toggle" />
-          <span class="section-title">输出到语音</span>
+          <span class="section-title">{{ t('addTask.outputToVoice') }}</span>
         </div>
-        <HelpPopover content="「输出到语音」将把处理好的文字通过 TTS 方式转换为语音，并合并到新的视频中。" />
+        <HelpPopover :content="t('addTask.helpVoice')" />
       </div>
       <div class="section-body">
-        <div class="field-label">TTS 服务</div>
+        <div class="field-label">{{ t('addTask.ttsService') }}</div>
         <el-select v-model="form.tts_service" class="full-width">
           <el-option label="Edge TTS" value="edge-tts" />
           <el-option label="Azure TTS V1" value="azure-v1" />
@@ -84,7 +84,7 @@
 
         <div class="voice-role-row">
           <div class="voice-role-field">
-            <div class="field-label">声音角色</div>
+            <div class="field-label">{{ t('addTask.voiceRole') }}</div>
             <el-select v-model="form.tts_voice" class="full-width">
               <el-option label="zh-CN-XiaoXiaoNeural" value="zh-CN-XiaoXiaoNeural" />
               <el-option label="zh-CN-YunXiNeural" value="zh-CN-YunXiNeural" />
@@ -92,37 +92,37 @@
             </el-select>
           </div>
           <el-button class="test-voice-btn" @click="handleTestVoice">
-            <el-icon><VideoPlay /></el-icon>测试
+            <el-icon><VideoPlay /></el-icon>{{ t('addTask.testVoice') }}
           </el-button>
         </div>
 
         <div class="sliders-row">
           <div class="slider-group">
-            <div class="field-label">语音音量 ({{ form.tts_volume.toFixed(1) }})</div>
+            <div class="field-label">{{ t('addTask.speechVolume') }} ({{ form.tts_volume.toFixed(1) }})</div>
             <el-slider v-model="form.tts_volume" :min="1.0" :max="2.0" :step="0.1" />
           </div>
           <div class="slider-group">
-            <div class="field-label">速度 ({{ form.tts_speed.toFixed(1) }})</div>
+            <div class="field-label">{{ t('addTask.speed') }} ({{ form.tts_speed.toFixed(1) }})</div>
             <el-slider v-model="form.tts_speed" :min="1.0" :max="2.0" :step="0.1" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Section 5: 输出到字幕 -->
+    <!-- Section 5: Output to Subtitle -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><Tickets /></el-icon>
           <el-checkbox v-model="enabled.subtitle_output" class="section-toggle" />
-          <span class="section-title">输出到字幕</span>
+          <span class="section-title">{{ t('addTask.outputToSubtitle') }}</span>
         </div>
-        <HelpPopover content="「输出到字幕」原视频中的语音不动，只是将处理好的文本转为字幕，添加到新的视频中。" />
+        <HelpPopover :content="t('addTask.helpSubtitle')" />
       </div>
       <div class="section-body">
         <div class="form-grid-2">
           <div>
-            <div class="field-label">字体</div>
+            <div class="field-label">{{ t('addTask.font') }}</div>
             <el-select v-model="form.subtitle_font" class="full-width">
               <el-option label="思源黑体 Bold" value="SourceHanSans-Bold" />
               <el-option label="思源黑体 Regular" value="SourceHanSans-Regular" />
@@ -133,31 +133,31 @@
             </el-select>
           </div>
           <div>
-            <div class="field-label">位置</div>
+            <div class="field-label">{{ t('addTask.position') }}</div>
             <el-select v-model="form.subtitle_position" class="full-width">
-              <el-option label="底部居中（推荐）" value="bottom-center" />
-              <el-option label="顶部居中" value="top-center" />
-              <el-option label="中间" value="center" />
-              <el-option label="自定义（70，离顶部70%位置）" value="custom" />
+              <el-option :label="t('addTask.bottomCenter')" value="bottom-center" />
+              <el-option :label="t('addTask.topCenter')" value="top-center" />
+              <el-option :label="t('addTask.middle')" value="center" />
+              <el-option :label="t('addTask.customSubtitlePos')" value="custom" />
             </el-select>
           </div>
         </div>
 
         <div v-if="form.subtitle_position === 'custom'" class="mt-12">
-          <div class="field-label">自定义位置（离顶部百分比）</div>
+          <div class="field-label">{{ t('addTask.customPosition') }}</div>
           <el-input v-model="form.subtitle_position_custom" style="width: 200px" placeholder="70" />
         </div>
 
         <div class="color-row mt-12">
           <div class="color-group">
-            <div class="field-label">字幕颜色</div>
+            <div class="field-label">{{ t('addTask.subtitleColor') }}</div>
             <div class="color-field">
               <input type="color" v-model="form.subtitle_color" class="color-swatch" />
               <span class="color-hex">{{ form.subtitle_color }}</span>
             </div>
           </div>
           <div class="color-group">
-            <div class="field-label">描边颜色</div>
+            <div class="field-label">{{ t('addTask.strokeColor') }}</div>
             <div class="color-field">
               <input type="color" v-model="form.subtitle_stroke_color" class="color-swatch" />
               <span class="color-hex">{{ form.subtitle_stroke_color }}</span>
@@ -166,29 +166,29 @@
         </div>
 
         <div class="mt-12">
-          <div class="field-label">字幕大小</div>
+          <div class="field-label">{{ t('addTask.subtitleSize') }}</div>
           <el-slider v-model="form.subtitle_size" :min="30" :max="100" :step="1" show-tooltip />
         </div>
       </div>
     </div>
 
-    <!-- Section 6: 背景音乐 -->
+    <!-- Section 6: Background Music -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><Bell /></el-icon>
           <el-checkbox v-model="enabled.bgm" class="section-toggle" />
-          <span class="section-title">背景音乐</span>
+          <span class="section-title">{{ t('addTask.bgm') }}</span>
         </div>
-        <HelpPopover content="选择相关的背景音乐后，将会将此背景音乐合并到新的视频中。" />
+        <HelpPopover :content="t('addTask.helpBgm')" />
       </div>
       <div class="section-body">
-        <div class="field-label">选择 BGM 库</div>
+        <div class="field-label">{{ t('addTask.bgmLibrary') }}</div>
         <el-select v-model="form.bgm_library" class="full-width">
-          <el-option label="推荐轻快背景乐" value="light" />
-          <el-option label="推荐舒缓背景乐" value="calm" />
-          <el-option label="随机背景音乐" value="random" />
-          <el-option label="无背景音乐" value="none" />
+          <el-option :label="t('addTask.lightBgm')" value="light" />
+          <el-option :label="t('addTask.calmBgm')" value="calm" />
+          <el-option :label="t('addTask.randomBgm')" value="random" />
+          <el-option :label="t('addTask.noBgm')" value="none" />
         </el-select>
 
         <div class="bgm-layout mt-12">
@@ -202,11 +202,11 @@
               :limit="1"
             >
               <el-icon class="upload-icon"><Document /></el-icon>
-              <div class="upload-text">点击上传本地音频文件</div>
+              <div class="upload-text">{{ t('addTask.uploadAudio') }}</div>
             </el-upload>
           </div>
           <div class="bgm-volume">
-            <div class="field-label">背景音乐音量</div>
+            <div class="field-label">{{ t('addTask.bgmVolume') }}</div>
             <div class="volume-row">
               <span class="vol-icon">🔉</span>
               <el-slider v-model="form.bgm_volume" :min="0" :max="1" :step="0.05" class="vol-slider" />
@@ -217,43 +217,43 @@
       </div>
     </div>
 
-    <!-- Section 7: 视频覆盖 -->
+    <!-- Section 7: Video Overlay -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><Film /></el-icon>
           <el-checkbox v-model="enabled.video_overlay" class="section-toggle" />
-          <span class="section-title">视频覆盖</span>
+          <span class="section-title">{{ t('addTask.videoOverlay') }}</span>
         </div>
-        <HelpPopover content="点击「视频覆盖」复选框后，将从 Pexels 等网站获取短视频进行拼接。" />
+        <HelpPopover :content="t('addTask.helpVideoOverlay')" />
       </div>
       <div class="section-body">
         <div class="form-grid-3">
           <div>
-            <div class="field-label">视频源</div>
+            <div class="field-label">{{ t('addTask.videoSource') }}</div>
             <el-select v-model="form.video_source" class="full-width">
               <el-option label="Pexels" value="pexels" />
               <el-option label="Pixabay" value="pixabay" />
-              <el-option label="本地文件" value="local" />
+              <el-option :label="t('addTask.localFile')" value="local" />
             </el-select>
           </div>
           <div>
-            <div class="field-label">拼接模式</div>
+            <div class="field-label">{{ t('addTask.concatMode') }}</div>
             <el-select v-model="form.video_concat_mode" class="full-width">
-              <el-option label="顺序拼接" value="sequential" />
-              <el-option label="随机拼接（推荐）" value="random" />
+              <el-option :label="t('addTask.sequential')" value="sequential" />
+              <el-option :label="t('addTask.randomConcat')" value="random" />
             </el-select>
           </div>
           <div>
-            <div class="field-label">转场模式</div>
+            <div class="field-label">{{ t('addTask.transitionMode') }}</div>
             <el-select v-model="form.video_transition" class="full-width">
-              <el-option label="无转场" value="none" />
-              <el-option label="随机转场" value="random" />
-              <el-option label="渐入" value="fadein" />
-              <el-option label="渐出" value="fadeout" />
-              <el-option label="淡入淡出" value="fadeinout" />
-              <el-option label="滑动入" value="slidein" />
-              <el-option label="滑动出" value="slideout" />
+              <el-option :label="t('addTask.noTransition')" value="none" />
+              <el-option :label="t('addTask.randomTransition')" value="random" />
+              <el-option :label="t('addTask.fadein')" value="fadein" />
+              <el-option :label="t('addTask.fadeout')" value="fadeout" />
+              <el-option :label="t('addTask.fadeinout')" value="fadeinout" />
+              <el-option :label="t('addTask.slidein')" value="slidein" />
+              <el-option :label="t('addTask.slideout')" value="slideout" />
             </el-select>
           </div>
         </div>
@@ -261,43 +261,43 @@
         <div v-if="form.video_source === 'local'" class="upload-zone mt-12">
           <el-upload drag :auto-upload="false" accept="video/*" :on-change="handleVideoFileChange" :file-list="videoFileList" multiple>
             <el-icon class="upload-icon"><Upload /></el-icon>
-            <div class="upload-text">点击上传本地视频文件</div>
-            <div class="upload-hint">支持 MP4、MOV、AVI 等格式，可多选</div>
+            <div class="upload-text">{{ t('addTask.uploadVideo') }}</div>
+            <div class="upload-hint">{{ t('addTask.uploadVideoHint') }}</div>
           </el-upload>
         </div>
 
         <div class="form-grid-3 mt-12">
           <div>
-            <div class="field-label">视频比例</div>
+            <div class="field-label">{{ t('addTask.videoAspect') }}</div>
             <el-select v-model="form.video_aspect" class="full-width">
-              <el-option label="9:16 (竖屏)" value="9:16" />
-              <el-option label="16:9 (横屏)" value="16:9" />
+              <el-option :label="t('addTask.portrait')" value="9:16" />
+              <el-option :label="t('addTask.landscape')" value="16:9" />
             </el-select>
           </div>
           <div>
-            <div class="field-label">视频片段最大时长(秒)</div>
+            <div class="field-label">{{ t('addTask.maxDuration') }}</div>
             <el-input v-model.number="form.video_fragment_duration" type="number" :min="2" :max="30" class="full-width" />
           </div>
           <div>
-            <div class="field-label">同时生成视频数量</div>
+            <div class="field-label">{{ t('addTask.videoCount') }}</div>
             <el-input v-model.number="form.video_count" type="number" :min="1" :max="5" class="full-width" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Section 8: 发布 -->
+    <!-- Section 8: Publish -->
     <div class="section-card">
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><Share /></el-icon>
           <el-checkbox v-model="enabled.publish" class="section-toggle" />
-          <span class="section-title">发布</span>
+          <span class="section-title">{{ t('addTask.publish') }}</span>
         </div>
-        <HelpPopover content="此功能暂未开放。" />
+        <HelpPopover :content="t('addTask.helpPublish')" />
       </div>
       <div class="section-body">
-        <div class="field-label">发布设置 (JSON 配置或描述)</div>
+        <div class="field-label">{{ t('addTask.publishSettings') }}</div>
         <el-input
           type="textarea"
           :rows="5"
@@ -312,7 +312,7 @@
     <div class="submit-area">
       <el-button type="primary" size="large" :loading="submitting" class="submit-btn" @click="handleSubmit">
         <el-icon><Promotion /></el-icon>
-        开始任务
+        {{ t('addTask.startTask') }}
       </el-button>
     </div>
 
@@ -322,6 +322,7 @@
 <script setup lang="ts">
 import { defineComponent, reactive, ref, h } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElPopover } from 'element-plus'
 import type { UploadFile } from 'element-plus'
 import {
@@ -331,6 +332,7 @@ import {
 import { addTask } from '@/services/api'
 
 const router = useRouter()
+const { t } = useI18n()
 
 /* -------- inline helper component for help popovers -------- */
 const HelpPopover = defineComponent({
@@ -339,7 +341,7 @@ const HelpPopover = defineComponent({
     return () => h(ElPopover, { trigger: 'click', placement: 'bottom-end', width: 320 }, {
       reference: () => h('span', { class: 'help-link' }, [
         h(QuestionFilled, { style: { fontSize: '13px', marginRight: '3px' } }),
-        '使用说明',
+        t('addTask.usageGuide'),
       ]),
       default: () => h('p', { style: { lineHeight: '1.7', fontSize: '13px' } }, props.content),
     })
@@ -389,17 +391,17 @@ const videoFileList = ref<UploadFile[]>([])
 const publishPlaceholder = `{ 'platform': 'douyin', 'auto_publish': true, ... }`
 
 function handleCheckLink() {
-  if (!form.task_url.trim()) { ElMessage.warning('请先输入视频链接'); return }
-  ElMessage.info('功能开发中')
+  if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrlFirst')); return }
+  ElMessage.info(t('addTask.featureInDev'))
 }
 
-function handleTestVoice() { ElMessage.info('功能开发中') }
+function handleTestVoice() { ElMessage.info(t('addTask.featureInDev')) }
 
 function handleBgmFileChange(file: UploadFile) { bgmFileList.value = [file] }
 function handleVideoFileChange(file: UploadFile) { videoFileList.value = [...videoFileList.value, file] }
 
 async function handleSubmit() {
-  if (!form.task_url.trim()) { ElMessage.warning('请输入视频链接'); return }
+  if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrl')); return }
   try {
     submitting.value = true
     await addTask({
@@ -427,10 +429,10 @@ async function handleSubmit() {
       video_fragment_duration: form.video_fragment_duration,
       video_count: form.video_count,
     })
-    ElMessage.success('任务已创建')
+    ElMessage.success(t('addTask.taskCreated'))
     router.push('/tasks')
   } catch {
-    ElMessage.error('创建失败，请重试')
+    ElMessage.error(t('addTask.createFailed'))
   } finally {
     submitting.value = false
   }
@@ -504,7 +506,7 @@ async function handleSubmit() {
 
 .mt-12 { margin-top: 12px; }
 
-/* ─── 输出到语音 ─── */
+/* ─── Output to Voice ─── */
 .voice-role-row {
   display: flex;
   align-items: flex-end;
@@ -528,7 +530,7 @@ async function handleSubmit() {
 
 .slider-group {}
 
-/* ─── 输出到字幕 ─── */
+/* ─── Output to Subtitle ─── */
 .form-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -564,7 +566,7 @@ async function handleSubmit() {
   font-family: 'Courier New', monospace;
 }
 
-/* ─── 背景音乐 ─── */
+/* ─── Background Music ─── */
 .bgm-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -606,7 +608,7 @@ async function handleSubmit() {
   color: var(--color-text-regular);
 }
 
-/* ─── 视频覆盖 ─── */
+/* ─── Video Overlay ─── */
 .form-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -625,7 +627,7 @@ async function handleSubmit() {
   margin-top: 2px;
 }
 
-/* ─── 发布 ─── */
+/* ─── Publish ─── */
 .publish-textarea {
   font-family: 'Courier New', monospace;
   font-size: 13px;

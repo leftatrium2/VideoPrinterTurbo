@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "videoprinterturbo"
 version = "0.1.0"
-description = "视频改写 AI 项目 — 下载网站视频，转录原文，LLM 改写，合成新视频并发布。"
+description = "视频改写 AI 项目"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { text = "MIT" }
