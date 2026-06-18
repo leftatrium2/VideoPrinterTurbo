@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from aiohttp.abc import HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 from config.config import config
 from routers.asr_tts_config import router as asr_tts_config_router
@@ -11,7 +14,10 @@ from routers.material_config import router as material_config_router
 from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
 from server.service.task_manager import task_manager
+from utils import const
 from utils.database import database
+from utils.exception import VPTException
+from utils.result import result_failure
 
 
 @asynccontextmanager
@@ -51,3 +57,19 @@ app.include_router(asr_tts_config_router)
 app.include_router(llm_config_router)
 app.include_router(material_config_router)
 app.include_router(publish_config_router)
+
+
+@app.exception_handler(VPTException)
+async def http_exception_handler(request: Request, exc: VPTException):
+    return JSONResponse(status_code=500, content=result_failure(code=exc.code, message=exc.message))
+
+
+class ExceptionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        try:
+            return await call_next(request)
+        except Exception as e:
+            return JSONResponse(status_code=500, content=result_failure(code=const.GLOBAL_ERR_UNKNOWN, message=str(e)))
+
+
+app.add_middleware(ExceptionMiddleware)

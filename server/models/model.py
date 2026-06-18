@@ -14,6 +14,17 @@ t_sqlite_sequence = Table(
 )
 
 
+class VptAsrConfig(Base):
+    __tablename__ = 'vpt_asr_config'
+
+    id = Column(Integer, primary_key=True)
+    tencent_cloud_secret_id = Column(Text, nullable=False, server_default=text("''"))
+    tencent_cloud_secret_key = Column(Text, nullable=False, server_default=text("''"))
+    xfyun_appid = Column(Text, nullable=False, server_default=text("''"))
+    xfyun_secret_key = Column(Text, nullable=False, server_default=text("''"))
+    xfyun_web_api = Column(Text, nullable=False, server_default=text("''"))
+
+
 class VptLlmConfig(Base):
     __tablename__ = 'vpt_llm_config'
 
@@ -35,6 +46,14 @@ class VptTask(Base):
     task_id = Column(Integer, nullable=False, server_default=text("0"))
     error_code = Column(Integer, nullable=False, server_default=text("0"))
     error_desc = Column(Text, nullable=False, server_default=text("''"))
+    is_transcription_tts = Column(Integer, nullable=False, server_default=text("0"))
+    is_llm = Column(Integer, nullable=False, server_default=text("0"))
+    is_publish = Column(Integer, nullable=False, server_default=text("0"))
+    is_from_asr_or_subtitle = Column(Integer, nullable=False, server_default=text("0"))
+    tts_config_id = Column(Integer, nullable=False, server_default=text("0"))
+    tts_voice_volume = Column(Float, nullable=False, server_default=text("1.0"))
+    tts_voice_speed = Column(Float, nullable=False, server_default=text("1.0"))
+    llm_prompt = Column(Text, nullable=False, server_default=text("''"))
 
 
 class VptTtsConfig(Base):
