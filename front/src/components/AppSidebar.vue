@@ -41,7 +41,7 @@
 import { useI18n } from 'vue-i18n'
 import {
   Film, Plus, List,
-  Microphone, MagicStick, Picture, Promotion, Headset,
+  Microphone, MagicStick, Picture, Promotion, Headset, Connection,
 } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -52,6 +52,7 @@ const configItems = [
   { to: '/settings/material',       labelKey: 'sidebar.materialConfig', icon: Picture },
   { to: '/settings/publish-config', labelKey: 'sidebar.publishConfig',  icon: Promotion },
   { to: '/settings/tts-config',     labelKey: 'sidebar.ttsConfig',      icon: Headset },
+  { to: '/settings/proxy',          labelKey: 'sidebar.proxyConfig',    icon: Connection },
 ]
 </script>
 

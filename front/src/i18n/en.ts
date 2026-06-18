@@ -11,6 +11,7 @@ export default {
     materialConfig: 'Material Config',
     publishConfig: 'Publish Config',
     ttsConfig: 'TTS Config',
+    proxyConfig: 'Proxy Config',
   },
 
   breadcrumb: {
@@ -24,6 +25,7 @@ export default {
     material: 'Material Config',
     publishConfig: 'Publish Config',
     ttsConfig: 'TTS Config',
+    proxy: 'Proxy Config',
   },
 
   addTask: {

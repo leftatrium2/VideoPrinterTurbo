@@ -11,6 +11,7 @@ export default {
     materialConfig: '素材配置',
     publishConfig: '发布配置',
     ttsConfig: 'TTS 配置',
+    proxyConfig: '代理配置',
   },
 
   breadcrumb: {
@@ -24,6 +25,7 @@ export default {
     material: '素材配置',
     publishConfig: '发布配置',
     ttsConfig: 'TTS 配置',
+    proxy: '代理配置',
   },
 
   addTask: {

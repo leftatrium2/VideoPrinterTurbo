@@ -120,6 +120,7 @@ front/
 | `/settings/material` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material']` |
 | `/settings/publish-config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
 | `/settings/tts-config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
+| `/settings/proxy` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.proxy']` |
 
 ---
 
@@ -187,6 +188,7 @@ placeholder.*  — 占位页文本
 🖼 素材配置    →  /settings/material
 ▷  发布配置    →  /settings/publish-config
 🎧 TTS 配置    →  /settings/tts-config
+🔗 代理配置    →  /settings/proxy
 ```
 
 激活样式：primary 蓝色文字 + 左侧 2px 蓝色竖条 + 浅蓝底色。

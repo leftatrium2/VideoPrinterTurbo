@@ -44,6 +44,11 @@ const router = createRouter({
           component: () => import('@/components/PlaceholderPage.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig'] },
         },
+        {
+          path: 'settings/proxy',
+          component: () => import('@/components/PlaceholderPage.vue'),
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.proxy'] },
+        },
       ],
     },
   ],

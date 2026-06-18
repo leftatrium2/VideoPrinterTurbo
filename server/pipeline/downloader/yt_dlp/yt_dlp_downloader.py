@@ -5,6 +5,8 @@ import subprocess
 from loguru import logger
 
 from pipeline.downloader.base import BaseDownloader, DownloadContext, VideoPackage
+from utils import const
+from utils.exception import VPTException
 
 
 class YtDlpDownloader(BaseDownloader):
@@ -19,6 +21,7 @@ class YtDlpDownloader(BaseDownloader):
         self._check_available()
 
     async def check(self, url: str) -> bool:
+        
         return True
 
     @staticmethod
@@ -27,9 +30,8 @@ class YtDlpDownloader(BaseDownloader):
             subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True)
         except (FileNotFoundError, subprocess.CalledProcessError):
             logger.warning("yt-dlp not found. Install with: pip install yt-dlp")
-
-    def validate_config(self) -> bool:
-        return True
+            raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
+                               message="yt-dlp not found. Install with: pip install yt-dlp")
 
     async def download(self, url: str, output_dir: str, context: DownloadContext) -> VideoPackage or None:
         return None
