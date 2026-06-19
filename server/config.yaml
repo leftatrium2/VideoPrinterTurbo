@@ -4,6 +4,14 @@ app:
   debug: true
   version: 1.0.0
 
+storage:
+  path: storage
+  download: storage/downloads
+  video_to_text: storage/video_to_text
+  llm_rewrite: storage/llm_rewrite
+  material: storage/material
+  output: output
+
 database:
   url: sqlite+aiosqlite:///db/VideoPrinterTurbo.db
   pool_size: 10

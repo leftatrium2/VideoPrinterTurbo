@@ -9,9 +9,7 @@ from typing import Optional
 from loguru import logger
 from openai import OpenAI
 
-from app.config import config
-from app.pipeline.base import PluginType
-from app.pipeline.llm.base import BaseLLMProvider
+from pipeline.llm.base import BaseLLMProvider
 
 
 class OpenAIProvider(BaseLLMProvider):
@@ -24,28 +22,25 @@ class OpenAIProvider(BaseLLMProvider):
       - openai_model_name / deepseek_model_name
     """
 
-    type = PluginType.LLM
-    name = "openai"
-
     def __init__(self):
         self._client = None
-        self._model = config.app.openai_model_name
+        self._model = ""
         self._init_client()
 
     def _init_client(self):
-        provider = config.app.llm_provider
+        provider = ""
         if provider == "deepseek":
-            api_key = config.app.deepseek_api_key
-            base_url = config.app.deepseek_base_url
-            self._model = config.app.deepseek_model_name
+            api_key = ""
+            base_url = ""
+            self._model = ""
         elif provider == "moonshot":
-            api_key = config.app.get("moonshot_api_key", "")
-            base_url = config.app.get("moonshot_base_url", "https://api.moonshot.cn/v1")
-            self._model = config.app.get("moonshot_model_name", "moonshot-v1-8k")
+            api_key = ""
+            base_url = ""
+            self._model = ""
         else:
-            api_key = config.app.openai_api_key
-            base_url = config.app.openai_base_url
-            self._model = config.app.openai_model_name
+            api_key = ""
+            base_url = ""
+            self._model = ""
 
         if not api_key:
             logger.warning(f"API key not configured for provider: {provider}")
@@ -115,7 +110,7 @@ Return only the keywords as a comma-separated list. No numbering, no explanation
 
     def translate_subtitles(self, segments: list[dict], target_language: str) -> list[dict]:
         texts = [seg["text"] for seg in segments]
-        joined = "\n".join(f"{i+1}. {t}" for i, t in enumerate(texts))
+        joined = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(texts))
 
         system_prompt = f"Translate the following subtitle lines to {target_language}. Keep the same numbering. Return only the translations."
         response = self._call(system_prompt, joined)

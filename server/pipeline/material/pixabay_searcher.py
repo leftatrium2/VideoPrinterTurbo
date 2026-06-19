@@ -1,30 +1,19 @@
 """PixabaySearcher — searches and downloads video footage from Pixabay API."""
 
 import os
-from typing import Optional
 from urllib.parse import urlencode
 
 import requests
 from loguru import logger
 from moviepy import VideoFileClip
 
-from app.config import config
-from app.models.schema import MaterialInfo, VideoAspect
-from app.pipeline.base import PluginType
-from app.pipeline.material.base import BaseMaterialSearcher
-from app.utils import utils
-
-from app.pipeline.material.pexels_searcher import _get_api_key, _get_tls_verify
+from pipeline.material.base import BaseMaterialSearcher, VideoAspect, MaterialInfo
 
 
 class PixabaySearcher(BaseMaterialSearcher):
-    """Search and download videos from Pixabay."""
-
-    type = PluginType.MATERIAL
-    name = "pixabay"
 
     def validate_config(self) -> bool:
-        return bool(config.app.get("pixabay_api_keys"))
+        return bool("pixabay_api_keys")
 
     def search(self, query: str, video_aspect=VideoAspect.portrait,
                min_duration: int = 5, per_page: int = 50) -> list[MaterialInfo]:

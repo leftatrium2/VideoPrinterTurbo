@@ -3,33 +3,21 @@
 import os
 import re
 from typing import Optional
-
 from loguru import logger
 
-from app.models.schema import TranscriptSegment
-from app.pipeline.base import PluginType
-from app.pipeline.transcriber.base import BaseTranscriber
+from pipeline.transcriber.base import BaseTranscriber
 
 
 class SubtitleExtractor(BaseTranscriber):
-    """Extract subtitles directly from a video file's embedded subtitle tracks.
-
-    Supports .srt, .vtt, and .ass subtitle formats.
-    This plugin does NOT perform speech-to-text — it only reads existing subtitles.
-    """
-
-    type = PluginType.TRANSCRIBER
-    name = "subtitle_extractor"
 
     def validate_config(self) -> bool:
         return True
 
-    def transcribe(self, audio_path: str, language: Optional[str] = None) -> list[TranscriptSegment]:
-        """Not supported — this plugin only extracts existing subtitles."""
+    def transcribe(self, audio_path: str, language: Optional[str] = None) -> list:
         logger.warning("SubtitleExtractor does not support ASR transcription")
         return []
 
-    def extract_subtitles(self, video_path: str) -> list[TranscriptSegment]:
+    def extract_subtitles(self, video_path: str) -> list:
         """Extract subtitles from embedded subtitle tracks in a video file.
 
         Tries common subtitle file extensions in the same directory as the video,

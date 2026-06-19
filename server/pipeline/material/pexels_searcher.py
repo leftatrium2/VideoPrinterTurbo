@@ -1,20 +1,15 @@
 """PexelsSearcher — searches and downloads video footage from Pexels API."""
 
 import os
-import random
 import threading
-from typing import Optional
 from urllib.parse import urlencode
 
 import requests
 from loguru import logger
 from moviepy import VideoFileClip
 
-from app.config import config
-from app.models.schema import MaterialInfo, VideoAspect
-from app.pipeline.base import PluginType
-from app.pipeline.material.base import BaseMaterialSearcher
-from app.utils import utils
+from config.config import config
+from pipeline.material.base import BaseMaterialSearcher, VideoAspect, MaterialInfo
 
 _api_key_counter = 0
 _api_key_lock = threading.Lock()
@@ -40,13 +35,9 @@ def _get_api_key(cfg_key: str):
 
 
 class PexelsSearcher(BaseMaterialSearcher):
-    """Search and download videos from Pexels."""
-
-    type = PluginType.MATERIAL
-    name = "pexels"
 
     def validate_config(self) -> bool:
-        return bool(config.app.get("pexels_api_keys"))
+        return bool("pexels_api_keys")
 
     def search(self, query: str, video_aspect=VideoAspect.portrait,
                min_duration: int = 5, per_page: int = 20) -> list[MaterialInfo]:

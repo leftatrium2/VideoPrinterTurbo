@@ -5,10 +5,6 @@ from typing import Optional
 
 from loguru import logger
 
-from app.config import config
-from app.pipeline.base import PluginType
-from app.pipeline.llm.base import BaseLLMProvider
-
 
 class GeminiProvider(BaseLLMProvider):
     """Google Gemini LLM provider.
@@ -17,16 +13,13 @@ class GeminiProvider(BaseLLMProvider):
     Configure: gemini_api_key and gemini_model_name in config.toml
     """
 
-    type = PluginType.LLM
-    name = "gemini"
-
     def __init__(self):
         self._model = None
         self._init_model()
 
     def _init_model(self):
-        api_key = config.app.gemini_api_key
-        model_name = config.app.gemini_model_name
+        api_key = ""
+        model_name = ""
         if not api_key:
             logger.warning("Gemini API key not configured")
             return
@@ -95,7 +88,7 @@ Keywords:"""
 
     def translate_subtitles(self, segments: list[dict], target_language: str) -> list[dict]:
         texts = [seg["text"] for seg in segments]
-        joined = "\n".join(f"{i+1}. {t}" for i, t in enumerate(texts))
+        joined = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(texts))
 
         prompt = f"Translate these subtitles to {target_language}. Keep numbering. Return only the translations:\n\n{joined}"
         response = self._call(prompt)

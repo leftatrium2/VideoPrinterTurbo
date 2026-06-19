@@ -5,21 +5,10 @@ from typing import Optional
 
 from loguru import logger
 
-from app.config import config
-from app.models.schema import TranscriptSegment
-from app.pipeline.base import PluginType
-from app.pipeline.transcriber.base import BaseTranscriber
-from app.utils import utils
+from pipeline.transcriber.base import BaseTranscriber
 
 
 class WhisperTranscriber(BaseTranscriber):
-    """Transcribe audio to text using faster-whisper.
-
-    Supports CPU and GPU inference. Model is loaded on first use.
-    """
-
-    type = PluginType.TRANSCRIBER
-    name = "whisper"
 
     def __init__(self):
         self._model = None
@@ -38,12 +27,12 @@ class WhisperTranscriber(BaseTranscriber):
             logger.error("faster-whisper not installed. Run: uv sync")
             raise RuntimeError("faster-whisper not available")
 
-        model_size = config.whisper.model_size
-        device = config.whisper.device
-        compute_type = config.whisper.compute_type
+        model_size = 0
+        device = ""
+        compute_type = ""
 
         # Check for local model file
-        model_path = os.path.join(utils.root_dir(), "models", f"whisper-{model_size}")
+        model_path = os.path.join("", "models", f"whisper-{model_size}")
         model_bin = os.path.join(model_path, "model.bin")
         if os.path.isdir(model_path) and os.path.isfile(model_bin):
             self._model_path = model_path
@@ -53,7 +42,7 @@ class WhisperTranscriber(BaseTranscriber):
         logger.info(f"loading whisper model: {self._model_path}, device: {device}, compute_type: {compute_type}")
         self._model = WhisperModel(self._model_path, device=device, compute_type=compute_type)
 
-    def transcribe(self, audio_path: str, language: Optional[str] = None) -> list[TranscriptSegment]:
+    def transcribe(self, audio_path: str, language: Optional[str] = None) -> list:
         """Transcribe audio to text segments."""
         if not audio_path or not os.path.isfile(audio_path):
             logger.error(f"audio file not found: {audio_path}")
@@ -76,11 +65,11 @@ class WhisperTranscriber(BaseTranscriber):
         for i, seg in enumerate(segments, 1):
             text = seg.text.strip()
             if text:
-                result.append(TranscriptSegment(index=i, text=text, start=seg.start, end=seg.end))
+                result.append(None)
 
         return result
 
-    def extract_subtitles(self, video_path: str) -> list[TranscriptSegment]:
+    def extract_subtitles(self, video_path: str) -> list:
         """Extract subtitles — falls back to transcribing the audio track.
 
         For WhisperTranscriber, this extracts audio from the video and transcribes it.

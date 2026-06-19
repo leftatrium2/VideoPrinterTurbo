@@ -14,10 +14,8 @@ env/
 config.toml
 
 # Storage
-storage/
-
-# Downloads
-downloads/
+server/storage/
+server/output/
 
 # Models (Whisper)
 /models/
