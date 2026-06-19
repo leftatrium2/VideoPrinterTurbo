@@ -1,6 +1,6 @@
 import logging
 
-from pipeline.downloader.base import DownloadContext, BaseDownloader
+from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.bilibili.bilibili_downloader import BilibiliDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 
@@ -19,7 +19,7 @@ class Pipeline:
     def __init__(self):
         pass
 
-    async def download(self, url: str, output_dir: str, ctx: DownloadContext) -> str or None:
+    async def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
         if not url.strip():
             logging.error("Url is empty")
             return None

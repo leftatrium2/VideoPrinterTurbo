@@ -1,5 +1,9 @@
 # crawler request timeout (s)
 REQUEST_TIME_OUT = 10  # 访问超时时间设置10s
+# downloader codec type
+DOWNLOADER_CODEC_VIDEO_TYPE = 1
+DOWNLOADER_CODEC_AUDIO_TYPE = 2
+DOWNLOADER_CODEC_MUXER_TYPE = 3
 
 # error code for successful
 GLOBAL_SUCC = 0

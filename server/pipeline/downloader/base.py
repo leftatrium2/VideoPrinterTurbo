@@ -15,7 +15,7 @@ class VideoPackage:
     height: int = 0
 
 
-class DownloadContext(ABC):
+class DownloaderContext(ABC):
     """
     下载器的上下文接口
     用来将当前下载的状态回调到pipeline里面
@@ -30,7 +30,7 @@ class DownloadContext(ABC):
         pass
 
     @abstractmethod
-    async def on_progress(self, url: str, progress: float):
+    async def on_progress(self, url: str, codec_type: int, progress: float):
         pass
 
     @abstractmethod
@@ -48,7 +48,7 @@ class BaseDownloader(ABC):
     """
 
     @abstractmethod
-    async def download(self, url: str, output_dir: str, context: DownloadContext) -> VideoPackage:
+    async def download(self, url: str, output_dir: str, context: DownloaderContext) -> VideoPackage:
         pass
 
     @abstractmethod
