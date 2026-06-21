@@ -7,10 +7,10 @@ const router = createRouter({
     {
       path: '/',
       component: AppLayout,
-      redirect: '/add-task',
+      redirect: '/add_task',
       children: [
         {
-          path: 'add-task',
+          path: 'add_task',
           component: () => import('@/views/AddTask.vue'),
           meta: { breadcrumb: ['breadcrumb.addTask', 'breadcrumb.addTaskNew'] },
         },
@@ -35,12 +35,12 @@ const router = createRouter({
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material'] },
         },
         {
-          path: 'settings/publish-config',
+          path: 'settings/publish_config',
           component: () => import('@/components/PlaceholderPage.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig'] },
         },
         {
-          path: 'settings/tts-config',
+          path: 'settings/tts_config',
           component: () => import('@/components/PlaceholderPage.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig'] },
         },

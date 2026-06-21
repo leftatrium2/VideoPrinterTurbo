@@ -11,7 +11,7 @@
     </div>
 
     <nav class="nav">
-      <RouterLink to="/add-task" class="nav-item" active-class="nav-item--active">
+      <RouterLink to="/add_task" class="nav-item" active-class="nav-item--active">
         <el-icon><Plus /></el-icon>
         <span>{{ t('sidebar.addTask') }}</span>
       </RouterLink>
@@ -50,8 +50,8 @@ const configItems = [
   { to: '/settings/asr',            labelKey: 'sidebar.asrConfig',      icon: Microphone },
   { to: '/settings/llm',            labelKey: 'sidebar.llmConfig',      icon: MagicStick },
   { to: '/settings/material',       labelKey: 'sidebar.materialConfig', icon: Picture },
-  { to: '/settings/publish-config', labelKey: 'sidebar.publishConfig',  icon: Promotion },
-  { to: '/settings/tts-config',     labelKey: 'sidebar.ttsConfig',      icon: Headset },
+  { to: '/settings/publish_config', labelKey: 'sidebar.publishConfig',  icon: Promotion },
+  { to: '/settings/tts_config',     labelKey: 'sidebar.ttsConfig',      icon: Headset },
   { to: '/settings/proxy',          labelKey: 'sidebar.proxyConfig',    icon: Connection },
 ]
 </script>

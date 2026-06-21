@@ -4,7 +4,7 @@
     <!-- Page header bar -->
     <div class="page-header">
       <span class="page-title">{{ t('taskList.title') }}</span>
-      <el-button type="primary" :icon="Plus" @click="router.push('/add-task')">
+      <el-button type="primary" :icon="Plus" @click="router.push('/add_task')">
         {{ t('taskList.newTask') }}
       </el-button>
     </div>
@@ -110,7 +110,7 @@
     </div>
 
     <!-- FAB -->
-    <button class="fab" @click="router.push('/add-task')" :title="t('taskList.newTask')">
+    <button class="fab" @click="router.push('/add_task')" :title="t('taskList.newTask')">
       <el-icon><Plus /></el-icon>
     </button>
 
@@ -234,7 +234,7 @@ async function handleRetry(task: Task) {
 }
 
 function handleEdit(task: Task) {
-  router.push(`/add-task?video_url=${encodeURIComponent(task.task_url)}`)
+  router.push(`/add_task?video_url=${encodeURIComponent(task.task_url)}`)
 }
 </script>
 

@@ -110,16 +110,18 @@ front/
 
 所有页面挂载在 `AppLayout` 下，`meta.breadcrumb` 存 **i18n 键**，`AppLayout` 调用 `t(key)` 翻译后传给 `AppTopbar`。
 
+**路由命名规范：路由 `path` 只允许使用字母和下划线（`snake_case`），禁止使用短横线（`-`）。**
+
 | 路径 | 组件 | 面包屑键 |
 |---|---|---|
-| `/` | → redirect | → `/add-task` |
-| `/add-task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.addTaskNew']` |
+| `/` | → redirect | → `/add_task` |
+| `/add_task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.addTaskNew']` |
 | `/tasks` | `TaskList.vue` | `['breadcrumb.appName', 'breadcrumb.taskList']` |
 | `/settings/asr` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr']` |
 | `/settings/llm` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
 | `/settings/material` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material']` |
-| `/settings/publish-config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
-| `/settings/tts-config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
+| `/settings/publish_config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
+| `/settings/tts_config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
 | `/settings/proxy` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.proxy']` |
 
 ---
@@ -179,15 +181,15 @@ placeholder.*  — 占位页文本
 [Backend Admin]
 [Management Suite]
 
-+ 添加任务  →  /add-task
++ 添加任务  →  /add_task
 ≡ 任务列表  →  /tasks
 
 系统设置
 🎙 ASR 配置    →  /settings/asr
 ✨ LLM 配置    →  /settings/llm
 🖼 素材配置    →  /settings/material
-▷  发布配置    →  /settings/publish-config
-🎧 TTS 配置    →  /settings/tts-config
+▷  发布配置    →  /settings/publish_config
+🎧 TTS 配置    →  /settings/tts_config
 🔗 代理配置    →  /settings/proxy
 ```
 
@@ -371,8 +373,8 @@ placeholder.*  — 占位页文本
 - **播放**：弹出 `el-dialog`（800px），内含 `<video controls autoplay>` 指向 `/api/stream/{local_path}`
 - **查看日志**：弹出 `el-dialog`（600px），显示 `task.error_desc`（`<pre>` 等宽字体）
 - **重试**：重新调用 `POST /api/tasks/add`（携带原 `task_url`），刷新列表
-- **编辑**：跳转 `/add-task?video_url=<encoded_url>`
-- **新建任务 / FAB**：跳转 `/add-task`
+- **编辑**：跳转 `/add_task?video_url=<encoded_url>`
+- **新建任务 / FAB**：跳转 `/add_task`
 - **轮询**：每 5 秒自动刷新，仅当列表中有 `status === 1`（进行中）的任务时触发
 
 ### 分页
