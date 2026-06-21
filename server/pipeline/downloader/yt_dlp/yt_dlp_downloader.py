@@ -2,6 +2,7 @@
 import asyncio
 import subprocess
 
+import anyio
 import yt_dlp
 from loguru import logger
 
@@ -40,7 +41,16 @@ def make_hook(context: DownloaderContext):
 
 class YtDlpDownloader(BaseDownloader):
     def __init__(self):
-        self._check_available()
+        YtDlpDownloader._check_available()
+
+    @staticmethod
+    def _check_available():
+        try:
+            subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True)
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            logger.warning("yt-dlp not found. Install with: pip install yt-dlp")
+            raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
+                               message="yt-dlp not found. Install with: pip install yt-dlp")
 
     async def check(self, url: str) -> bool:
         yt_dlp_opts = {
@@ -52,21 +62,12 @@ class YtDlpDownloader(BaseDownloader):
         }
         with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
             try:
-                result = ydl.extract_info(url, download=False)
+                result = await anyio.to_thread.run_sync(lambda: ydl.extract_info(url, download=False))
                 if result['duration'] > 0:
                     return True
             except Exception as e:
                 logger.error(e)
         return False
-
-    @staticmethod
-    def _check_available():
-        try:
-            subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True)
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            logger.warning("yt-dlp not found. Install with: pip install yt-dlp")
-            raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
-                               message="yt-dlp not found. Install with: pip install yt-dlp")
 
     async def download(self, url: str, output_dir: str, context: DownloaderContext or None) -> VideoPackage or None:
         if context:
@@ -83,7 +84,7 @@ class YtDlpDownloader(BaseDownloader):
         }
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
-                ydl.download([url])
+                await anyio.to_thread.run_sync(lambda: ydl.download([url]))
         except Exception as e:
             if context:
                 context.on_error(url, e)

@@ -1,4 +1,4 @@
-from config.config import config
+import config.config as _config
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from utils.logger import logger
@@ -8,9 +8,9 @@ class DataBase(object):
     engine = None
 
     def start(self):
-        logger.info(f"DataBase {config['database']['url']} started")
+        logger.info(f"DataBase {_config.config['database']['url']} started")
         self.engine = create_async_engine(
-            config["database"]["url"],
+            _config.config["database"]["url"],
             echo=True
         )
 

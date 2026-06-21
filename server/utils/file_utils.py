@@ -3,11 +3,11 @@ import os
 
 import anyio
 
-from config.config import config
+import config.config as _config
 
 
 async def get_storage_path() -> str or None:
-    path = config['storage']['path']
+    path = _config.config['storage']['path']
     if not path:
         return None
     path = os.getcwd() + os.sep + path
@@ -16,7 +16,7 @@ async def get_storage_path() -> str or None:
 
 
 async def get_download_path() -> str or None:
-    path = config['storage']['download']
+    path = _config.config['storage']['download']
     if not path:
         return None
     path = os.getcwd() + os.sep + path
@@ -25,7 +25,7 @@ async def get_download_path() -> str or None:
 
 
 async def get_video_to_text_path() -> str or None:
-    path = config['storage']['video_to_text']
+    path = _config.config['storage']['video_to_text']
     if not path:
         return None
     path = os.getcwd() + os.sep + path
@@ -34,7 +34,7 @@ async def get_video_to_text_path() -> str or None:
 
 
 async def get_llm_rewrite_path() -> str or None:
-    path = config['storage']['llm_rewrite']
+    path = _config.config['storage']['llm_rewrite']
     if not path:
         return None
     path = os.getcwd() + os.sep + path
@@ -43,7 +43,7 @@ async def get_llm_rewrite_path() -> str or None:
 
 
 async def get_material_path() -> str or None:
-    path = config['storage']['material']
+    path = _config.config['storage']['material']
     if not path:
         return None
     path = os.getcwd() + os.sep + path
@@ -52,7 +52,7 @@ async def get_material_path() -> str or None:
 
 
 async def get_output_path() -> str or None:
-    path = config['storage']['output']
+    path = _config.config['storage']['output']
     if not path:
         return None
     path = os.getcwd() + os.sep + path

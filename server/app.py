@@ -2,9 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from config.config import config
+import config.config as _config
+from config.config import init_config
 from middleware.cors_middleware import register_cors_middleware
 from middleware.exception_middleware import register_exception_middleware
+from pipeline.pipeline import init_downloader
 from routers.asr_tts_config import router as asr_tts_config_router
 from routers.index import router as index_router
 from routers.llm_config import router as llm_config_router
@@ -26,10 +28,12 @@ async def lifespan(app: FastAPI):
     database.stop()
 
 
+init_config()
+init_downloader()
 app = FastAPI(
-    title=config['app']['name'],
-    debug=config['app']['debug'],
-    version=config['app']['version'],
+    title=_config.config['app']['name'],
+    debug=_config.config['app']['debug'],
+    version=_config.config['app']['version'],
     lifespan=lifespan,
 )
 # 注册中间件

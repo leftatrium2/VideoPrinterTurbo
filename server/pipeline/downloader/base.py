@@ -48,7 +48,7 @@ class BaseDownloader(ABC):
     """
 
     @abstractmethod
-    async def download(self, url: str, output_dir: str, context: DownloaderContext) -> VideoPackage:
+    async def download(self, url: str, output_dir: str, context: DownloaderContext) -> VideoPackage or None:
         pass
 
     @abstractmethod
