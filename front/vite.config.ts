@@ -9,17 +9,11 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
-  },
   test: {
     environment: 'jsdom',
-    globals: true
+    globals: true,
+    env: {
+      VITE_API_BASE_URL: 'http://localhost:8080'
+    }
   }
 })
