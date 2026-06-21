@@ -44,19 +44,32 @@ export interface AddTaskParams {
   video_count?: number
 }
 
+export interface CheckUrlResult {
+  code: number
+  msg: string
+  data: Record<string, unknown>
+}
+
+const baseURL = import.meta.env.VITE_API_BASE_URL
+const http = axios.create({ baseURL })
+
 async function request<T>(promise: Promise<{ data: T }>): Promise<T> {
   const res = await promise
   return res.data
 }
 
 export function getTasks(page: number, pageSize: number): Promise<TaskListResult> {
-  return request(axios.get('/api/tasks/', { params: { page, page_size: pageSize } }))
+  return request(http.get('/tasks/', { params: { page, page_size: pageSize } }))
 }
 
 export function addTask(params: AddTaskParams): Promise<{ message: string }> {
-  return request(axios.post('/api/tasks/add', params))
+  return request(http.post('/tasks/add', params))
+}
+
+export function checkTaskUrl(url: string): Promise<CheckUrlResult> {
+  return request(http.get('/tasks/check', { params: { url } }))
 }
 
 export function streamUrl(path: string): string {
-  return `/api/stream/${path}`
+  return `${baseURL}/stream/${path}`
 }
