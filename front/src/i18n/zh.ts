@@ -96,6 +96,9 @@ export default {
 
     enterUrlFirst: '请先输入视频链接',
     featureInDev: '功能开发中',
+    checkLinkSuccess: '链接可用',
+    checkLinkFailed: '链接检查失败：{msg}（错误码：{code}）',
+    checkLinkError: '检查失败，请稍后重试',
     enterUrl: '请输入视频链接',
     taskCreated: '任务已创建',
     createFailed: '创建失败，请重试',

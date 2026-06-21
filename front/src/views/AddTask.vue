@@ -14,7 +14,7 @@
         <div class="field-label">{{ t('addTask.videoUrl') }}</div>
         <el-input v-model="form.task_url" :placeholder="t('addTask.videoUrlPlaceholder')" size="large">
           <template #append>
-            <el-button :icon="Link" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
+            <el-button :icon="Link" :loading="checkingLink" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
           </template>
         </el-input>
       </div>
@@ -329,7 +329,7 @@ import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay,
 } from '@element-plus/icons-vue'
-import { addTask } from '@/services/api'
+import { addTask, checkTaskUrl } from '@/services/api'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -385,14 +385,27 @@ const form = reactive({
 })
 
 const submitting = ref(false)
+const checkingLink = ref(false)
 const bgmFileList = ref<UploadFile[]>([])
 const videoFileList = ref<UploadFile[]>([])
 
 const publishPlaceholder = `{ 'platform': 'douyin', 'auto_publish': true, ... }`
 
-function handleCheckLink() {
+async function handleCheckLink() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrlFirst')); return }
-  ElMessage.info(t('addTask.featureInDev'))
+  checkingLink.value = true
+  try {
+    const res = await checkTaskUrl(form.task_url)
+    if (res.code === 0) {
+      ElMessage.success(t('addTask.checkLinkSuccess'))
+    } else {
+      ElMessage.error(t('addTask.checkLinkFailed', { msg: res.msg, code: res.code }))
+    }
+  } catch {
+    ElMessage.error(t('addTask.checkLinkError'))
+  } finally {
+    checkingLink.value = false
+  }
 }
 
 function handleTestVoice() { ElMessage.info(t('addTask.featureInDev')) }

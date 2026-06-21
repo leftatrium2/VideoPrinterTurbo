@@ -96,6 +96,9 @@ export default {
 
     enterUrlFirst: 'Please enter the video URL first',
     featureInDev: 'Feature under development',
+    checkLinkSuccess: 'Link is valid',
+    checkLinkFailed: 'Link check failed: {msg} (code: {code})',
+    checkLinkError: 'Check failed, please try again later',
     enterUrl: 'Please enter a video URL',
     taskCreated: 'Task created',
     createFailed: 'Creation failed, please try again',
