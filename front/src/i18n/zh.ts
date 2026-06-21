@@ -42,7 +42,6 @@ export default {
     videoUrlPlaceholder: '请输入抖音/Bilibili/Youtube视频链接',
     checkLink: '检查链接',
     transcriptionMode: '选择音频转换方式',
-    whisperLarge: 'Whisper Large v3 (推荐)',
     fromSubtitle: '从字幕提取',
     fromAsr: '从ASR转换',
     llmPrompt: 'LLM 提示词 (Prompt)',

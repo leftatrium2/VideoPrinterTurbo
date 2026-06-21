@@ -33,7 +33,6 @@
       <div class="section-body">
         <div class="field-label">{{ t('addTask.transcriptionMode') }}</div>
         <el-select v-model="form.transcription_mode" class="full-width">
-          <el-option :label="t('addTask.whisperLarge')" value="whisper-large-v3" />
           <el-option :label="t('addTask.fromSubtitle')" value="subtitle" />
           <el-option :label="t('addTask.fromAsr')" value="asr" />
         </el-select>
@@ -350,19 +349,19 @@ const HelpPopover = defineComponent({
 
 /* -------- section enable flags -------- */
 const enabled = reactive({
-  transcription: true,
+  transcription: false,
   llm: false,
-  voice_output: true,
+  voice_output: false,
   subtitle_output: false,
-  bgm: true,
-  video_overlay: true,
+  bgm: false,
+  video_overlay: false,
   publish: false,
 })
 
 /* -------- form state -------- */
 const form = reactive({
   task_url: '',
-  transcription_mode: 'whisper-large-v3',
+  transcription_mode: 'asr',
   llm_prompt: '',
   tts_service: 'edge-tts',
   tts_voice: 'zh-CN-XiaoXiaoNeural',

@@ -42,7 +42,6 @@ export default {
     videoUrlPlaceholder: 'Enter TikTok / Bilibili / YouTube video URL',
     checkLink: 'Check Link',
     transcriptionMode: 'Transcription Method',
-    whisperLarge: 'Whisper Large v3 (Recommended)',
     fromSubtitle: 'Extract from Subtitles',
     fromAsr: 'Convert via ASR',
     llmPrompt: 'LLM Prompt',
