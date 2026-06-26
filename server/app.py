@@ -6,8 +6,9 @@ import config.config as _config
 from config.config import init_config
 from middleware.cors_middleware import register_cors_middleware
 from middleware.exception_middleware import register_exception_middleware
+from models.model import Base
 from pipeline.pipeline import init_downloader
-from routers.asr_tts_config import router as asr_tts_config_router
+from routers.tts_config import router as tts_config_router
 from routers.index import router as index_router
 from routers.llm_config import router as llm_config_router
 from routers.material_config import router as material_config_router
@@ -22,6 +23,9 @@ async def lifespan(app: FastAPI):
     # ========== 应用启动时执行（只运行一次） ==========
     task_manager.start()
     database.start()
+    # 建库部分
+    async with database.get_engine().begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield  # 服务正式开始运行，接收请求
     # ========== 应用关闭时执行（服务停止前） ==========
     task_manager.stop()
@@ -42,7 +46,7 @@ register_exception_middleware(app)
 # 注册路由
 app.include_router(index_router)
 app.include_router(tasks_router)
-app.include_router(asr_tts_config_router)
+app.include_router(tts_config_router)
 app.include_router(llm_config_router)
 app.include_router(material_config_router)
 app.include_router(publish_config_router)

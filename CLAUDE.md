@@ -56,7 +56,10 @@ cd front && npm run build
 | `GET` | `/tasks/` | 查询任务列表（stub，返回 `{"tasks": []}` ） |
 | `POST` | `/tasks/add` | 新建任务（stub，返回 `{"message": "任务添加成功"}` ） |
 | `GET` | `/llm_config/` | LLM 配置（stub） |
-| `GET` | `/asr_tts_config/` | ASR/TTS 配置（stub） |
+| `GET` | `/tts_config/` | TTS 配置（stub，返回 `{"abc": "bcd"}`） |
+| `GET` | `/tts_config/tts_list` | TTS 服务商列表（真实数据，返回 5 个 `{name, value}`：Azure TTS V1/V2、SiliconFlow、Google Gemini、Xiaomi MiMo） |
+| `GET` | `/tts_config/tts_config_detail?engine=<n>` | 指定引擎的声音列表 + 已保存的配置（`voice[]`、`tts_area`、`tts_apikey`、`tts_voice`、`tts_server`）；`tts_voice`/`tts_server` 有值表示用户保存过，为空表示未配置 |
+| `POST` | `/tts_config/update` | 保存 TTS 配置，body: `{tts_server, tts_voice, tts_area, tts_apikey}` |
 | `GET` | `/material_config/` | 素材配置（stub） |
 | `GET` | `/publish_config/` | 发布配置（stub） |
 
@@ -101,7 +104,8 @@ front/
     │   └── PlaceholderPage.vue # "功能建设中"占位页
     └── views/
         ├── AddTask.vue     # 添加任务（8 个功能区块 + 开始任务按钮）
-        └── TaskList.vue    # 任务列表（表格 + 分页 + FAB）
+        ├── TaskList.vue    # 任务列表（表格 + 分页 + FAB）
+        └── TtsConfig.vue   # TTS 配置（服务商/声音/区域/Key 表单 + 使用说明弹框）
 ```
 
 ---
@@ -121,7 +125,7 @@ front/
 | `/settings/llm` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
 | `/settings/material` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material']` |
 | `/settings/publish_config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
-| `/settings/tts_config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
+| `/settings/tts_config` | `TtsConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
 | `/settings/proxy` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.proxy']` |
 
 ---
@@ -146,6 +150,7 @@ sidebar.*      — 侧边栏导航文本
 breadcrumb.*   — 路由面包屑键（路由 meta 存键，AppLayout 翻译）
 addTask.*      — 添加任务页所有文本（区块标题、字段、选项、帮助文本、消息）
 taskList.*     — 任务列表页所有文本
+ttsConfig.*    — TTS 配置页所有文本（字段、使用说明、消息）
 placeholder.*  — 占位页文本
 ```
 
@@ -385,6 +390,42 @@ placeholder.*  — 占位页文本
 
 ---
 
+## TTS 配置页（`TtsConfig.vue`）
+
+仅替换主内容区（标题 + 单个白色卡片），侧边栏/顶栏不变。源自设计稿 `prototype/TTS配置页/`。
+
+### 布局
+
+```
+TTS 配置  ⓘ使用说明
+┌─────────────────────────────────────────────┐
+│ TTS服务器          │ 朗读声音      [试听语音合成]│
+│ [选择服务商 ▾]      │ [选择声音 ▾]               │
+│ 选择语音生成的主引擎。│                           │
+│                                               │
+│ 服务区域（条件显示） │ API Key（条件显示）        │
+│ [_______________] │ [_______________] 👁       │
+├─────────────────────────────────────────────┤
+│                              放弃更改   保存   │
+└─────────────────────────────────────────────┘
+```
+
+### 字段与行为
+
+| 字段 | 来源 | 说明 |
+|---|---|---|
+| TTS 服务器 | `onMounted` 调用 `GET /tts_config/tts_list` | 真实接口返回 5 个服务商（无 Edge TTS），默认选中第一项并触发详情加载 |
+| 朗读声音 | `GET /tts_config/tts_config_detail?engine=<n>` | 切换服务商时动态拉取；若返回 `tts_voice` 非空则恢复用户上次选择，否则默认选第一项 |
+| 服务区域 / API Key | 同上接口，`tts_area` / `tts_apikey` | 切换服务商时始终覆盖写入（含空串）；Azure TTS V1（`value=1`）不显示任何凭证字段；Azure TTS V2（`value=2`）显示区域+Key；其余服务商只显示 Key |
+
+- **API Key 输入框**：`el-input type="password" show-password`，原生眼睛图标切换明文。
+- **保存**：调用 `POST /tts_config/update`，body `{tts_server, tts_voice, tts_area, tts_apikey}`，成功/失败均有 `ElMessage` 提示，按钮带 loading 状态。
+- **放弃更改**：重置 form 并重新加载当前服务商的声音列表。
+- **试听语音合成**：调用 `GET /tts_config/tts_voice_preview`，返回文件路径后由 `<audio>` 播放；再次点击切换播放/暂停。
+- **使用说明**：标题右侧的 `使用说明` 链接，`el-popover` 弹出说明：配置 API Key 等信息后才能在"添加任务"页看到对应服务商，否则只显示免费的 Azure TTS V1。
+
+---
+
 ## API 封装（`src/services/api.ts`）
 
 ```typescript
@@ -401,12 +442,19 @@ interface Task {
   local_path?: string
 }
 
-getTasks(page, pageSize)  // GET /api/tasks/
-addTask(params)           // POST /api/tasks/add
-streamUrl(path)           // returns /api/stream/{path}
+getTasks(page, pageSize)      // GET /api/tasks/
+addTask(params)               // POST /api/tasks/add
+streamUrl(path)               // returns /api/stream/{path}
+getTtsList()                  // GET /api/tts_config/tts_list -> {name, value}[]
+getTtsConfigDetail(engine)    // GET /api/tts_config/tts_config_detail?engine=<n>
+                              //   -> {voice[], tts_area, tts_apikey, tts_voice, tts_server}
+updateTtsConfig(params)       // POST /api/tts_config/update
+                              //   body: {tts_server, tts_voice, tts_area, tts_apikey}
+getTtsVoicePreview(engine, voice) // GET /api/tts_config/tts_voice_preview -> {output}
+ttsPreviewUrl(filePath)       // returns /api/tts_config/preview?file_path=<path>
 ```
 
-响应格式为服务器直接返回的 JSON（无 `{status, data}` 包装层）。
+`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；TTS 配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
 
 ---
 

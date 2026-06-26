@@ -41,7 +41,7 @@ const router = createRouter({
         },
         {
           path: 'settings/tts_config',
-          component: () => import('@/components/PlaceholderPage.vue'),
+          component: () => import('@/views/TtsConfig.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig'] },
         },
         {

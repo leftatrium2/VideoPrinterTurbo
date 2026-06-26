@@ -11,11 +11,12 @@ venv/
 env/
 
 # Config
-config.toml
+config.yaml
+downloader.json
 
 # Storage
-server/storage/
-server/output/
+storage/
+output/
 
 # Models (Whisper)
 /models/
@@ -34,7 +35,7 @@ Thumbs.db
 *.log
 
 # db
-db/
+/server/db/
 
 # error
 error/

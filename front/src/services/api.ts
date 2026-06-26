@@ -50,6 +50,30 @@ export interface CheckUrlResult {
   data: Record<string, unknown>
 }
 
+export interface TtsListItem {
+  name: string
+  value: number
+}
+
+export interface TtsVoiceItem {
+  DisplayName: string
+  Value: string
+}
+
+export interface TtsConfigDetail {
+  voice: TtsVoiceItem[]
+  tts_area: string
+  tts_apikey: string
+  tts_voice: string
+  tts_server: number
+}
+
+interface ApiResult<T> {
+  code: number
+  msg: string
+  data: T
+}
+
 const baseURL = import.meta.env.VITE_API_BASE_URL
 const http = axios.create({ baseURL })
 
@@ -72,4 +96,48 @@ export function checkTaskUrl(url: string): Promise<CheckUrlResult> {
 
 export function streamUrl(path: string): string {
   return `${baseURL}/stream/${path}`
+}
+
+export function getTtsList(): Promise<TtsListItem[]> {
+  return request(http.get('/tts_config/tts_list'))
+}
+
+export interface UpdateTtsConfigParams {
+  tts_server: number
+  tts_voice: string
+  tts_area: string
+  tts_apikey: string
+}
+
+export async function updateTtsConfig(params: UpdateTtsConfigParams): Promise<void> {
+  const res = await request<ApiResult<Record<string, unknown>>>(
+    http.post('/tts_config/update', params)
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+}
+
+export async function getTtsConfigDetail(engine: number): Promise<TtsConfigDetail> {
+  const res = await request<ApiResult<TtsConfigDetail>>(
+    http.get('/tts_config/tts_config_detail', { params: { engine } })
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
+}
+
+export async function getTtsVoicePreview(engine: number, voice: string): Promise<{ output: string }> {
+  const res = await request<ApiResult<{ output: string }>>(
+    http.get('/tts_config/tts_voice_preview', { params: { engine, voice } })
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
+}
+
+export function ttsPreviewUrl(filePath: string): string {
+  return `${baseURL}/tts_config/preview?file_path=${encodeURIComponent(filePath)}`
 }

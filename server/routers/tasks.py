@@ -1,9 +1,16 @@
+import json
 import logging
+import os.path
+import aiofiles
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pipeline.pipeline import pipeline
 from utils import const
+from utils.database import database
+from utils.exception import VPTException
+from utils.gen_config import gen_config
 from utils.result import result_succ, result_failure
 
 router = APIRouter(
@@ -23,9 +30,17 @@ def add_tasks():
 
 
 @router.get("/config")
-def get_task_config():
-    # 
-    return result_succ()
+async def get_task_config(db: AsyncSession = Depends(database.get_db)):
+    if not os.path.exists("config.result"):
+        await gen_config(db)
+    try:
+        async with aiofiles.open("config.result", mode="r", encoding="utf-8") as f:
+            if not f:
+                return result_failure(const.TASK_CONFIG_ERR_CONFIG_FILE, "任务配置文件未生成")
+            ret_dict = json.loads(await f.read())
+            return result_succ(ret_dict)
+    except VPTException as e:
+        return result_failure(const.TASK_CONFIG_ERR_CONFIG_FILE, f"任务配置文件未生成，{e}")
 
 
 @router.get("/check")

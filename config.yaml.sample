@@ -1,0 +1,9 @@
+app:
+  name: VideoPrinterTurbo
+  port: 8080
+  debug: true
+  version: 1.0.0
+
+database:
+  url: sqlite+aiosqlite:///db/VideoPrinterTurbo.db
+  pool_size: 10

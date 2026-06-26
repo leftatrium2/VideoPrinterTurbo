@@ -33,6 +33,9 @@ dependencies = [
     "apscheduler>=3.11.2",
     "aiosqlite>=0.22.1",
     "greenlet>=3.5.1",
+    "aiofiles>=25.1.0",
+    "azure-cognitiveservices-speech>=1.50.0",
+    "google-genai>=2.10.0",
 ]
 
 [project.optional-dependencies]

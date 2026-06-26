@@ -1,17 +1,9 @@
 # coding: utf-8
-from sqlalchemy import Column, Float, Integer, Table, Text, text
-from sqlalchemy.sql.sqltypes import NullType
+from sqlalchemy import Column, Float, Integer, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 metadata = Base.metadata
-
-
-t_sqlite_sequence = Table(
-    'sqlite_sequence', metadata,
-    Column('name', NullType),
-    Column('seq', NullType)
-)
 
 
 class VptAsrConfig(Base):
@@ -46,7 +38,7 @@ class VptTask(Base):
     task_id = Column(Integer, nullable=False, server_default=text("0"))
     error_code = Column(Integer, nullable=False, server_default=text("0"))
     error_desc = Column(Text, nullable=False, server_default=text("''"))
-    is_transcription_tts = Column(Integer, nullable=False, server_default=text("0"))
+    is_rewrite_to_tts = Column(Integer, nullable=False, server_default=text("0"))
     is_llm = Column(Integer, nullable=False, server_default=text("0"))
     is_publish = Column(Integer, nullable=False, server_default=text("0"))
     is_from_asr_or_subtitle = Column(Integer, nullable=False, server_default=text("0"))
@@ -54,16 +46,19 @@ class VptTask(Base):
     tts_voice_volume = Column(Float, nullable=False, server_default=text("1.0"))
     tts_voice_speed = Column(Float, nullable=False, server_default=text("1.0"))
     llm_prompt = Column(Text, nullable=False, server_default=text("''"))
+    is_rewrite_to_subtitle = Column(Integer, nullable=False, server_default=text("0"))
+    is_bgm = Column(Integer, nullable=False, server_default=text("0"))
+    is_video_material = Column(Integer, nullable=False, server_default=text("0"))
 
 
 class VptTtsConfig(Base):
     __tablename__ = 'vpt_tts_config'
 
     id = Column(Integer, primary_key=True)
-    tts_server = Column(Text, nullable=False, server_default=text("''"))
-    tts_voice = Column(Text, nullable=False, server_default=text("0"))
-    tts_voice_volume = Column(Float, nullable=False, server_default=text("1.0"))
-    tts_voice_speed = Column(Float, nullable=False, server_default=text("1.0"))
+    tts_server = Column(Integer, nullable=False, server_default=text("0"))
+    tts_voice = Column(Text, nullable=False, server_default=text("''"))
+    tts_area = Column(Text, nullable=False, server_default=text("''"))
+    tts_apikey = Column(Text, nullable=False, server_default=text("''"))
 
 
 class VptVideoConfig(Base):

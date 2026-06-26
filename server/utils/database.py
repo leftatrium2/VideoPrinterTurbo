@@ -1,6 +1,7 @@
-import config.config as _config
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+
+import config.config as _config
 from utils.logger import logger
 
 
@@ -18,6 +19,9 @@ class DataBase(object):
         logger.info(f"DataBase stopped")
         if self.engine:
             self.engine.dispose()
+
+    def get_engine(self):
+        return self.engine
 
     async def get_db(self):
         async_session = sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
