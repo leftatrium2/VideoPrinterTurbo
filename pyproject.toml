@@ -36,6 +36,8 @@ dependencies = [
     "aiofiles>=25.1.0",
     "azure-cognitiveservices-speech>=1.50.0",
     "google-genai>=2.10.0",
+    "mlx-whisper>=0.4.3",
+    "openai-whisper>=20250625",
 ]
 
 [project.optional-dependencies]

@@ -15,6 +15,7 @@ class VptAsrConfig(Base):
     xfyun_appid = Column(Text, nullable=False, server_default=text("''"))
     xfyun_secret_key = Column(Text, nullable=False, server_default=text("''"))
     xfyun_web_api = Column(Text, nullable=False, server_default=text("''"))
+    local_whisper_type = Column(Integer, nullable=False, server_default=text("0"))
 
 
 class VptLlmConfig(Base):

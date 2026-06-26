@@ -13,3 +13,12 @@ class TTSConfigItem(BaseModel):
     tts_voice: str = ""
     tts_area: str = ""
     tts_apikey: str = ""
+
+
+class ASRConfig(BaseModel):
+    tencent_cloud_secret_id: str = ""
+    tencent_cloud_secret_key: str = ""
+    xfyun_appid: str = ""
+    xfyun_secret_key: str = ""
+    xfyun_web_api: str = ""
+    local_whisper_type: int = 0

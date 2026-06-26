@@ -142,6 +142,20 @@ export default {
     comingSoon: 'Coming Soon',
   },
 
+  asrConfig: {
+    title: 'ASR Config',
+    whisperTab: 'Whisper (Local ASR)',
+    tencentTab: 'Tencent Cloud ASR',
+    xunfeiTab: 'Xunfei ASR',
+    modelSelect: 'Model',
+    placeholder: 'Enter value',
+    reset: 'Reset',
+    submit: 'Submit',
+    submitSuccess: 'Configuration saved',
+    submitFailed: 'Save failed, please try again',
+    loadModelListFailed: 'Failed to load model list',
+  },
+
   ttsConfig: {
     title: 'TTS Config',
     usageGuide: 'Usage Guide',

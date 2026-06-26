@@ -142,6 +142,20 @@ export default {
     comingSoon: '敬请期待',
   },
 
+  asrConfig: {
+    title: 'ASR 配置',
+    whisperTab: 'Whisper（本地 ASR）',
+    tencentTab: '腾讯云 ASR',
+    xunfeiTab: '科大讯飞 ASR',
+    modelSelect: '模型选择',
+    placeholder: '请输入',
+    reset: '重填',
+    submit: '提交',
+    submitSuccess: '配置已保存',
+    submitFailed: '保存失败，请重试',
+    loadModelListFailed: '获取模型列表失败',
+  },
+
   ttsConfig: {
     title: 'TTS 配置',
     usageGuide: '使用说明',

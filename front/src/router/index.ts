@@ -21,7 +21,7 @@ const router = createRouter({
         },
         {
           path: 'settings/asr',
-          component: () => import('@/components/PlaceholderPage.vue'),
+          component: () => import('@/views/AsrConfig.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr'] },
         },
         {

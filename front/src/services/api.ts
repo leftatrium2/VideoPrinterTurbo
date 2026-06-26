@@ -141,3 +141,46 @@ export async function getTtsVoicePreview(engine: number, voice: string): Promise
 export function ttsPreviewUrl(filePath: string): string {
   return `${baseURL}/tts_config/preview?file_path=${encodeURIComponent(filePath)}`
 }
+
+export interface AsrWhisperModel {
+  name: string
+  value: number
+}
+
+export async function getLocalWhisperList(): Promise<AsrWhisperModel[]> {
+  const res = await request<ApiResult<AsrWhisperModel[]>>(
+    http.get('/asr_config/local_whisper_list')
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
+}
+
+export interface AsrConfigData {
+  tencent_cloud_secret_id: string
+  tencent_cloud_secret_key: string
+  xfyun_appid: string
+  xfyun_secret_key: string
+  xfyun_web_api: string
+  local_whisper_type: number
+}
+
+export async function getAsrConfig(): Promise<AsrConfigData> {
+  const res = await request<ApiResult<AsrConfigData>>(
+    http.get('/asr_config/')
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
+}
+
+export async function updateAsrConfig(params: AsrConfigData): Promise<void> {
+  const res = await request<ApiResult<Record<string, unknown>>>(
+    http.post('/asr_config/update', params)
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+}

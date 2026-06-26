@@ -60,6 +60,9 @@ cd front && npm run build
 | `GET` | `/tts_config/tts_list` | TTS 服务商列表（真实数据，返回 5 个 `{name, value}`：Azure TTS V1/V2、SiliconFlow、Google Gemini、Xiaomi MiMo） |
 | `GET` | `/tts_config/tts_config_detail?engine=<n>` | 指定引擎的声音列表 + 已保存的配置（`voice[]`、`tts_area`、`tts_apikey`、`tts_voice`、`tts_server`）；`tts_voice`/`tts_server` 有值表示用户保存过，为空表示未配置 |
 | `POST` | `/tts_config/update` | 保存 TTS 配置，body: `{tts_server, tts_voice, tts_area, tts_apikey}` |
+| `GET` | `/asr_config/` | ASR 已保存配置（`{code,msg,data}`；data 含 6 个字段，未配置时为空串/0） |
+| `POST` | `/asr_config/update` | 保存 ASR 配置，body: `{local_whisper_type, tencent_cloud_secret_id, tencent_cloud_secret_key, xfyun_appid, xfyun_secret_key, xfyun_web_api}` |
+| `GET` | `/asr_config/local_whisper_list` | 本地 Whisper 模型列表（真实数据，返回 3 个 `{name, value}`：OpenAI Whisper、MLX Whisper、Faster Whisper） |
 | `GET` | `/material_config/` | 素材配置（stub） |
 | `GET` | `/publish_config/` | 发布配置（stub） |
 
@@ -104,6 +107,7 @@ front/
     │   └── PlaceholderPage.vue # "功能建设中"占位页
     └── views/
         ├── AddTask.vue     # 添加任务（8 个功能区块 + 开始任务按钮）
+        ├── AsrConfig.vue   # ASR 配置（3 tab：Whisper/腾讯云/科大讯飞）
         ├── TaskList.vue    # 任务列表（表格 + 分页 + FAB）
         └── TtsConfig.vue   # TTS 配置（服务商/声音/区域/Key 表单 + 使用说明弹框）
 ```
@@ -121,7 +125,7 @@ front/
 | `/` | → redirect | → `/add_task` |
 | `/add_task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.addTaskNew']` |
 | `/tasks` | `TaskList.vue` | `['breadcrumb.appName', 'breadcrumb.taskList']` |
-| `/settings/asr` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr']` |
+| `/settings/asr` | `AsrConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr']` |
 | `/settings/llm` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
 | `/settings/material` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material']` |
 | `/settings/publish_config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
@@ -150,6 +154,7 @@ sidebar.*      — 侧边栏导航文本
 breadcrumb.*   — 路由面包屑键（路由 meta 存键，AppLayout 翻译）
 addTask.*      — 添加任务页所有文本（区块标题、字段、选项、帮助文本、消息）
 taskList.*     — 任务列表页所有文本
+asrConfig.*    — ASR 配置页所有文本（tab 名、字段、消息）
 ttsConfig.*    — TTS 配置页所有文本（字段、使用说明、消息）
 placeholder.*  — 占位页文本
 ```
@@ -390,6 +395,44 @@ placeholder.*  — 占位页文本
 
 ---
 
+## ASR 配置页（`AsrConfig.vue`）
+
+仅替换主内容区（标题 + 单个白色卡片），侧边栏/顶栏不变。源自设计稿 `prototype/ASR配置页/`。
+
+### 布局
+
+```
+ASR 配置
+┌─────────────────────────────────────────────┐
+│ Whisper（本地 ASR） │ 腾讯云 ASR │ 科大讯飞 ASR │
+├─────────────────────────────────────────────┤
+│  <各 tab 字段>                               │
+├─────────────────────────────────────────────┤
+│                        重填     提交          │
+└─────────────────────────────────────────────┘
+```
+
+### 各 Tab 字段
+
+| Tab | 字段 | 类型 |
+|---|---|---|
+| Whisper（本地 ASR） | 模型选择 | `el-select`，列表来自 `GET /asr_config/local_whisper_list`，回显字段 `local_whisper_type` |
+| 腾讯云 ASR | secret_id | `el-input`，回显字段 `tencent_cloud_secret_id` |
+| 腾讯云 ASR | secret_key | `el-input type="password" show-password`，回显字段 `tencent_cloud_secret_key` |
+| 科大讯飞 ASR | APPID | `el-input`，回显字段 `xfyun_appid` |
+| 科大讯飞 ASR | SecretKey | `el-input type="password" show-password`，回显字段 `xfyun_secret_key` |
+| 科大讯飞 ASR | WebAPI | `el-input`，回显字段 `xfyun_web_api` |
+
+**初始化逻辑（`onMounted`）：**  
+`Promise.allSettled` 并发调用 `GET /asr_config/local_whisper_list` 和 `GET /asr_config/`，两者完成后：
+- 若 `local_whisper_type` 非零则回显，否则默认选列表第一项
+- 其余字段若非空则回显到对应 Tab 表单
+
+- **重填**：重置当前激活 tab 的表单到空值（`model` 重置为 0）
+- **提交**：三个 tab 的数据合并为一个对象，调用 `POST /asr_config/update`；按钮带 loading 状态，成功/失败均有 `ElMessage` 提示
+
+---
+
 ## TTS 配置页（`TtsConfig.vue`）
 
 仅替换主内容区（标题 + 单个白色卡片），侧边栏/顶栏不变。源自设计稿 `prototype/TTS配置页/`。
@@ -445,6 +488,9 @@ interface Task {
 getTasks(page, pageSize)      // GET /api/tasks/
 addTask(params)               // POST /api/tasks/add
 streamUrl(path)               // returns /api/stream/{path}
+getAsrConfig()                // GET /api/asr_config/ -> AsrConfigData（含各服务商已保存凭证 + local_whisper_type）
+getLocalWhisperList()         // GET /api/asr_config/local_whisper_list -> {name, value}[]
+updateAsrConfig(params)       // POST /api/asr_config/update，body: AsrConfigData（6 个字段全量提交）
 getTtsList()                  // GET /api/tts_config/tts_list -> {name, value}[]
 getTtsConfigDetail(engine)    // GET /api/tts_config/tts_config_detail?engine=<n>
                               //   -> {voice[], tts_area, tts_apikey, tts_voice, tts_server}
@@ -454,7 +500,7 @@ getTtsVoicePreview(engine, voice) // GET /api/tts_config/tts_voice_preview -> {o
 ttsPreviewUrl(filePath)       // returns /api/tts_config/preview?file_path=<path>
 ```
 
-`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；TTS 配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
+`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；ASR / TTS 配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
 
 ---
 
