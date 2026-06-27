@@ -26,7 +26,7 @@ const router = createRouter({
         },
         {
           path: 'settings/llm',
-          component: () => import('@/components/PlaceholderPage.vue'),
+          component: () => import('@/views/LlmConfig.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm'] },
         },
         {

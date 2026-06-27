@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LLM 配置 - VideoPrinterTurbo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#181c20",
+                    "on-secondary-container": "#626468",
+                    "primary-fixed-dim": "#a2c9ff",
+                    "inverse-primary": "#a2c9ff",
+                    "surface-bg": "#F0F2F5",
+                    "secondary": "#5c5e62",
+                    "on-secondary": "#ffffff",
+                    "surface-variant": "#e0e2e9",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#e1e2e7",
+                    "on-tertiary": "#ffffff",
+                    "inverse-surface": "#2d3136",
+                    "on-primary-fixed": "#001c38",
+                    "tertiary-container": "#e18500",
+                    "surface-dim": "#d7dae0",
+                    "surface-container-low": "#f1f3fa",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#eef1f7",
+                    "background": "#f8f9ff",
+                    "on-tertiary-container": "#4e2a00",
+                    "primary-container": "#409eff",
+                    "on-tertiary-fixed-variant": "#6a3c00",
+                    "tertiary-fixed-dim": "#ffb871",
+                    "tertiary-fixed": "#ffdcbe",
+                    "on-secondary-fixed-variant": "#45474b",
+                    "surface-container-high": "#e6e8ef",
+                    "text-regular": "#606266",
+                    "secondary-container": "#e1e2e7",
+                    "error-container": "#ffdad6",
+                    "surface-tint": "#0060a9",
+                    "surface-container-highest": "#e0e2e9",
+                    "warning": "#E6A23C",
+                    "outline": "#707784",
+                    "text-secondary": "#909399",
+                    "text-primary": "#303133",
+                    "surface-bright": "#f8f9ff",
+                    "tertiary": "#8b5000",
+                    "secondary-fixed-dim": "#c5c6cb",
+                    "on-tertiary-fixed": "#2d1600",
+                    "primary-fixed": "#d3e4ff",
+                    "surface-container": "#ebeef4",
+                    "on-surface": "#181c20",
+                    "surface-container-lowest": "#ffffff",
+                    "error": "#ba1a1a",
+                    "primary": "#0060a9",
+                    "on-surface-variant": "#404752",
+                    "danger": "#F56C6C",
+                    "outline-variant": "#c0c7d4",
+                    "border-base": "#DCDFE6",
+                    "on-primary-fixed-variant": "#004881",
+                    "on-error-container": "#93000a",
+                    "surface": "#f8f9ff",
+                    "on-primary-container": "#003460",
+                    "success": "#67C23A",
+                    "on-secondary-fixed": "#191c1f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "sidebar-collapsed": "64px",
+                    "margin-sm": "12px",
+                    "sidebar-width": "240px",
+                    "gutter": "16px",
+                    "container-padding": "20px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "code": ["courierPrime"],
+                    "headline-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "18px", "fontWeight": "500"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-sm": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "code": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #F0F2F5;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .card-shadow {
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+        }
+        .sidebar-active-indicator {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #0060a9;
+        }
+    </style>
+</head>
+<body class="text-text-primary">
+<!-- Sidebar Navigation (The Anchor) -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-50">
+<div class="px-container-padding py-6">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">VideoPrinterTurbo</h1>
+</div>
+<nav class="flex-1 px-base overflow-y-auto">
+<!-- Main Nav Items -->
+<div class="mb-4">
+<a class="flex items-center gap-base px-margin-sm py-3 text-secondary hover:bg-surface-container-low transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">add_task</span>
+<span class="font-label-md text-label-md">添加任务</span>
+</a>
+<a class="flex items-center gap-base px-margin-sm py-3 text-secondary hover:bg-surface-container-low transition-colors rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">list_alt</span>
+<span class="font-label-md text-label-md">任务列表</span>
+</a>
+</div>
+<!-- Configuration Section -->
+<div class="mb-2">
+<div class="px-margin-sm py-2 text-text-secondary font-label-sm text-label-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">settings</span>
+                    配置
+                </div>
+<div class="mt-1 space-y-1">
+<a class="flex items-center gap-base pl-10 pr-margin-sm py-2 text-secondary hover:bg-surface-container-low transition-colors rounded-lg group" href="#">
+<span class="font-label-md text-label-md">ASR 配置</span>
+</a>
+<a class="relative flex items-center gap-base pl-10 pr-margin-sm py-2 text-primary bg-primary-container/10 rounded-lg group" href="#">
+<div class="sidebar-active-indicator"></div>
+<span class="font-label-md text-label-md font-semibold">LLM 配置</span>
+</a>
+<a class="flex items-center gap-base pl-10 pr-margin-sm py-2 text-secondary hover:bg-surface-container-low transition-colors rounded-lg group" href="#">
+<span class="font-label-md text-label-md">素材配置</span>
+</a>
+<a class="flex items-center gap-base pl-10 pr-margin-sm py-2 text-secondary hover:bg-surface-container-low transition-colors rounded-lg group" href="#">
+<span class="font-label-md text-label-md">发布配置</span>
+</a>
+<a class="flex items-center gap-base pl-10 pr-margin-sm py-2 text-secondary hover:bg-surface-container-low transition-colors rounded-lg group" href="#">
+<span class="font-label-md text-label-md">TTS 配置</span>
+</a>
+</div>
+</div>
+</nav>
+<div class="p-container-padding border-t border-outline-variant flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary font-bold">A</div>
+<div>
+<p class="font-label-md text-label-md text-text-primary">Admin User</p>
+<p class="text-[11px] text-text-secondary uppercase">Enterprise Admin</p>
+</div>
+</div>
+</aside>
+<!-- Top App Bar -->
+<header class="fixed top-0 right-0 left-[240px] h-16 bg-surface-container-lowest border-b border-outline-variant flex items-center justify-between px-container-padding z-40">
+<div class="flex items-center gap-2 text-text-secondary">
+<span class="font-label-md text-label-md">配置</span>
+<span class="text-[14px]">/</span>
+<span class="font-label-md text-label-md text-text-primary">LLM 配置</span>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-secondary hover:text-primary transition-all relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-danger rounded-full border-2 border-white"></span>
+</button>
+<div class="flex items-center gap-2 cursor-pointer group">
+<span class="material-symbols-outlined text-secondary group-hover:text-primary transition-all">account_circle</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-[240px] pt-16 min-h-screen">
+<div class="p-container-padding max-w-5xl mx-auto">
+<!-- Breadcrumb Title -->
+<div class="mb-6">
+<h2 class="font-headline-md text-headline-md text-text-primary">LLM 配置</h2>
+</div>
+<!-- Configuration Form Card -->
+<div class="bg-surface-container-lowest rounded-lg card-shadow overflow-hidden">
+<div class="p-8">
+<form class="space-y-6" id="llm-config-form">
+<!-- Form Field: Supplier Name -->
+<div class="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-4 items-center">
+<label class="font-label-md text-label-md text-text-regular">供应商名称</label>
+<div class="relative">
+<input class="w-full h-10 px-4 py-2 border border-border-base rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary placeholder:text-text-secondary bg-white transition-all" placeholder="请输入" type="text"/>
+</div>
+</div>
+<!-- Form Field: Remarks -->
+<div class="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-4 items-center">
+<label class="font-label-md text-label-md text-text-regular">备注</label>
+<div class="relative">
+<input class="w-full h-10 px-4 py-2 border border-border-base rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary placeholder:text-text-secondary bg-white transition-all" placeholder="请输入" type="text"/>
+</div>
+</div>
+<!-- Form Field: API Key -->
+<div class="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-4 items-center">
+<label class="font-label-md text-label-md text-text-regular">API Key</label>
+<div class="relative">
+<input class="w-full h-10 px-4 py-2 border border-border-base rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary placeholder:text-text-secondary bg-white transition-all" placeholder="请输入" type="password"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+</button>
+</div>
+</div>
+<!-- Form Field: API Endpoint -->
+<div class="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-4 items-start">
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-text-regular">API 请求地址</label>
+<span class="text-[12px] text-text-secondary leading-tight mt-1">填写兼容 OpenAI Response 格式的服务端点地址</span>
+</div>
+<div class="relative">
+<input class="w-full h-10 px-4 py-2 border border-border-base rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-text-primary placeholder:text-text-secondary bg-white transition-all" placeholder="请输入" type="text"/>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="pt-10 flex justify-end items-center gap-4">
+<button class="px-6 py-2 border border-border-base text-text-regular font-label-md text-label-md rounded-lg hover:bg-surface-container-low hover:border-text-secondary transition-all active:scale-95" type="reset">
+                                清空
+                            </button>
+<button class="px-10 py-2 bg-primary text-white font-label-md text-label-md rounded-lg shadow-sm hover:opacity-90 transition-all active:scale-95" type="submit">
+                                提交
+                            </button>
+</div>
+</form>
+</div>
+<!-- Bottom Decorative Pattern (Subtle) -->
+<div class="h-1 bg-gradient-to-r from-primary/20 via-primary to-primary/20 opacity-10"></div>
+</div>
+<!-- Footer Meta -->
+<div class="mt-8 text-center">
+<p class="text-text-secondary text-[12px]">© 2024 VideoPrinterTurbo Enterprise v2.4.0 - All Rights Reserved</p>
+</div>
+</div>
+</main>
+<!-- Micro-interaction JS -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('llm-config-form');
+            const visibilityBtn = document.querySelector('button[type="button"]');
+            const passwordInput = document.querySelector('input[type="password"]');
+
+            // Simple Password Toggle
+            visibilityBtn.addEventListener('click', () => {
+                const icon = visibilityBtn.querySelector('.material-symbols-outlined');
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.innerText = 'visibility_off';
+                } else {
+                    passwordInput.type = 'password';
+                    icon.innerText = 'visibility';
+                }
+            });
+
+            // Form Submit Effect
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerText;
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    正在提交...
+                `;
+
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = originalText;
+                    alert('配置已成功保存');
+                }, 1000);
+            });
+        });
+    </script>
+</body></html>

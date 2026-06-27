@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.model import VptAsrConfig
-from models.schemas import ASRConfig
+from models.schemas import ASRConfigItem
 from utils import const
 from utils.database import database
 from utils.result import result_succ
@@ -50,7 +50,7 @@ async def get_local_whisper_list():
 
 
 @router.post("/update")
-async def update_asr_config(data: ASRConfig, db: AsyncSession = Depends(database.get_db)):
+async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(select(VptAsrConfig).limit(1))
     item = result.scalar_one_or_none()
     if not item:

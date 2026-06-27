@@ -184,3 +184,30 @@ export async function updateAsrConfig(params: AsrConfigData): Promise<void> {
     throw new Error(res.msg)
   }
 }
+
+export interface LlmConfigData {
+  base_url: string
+  api_key: string
+  provider_name: string
+  llm_model_name: string
+  memo: string
+}
+
+export async function getLlmConfig(): Promise<LlmConfigData> {
+  const res = await request<ApiResult<LlmConfigData>>(
+    http.get('/llm_config/')
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
+}
+
+export async function updateLlmConfig(params: LlmConfigData): Promise<void> {
+  const res = await request<ApiResult<Record<string, unknown>>>(
+    http.post('/llm_config/update', params)
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+}

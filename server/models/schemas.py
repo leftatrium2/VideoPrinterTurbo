@@ -15,10 +15,18 @@ class TTSConfigItem(BaseModel):
     tts_apikey: str = ""
 
 
-class ASRConfig(BaseModel):
+class ASRConfigItem(BaseModel):
     tencent_cloud_secret_id: str = ""
     tencent_cloud_secret_key: str = ""
     xfyun_appid: str = ""
     xfyun_secret_key: str = ""
     xfyun_web_api: str = ""
     local_whisper_type: int = 0
+
+
+class LLMConfigItem(BaseModel):
+    base_url: str = ""
+    api_key: str = ""
+    provider_name: str = ""
+    llm_model_name: str = ""
+    memo: str = ""

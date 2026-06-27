@@ -55,7 +55,8 @@ cd front && npm run build
 | `GET` | `/` | 查询所有未删除任务（有真实数据） |
 | `GET` | `/tasks/` | 查询任务列表（stub，返回 `{"tasks": []}` ） |
 | `POST` | `/tasks/add` | 新建任务（stub，返回 `{"message": "任务添加成功"}` ） |
-| `GET` | `/llm_config/` | LLM 配置（stub） |
+| `GET` | `/llm_config/` | LLM 已保存配置（`{code,msg,data}`；data 含 5 个字段：`base_url`、`api_key`、`provider_name`、`llm_model_name`、`memo`，未配置时为空串） |
+| `POST` | `/llm_config/update` | 保存 LLM 配置，body: `{base_url, api_key, provider_name, llm_model_name, memo}` |
 | `GET` | `/tts_config/` | TTS 配置（stub，返回 `{"abc": "bcd"}`） |
 | `GET` | `/tts_config/tts_list` | TTS 服务商列表（真实数据，返回 5 个 `{name, value}`：Azure TTS V1/V2、SiliconFlow、Google Gemini、Xiaomi MiMo） |
 | `GET` | `/tts_config/tts_config_detail?engine=<n>` | 指定引擎的声音列表 + 已保存的配置（`voice[]`、`tts_area`、`tts_apikey`、`tts_voice`、`tts_server`）；`tts_voice`/`tts_server` 有值表示用户保存过，为空表示未配置 |
@@ -108,6 +109,7 @@ front/
     └── views/
         ├── AddTask.vue     # 添加任务（8 个功能区块 + 开始任务按钮）
         ├── AsrConfig.vue   # ASR 配置（3 tab：Whisper/腾讯云/科大讯飞）
+        ├── LlmConfig.vue   # LLM 配置（供应商名称/备注/API Key/API 请求地址 表单 + 使用说明弹框）
         ├── TaskList.vue    # 任务列表（表格 + 分页 + FAB）
         └── TtsConfig.vue   # TTS 配置（服务商/声音/区域/Key 表单 + 使用说明弹框）
 ```
@@ -126,7 +128,7 @@ front/
 | `/add_task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.addTaskNew']` |
 | `/tasks` | `TaskList.vue` | `['breadcrumb.appName', 'breadcrumb.taskList']` |
 | `/settings/asr` | `AsrConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr']` |
-| `/settings/llm` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
+| `/settings/llm` | `LlmConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
 | `/settings/material` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material']` |
 | `/settings/publish_config` | `PlaceholderPage` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.publishConfig']` |
 | `/settings/tts_config` | `TtsConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.ttsConfig']` |
@@ -155,6 +157,7 @@ breadcrumb.*   — 路由面包屑键（路由 meta 存键，AppLayout 翻译）
 addTask.*      — 添加任务页所有文本（区块标题、字段、选项、帮助文本、消息）
 taskList.*     — 任务列表页所有文本
 asrConfig.*    — ASR 配置页所有文本（tab 名、字段、消息）
+llmConfig.*    — LLM 配置页所有文本（字段、使用说明、消息）
 ttsConfig.*    — TTS 配置页所有文本（字段、使用说明、消息）
 placeholder.*  — 占位页文本
 ```
@@ -182,6 +185,27 @@ placeholder.*  — 占位页文本
 字体：Inter（正文 14px/400，标签 14px/500，标题 16–28px/600）
 
 卡片圆角：8px；按钮/输入框圆角：4px
+
+### 「使用说明」样式规范（全局统一）
+
+**所有页面的「使用说明」链接必须使用统一样式，禁止各页面自定义颜色或字号。**
+
+```css
+.help-link {
+  display: inline-flex;   /* 或 flex，视容器而定 */
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  color: var(--color-text-secondary);   /* 默认灰色 */
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.help-link:hover { color: var(--color-primary); }  /* hover 变蓝 */
+```
+
+目前使用「使用说明」的页面：`TtsConfig.vue`、`LlmConfig.vue`、`AddTask.vue`（各区块内）。新增页面如需「使用说明」，直接复用此样式类，保持一致。
 
 ---
 
@@ -433,6 +457,56 @@ ASR 配置
 
 ---
 
+## LLM 配置页（`LlmConfig.vue`）
+
+仅替换主内容区（标题 + 单个白色卡片），侧边栏/顶栏不变。源自设计稿 `prototype/LLM配置/`。
+
+### 布局
+
+```
+LLM 配置  ⓘ使用说明
+┌─────────────────────────────────────────────┐
+│  供应商名称  [___________________________]   │
+│  备注        [___________________________]   │
+│  API Key     [___________________________] 👁│
+│  API 请求地址                                │
+│  （填写兼容 OpenAI Response 格式的服务端点）  │
+│              [___________________________]   │
+├─────────────────────────────────────────────┤
+│                              清空     提交    │
+└─────────────────────────────────────────────┘
+```
+
+### 字段
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| 供应商名称 | `el-input` | 占位符：请输入 |
+| 备注 | `el-input` | 占位符：请输入 |
+| API Key | `el-input type="password" show-password` | 占位符：请输入 |
+| API 请求地址 | `el-input` | 标签下方有辅助文字：填写兼容 OpenAI Response 格式的服务端点地址 |
+| 模型名称 | `el-input` | 占位符：请输入 |
+
+表单布局：160px 标签列 + 弹性输入列（`grid-template-columns: 160px 1fr`）。
+
+**初始化逻辑（`onMounted`）：** 调用 `GET /llm_config/`，将返回的 5 个字段回显到对应表单项，失败时 `ElMessage.error`。
+
+**字段映射（接口 ↔ form）：**
+
+| 接口字段 | form 属性 | 页面元素 |
+|---|---|---|
+| `provider_name` | `supplierName` | 供应商名称 |
+| `memo` | `remarks` | 备注 |
+| `api_key` | `apiKey` | API Key |
+| `base_url` | `apiEndpoint` | API 请求地址 |
+| `llm_model_name` | `modelName` | 模型名称 |
+
+- **清空**：重置所有字段为空
+- **提交**：调用 `POST /llm_config/update`，body 为上表字段的反向映射；按钮带 loading 状态，成功/失败均有 `ElMessage` 提示
+- **使用说明**：标题右侧 `el-popover`，内容：本系统暂时只支持一个LLM配置，如果确定需要多个LLM配置，请从github上面的issue提交需求
+
+---
+
 ## TTS 配置页（`TtsConfig.vue`）
 
 仅替换主内容区（标题 + 单个白色卡片），侧边栏/顶栏不变。源自设计稿 `prototype/TTS配置页/`。
@@ -488,6 +562,8 @@ interface Task {
 getTasks(page, pageSize)      // GET /api/tasks/
 addTask(params)               // POST /api/tasks/add
 streamUrl(path)               // returns /api/stream/{path}
+getLlmConfig()                // GET /api/llm_config/ -> LlmConfigData（5 个字段）
+updateLlmConfig(params)       // POST /api/llm_config/update，body: LlmConfigData（5 个字段全量提交）
 getAsrConfig()                // GET /api/asr_config/ -> AsrConfigData（含各服务商已保存凭证 + local_whisper_type）
 getLocalWhisperList()         // GET /api/asr_config/local_whisper_list -> {name, value}[]
 updateAsrConfig(params)       // POST /api/asr_config/update，body: AsrConfigData（6 个字段全量提交）
@@ -500,7 +576,7 @@ getTtsVoicePreview(engine, voice) // GET /api/tts_config/tts_voice_preview -> {o
 ttsPreviewUrl(filePath)       // returns /api/tts_config/preview?file_path=<path>
 ```
 
-`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；ASR / TTS 配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
+`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；LLM / ASR / TTS 配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
 
 ---
 

@@ -156,6 +156,24 @@ export default {
     loadModelListFailed: 'Failed to load model list',
   },
 
+  llmConfig: {
+    title: 'LLM Config',
+    usageGuide: 'Usage Guide',
+    helpUsage: 'Currently only one LLM configuration is supported. If you need multiple LLM configurations, please submit a request via a GitHub issue.',
+    supplierName: 'Supplier Name',
+    remarks: 'Remarks',
+    apiKey: 'API Key',
+    apiEndpoint: 'API Endpoint',
+    apiEndpointHelp: 'Enter the service endpoint URL compatible with OpenAI Response format',
+    modelName: 'Model Name',
+    placeholder: 'Enter value',
+    clear: 'Clear',
+    submit: 'Submit',
+    submitSuccess: 'Configuration saved',
+    submitFailed: 'Save failed, please try again',
+    loadFailed: 'Failed to load configuration',
+  },
+
   ttsConfig: {
     title: 'TTS Config',
     usageGuide: 'Usage Guide',

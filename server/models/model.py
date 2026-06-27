@@ -23,9 +23,10 @@ class VptLlmConfig(Base):
 
     id = Column(Integer, primary_key=True)
     base_url = Column(Text, nullable=False, server_default=text("''"))
-    apk_key = Column(Text, nullable=False, server_default=text("''"))
-    llm_name = Column(Text, nullable=False, server_default=text("''"))
+    api_key = Column(Text, nullable=False, server_default=text("''"))
+    provider_name = Column(Text, nullable=False, server_default=text("''"))
     llm_model_name = Column(Text, nullable=False, server_default=text("''"))
+    memo = Column(Text, nullable=False, server_default=text("''"))
 
 
 class VptTask(Base):

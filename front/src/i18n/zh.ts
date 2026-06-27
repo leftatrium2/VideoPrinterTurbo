@@ -156,6 +156,24 @@ export default {
     loadModelListFailed: '获取模型列表失败',
   },
 
+  llmConfig: {
+    title: 'LLM 配置',
+    usageGuide: '使用说明',
+    helpUsage: '本系统暂时只支持一个LLM配置，如果确定需要多个LLM配置，请从github上面的issue提交需求',
+    supplierName: '供应商名称',
+    remarks: '备注',
+    apiKey: 'API Key',
+    apiEndpoint: 'API 请求地址',
+    apiEndpointHelp: '填写兼容 OpenAI Response 格式的服务端点地址',
+    modelName: '模型名称',
+    placeholder: '请输入',
+    clear: '清空',
+    submit: '提交',
+    submitSuccess: '配置已保存',
+    submitFailed: '保存失败，请重试',
+    loadFailed: '获取配置失败',
+  },
+
   ttsConfig: {
     title: 'TTS 配置',
     usageGuide: '使用说明',
