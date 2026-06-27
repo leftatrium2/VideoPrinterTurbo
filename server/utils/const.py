@@ -31,6 +31,10 @@ TTS_CONFIG_PREVIEW = {
     "zh": "你好，这是一段试听音频",
     "en": "Hello, this is a sample audio file"
 }
+# proxy server type
+PROXY_CONFIG_TYPE_UNKNOWN = 0
+PROXY_CONFIG_TYPE_HTTPS = 1
+PROXY_CONFIG_TYPE_SOCKS5 = 2
 
 # error code for successful
 GLOBAL_SUCC = 0

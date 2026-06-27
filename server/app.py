@@ -12,6 +12,7 @@ from routers.tts_config import router as tts_config_router
 from routers.asr_config import router as asr_config_router
 from routers.index import router as index_router
 from routers.llm_config import router as llm_config_router
+from routers.proxy_config import router as proxy_config_router
 from routers.material_config import router as material_config_router
 from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
@@ -52,3 +53,4 @@ app.include_router(asr_config_router)
 app.include_router(llm_config_router)
 app.include_router(material_config_router)
 app.include_router(publish_config_router)
+app.include_router(proxy_config_router)

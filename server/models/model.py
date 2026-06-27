@@ -29,6 +29,16 @@ class VptLlmConfig(Base):
     memo = Column(Text, nullable=False, server_default=text("''"))
 
 
+class VptProxyConfig(Base):
+    __tablename__ = 'vpt_proxy_config'
+
+    id = Column(Integer, primary_key=True)
+    proxy_server_type = Column(Integer, nullable=False, server_default=text("0"))
+    proxy_server_url = Column(Text, nullable=False, server_default=text("''"))
+    proxy_server_username = Column(Text, nullable=False, server_default=text("''"))
+    proxy_server_password = Column(Text, nullable=False, server_default=text("''"))
+
+
 class VptTask(Base):
     __tablename__ = 'vpt_tasks'
 

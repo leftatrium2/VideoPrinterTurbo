@@ -211,3 +211,32 @@ export async function updateLlmConfig(params: LlmConfigData): Promise<void> {
     throw new Error(res.msg)
   }
 }
+
+export const PROXY_TYPE_HTTPS = 1
+export const PROXY_TYPE_SOCKS5 = 2
+
+export interface ProxyConfigData {
+  proxy_type: number
+  proxy_url: string
+  proxy_username: string
+  proxy_password: string
+}
+
+export async function getProxyConfig(): Promise<ProxyConfigData> {
+  const res = await request<ApiResult<ProxyConfigData>>(
+    http.get('/proxy_config/')
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
+}
+
+export async function updateProxyConfig(params: ProxyConfigData): Promise<void> {
+  const res = await request<ApiResult<Record<string, unknown>>>(
+    http.post('/proxy_config/update', params)
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+}

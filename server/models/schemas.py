@@ -30,3 +30,10 @@ class LLMConfigItem(BaseModel):
     provider_name: str = ""
     llm_model_name: str = ""
     memo: str = ""
+
+
+class ProxyConfigItem(BaseModel):
+    proxy_type: int = 0
+    proxy_url: str = ""
+    proxy_username: str = ""
+    proxy_password: str = ""

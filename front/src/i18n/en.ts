@@ -174,6 +174,24 @@ export default {
     loadFailed: 'Failed to load configuration',
   },
 
+  proxyConfig: {
+    cardTitle: 'Proxy Server Settings',
+    helpUsage: 'After configuring a proxy server, all network requests will be routed through it. Useful in environments without direct internet access.',
+    proxyType: 'Proxy Type',
+    typeHttp: 'HTTP Server',
+    typeHttps: 'HTTPS Server',
+    typeSocks5: 'SOCKS5',
+    address: 'Address',
+    username: 'Username',
+    password: 'Password',
+    placeholder: 'Enter value',
+    clear: 'Clear',
+    submit: 'Submit',
+    submitSuccess: 'Configuration saved',
+    submitFailed: 'Save failed, please try again',
+    loadFailed: 'Failed to load configuration',
+  },
+
   ttsConfig: {
     title: 'TTS Config',
     usageGuide: 'Usage Guide',

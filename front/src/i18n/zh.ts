@@ -174,6 +174,24 @@ export default {
     loadFailed: '获取配置失败',
   },
 
+  proxyConfig: {
+    cardTitle: '代理服务设置',
+    helpUsage: '配置代理服务器后，系统将通过该代理进行网络请求，适用于无法直接访问外部网络的环境。',
+    proxyType: '代理服务类型',
+    typeHttp: 'http服务器',
+    typeHttps: 'https服务器',
+    typeSocks5: 'SOCKS5',
+    address: '地址',
+    username: '用户名',
+    password: '密码',
+    placeholder: '请输入',
+    clear: '清空',
+    submit: '提交',
+    submitSuccess: '配置已保存',
+    submitFailed: '保存失败，请重试',
+    loadFailed: '获取配置失败',
+  },
+
   ttsConfig: {
     title: 'TTS 配置',
     usageGuide: '使用说明',
