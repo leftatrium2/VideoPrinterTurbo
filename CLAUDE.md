@@ -55,6 +55,8 @@ cd front && npm run build
 | `GET` | `/` | 查询所有未删除任务（有真实数据） |
 | `GET` | `/tasks/` | 查询任务列表（stub，返回 `{"tasks": []}` ） |
 | `POST` | `/tasks/add` | 新建任务（stub，返回 `{"message": "任务添加成功"}` ） |
+| `GET` | `/tasks/config` | 添加任务页动态配置（`{code,msg,data}`；data 含 5 个字段，见下方说明） |
+| `GET` | `/tasks/check?url=<url>` | 检查视频链接是否可下载（`{code,msg,data}`；`code=0` 表示可用） |
 | `GET` | `/llm_config/` | LLM 已保存配置（`{code,msg,data}`；data 含 5 个字段：`base_url`、`api_key`、`provider_name`、`llm_model_name`、`memo`，未配置时为空串） |
 | `POST` | `/llm_config/update` | 保存 LLM 配置，body: `{base_url, api_key, provider_name, llm_model_name, memo}` |
 | `GET` | `/tts_config/` | TTS 配置（stub，返回 `{"abc": "bcd"}`） |
@@ -68,6 +70,16 @@ cd front && npm run build
 | `GET` | `/publish_config/` | 发布配置（stub） |
 | `GET` | `/proxy_config/` | 代理已保存配置（`{code,msg,data}`；data 含 4 个字段：`proxy_type`、`proxy_url`、`proxy_username`、`proxy_password`；未配置时 `proxy_type=0`、其余为空串） |
 | `POST` | `/proxy_config/update` | 保存代理配置，body: `{proxy_type, proxy_url, proxy_username, proxy_password}` |
+
+**`/tasks/config` 返回的 data 结构：**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `asr` | `{name, value: number}[]` | 可用的 ASR 方式；value 常量：1=字幕提取、2=本地Whisper、3=腾讯云ASR、4=科大讯飞ASR；始终包含字幕提取，其余按已配置凭证动态出现 |
+| `tts` | `{name, value: string, voices: TtsVoiceItem[]}[]` | 可用的 TTS 服务商；value 为字符串常量（`TTS_LIST_AZURE_TTS_V1` 等）；voices 为该服务商声音列表 `{DisplayName, Value}[]` |
+| `subtitle` | `{name, value: string}[]` | 字幕字体列表，value 为字体文件名（如 `"Charm-Bold.ttf"`） |
+| `bgm` | `{name, value: string}[]` | BGM 库选项；当前返回 `random`（随机背景音乐）和 `custom`（自定义背景音乐） |
+| `material` | `{name, value: string}[]` | 视频源选项；始终包含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 动态出现 |
 
 **数据库表（`vpt_tasks`）：**
 
@@ -269,7 +281,7 @@ placeholder.*  — 占位页文本
 
 | 字段 | 类型 | 选项 |
 |---|---|---|
-| 选择音频转换方式 | `el-select` | 从字幕提取 / 从ASR转换 |
+| 选择音频转换方式 | `el-select` | 动态来自 `GET /tasks/config` 的 `data.asr[]`；`v-model` 绑定 `number` 类型 value |
 
 使用说明：有两种方式将视频中的语音转换为文字，"从字幕提取"适合 YouTube 等带有自动字幕的视频网站；"从ASR转换"将直接提取视频中的语音并转为文字（除非是 YouTube 视频，否则建议使用 ASR 方式，避免出错）。
 
@@ -289,12 +301,16 @@ placeholder.*  — 占位页文本
 
 | 字段 | 类型 | 选项 / 范围 |
 |---|---|---|
-| TTS 服务 | `el-select`（全宽） | Edge TTS / Azure TTS V1 / Azure TTS V2 / SiliconFlow TTS / Google Gemini TTS / Xiaomi MiMo TTS |
-| 声音角色 | `el-select` + 测试按钮 | zh-CN-XiaoXiaoNeural / zh-CN-YunXiNeural / zh-CN-XiaoYiNeural |
+| TTS 服务 | `el-select`（全宽） | 动态来自 `GET /tasks/config` 的 `data.tts[]`；`v-model` 绑定 `value`（字符串常量如 `"TTS_LIST_AZURE_TTS_V1"`） |
+| 声音角色 | `el-select` + 测试按钮 | 动态来自当前选中服务商的 `voices[]`；切换服务商时自动选第一项并重置试听 |
 | 语音音量 | `el-slider` | 1.0–2.0，step 0.1；标签实时显示当前值 |
 | 速度 | `el-slider` | 1.0–2.0，step 0.1；标签实时显示当前值 |
 
 音量和速度滑块并排（两列布局）。
+
+**测试按钮逻辑：**
+- 未生成时显示「测试」；点击调 `GET /tts_config/tts_voice_preview?engine=<n>&voice=<v>`（engine 由 `TTS_ENGINE_MAP` 将字符串常量映射为数字 1–5），拿到文件路径后自动播放
+- 已生成时按钮切换播放/暂停（「播放」/「暂停」）；换声音或换服务商时重置
 
 使用说明："输出到语音"将把处理好的文字通过 TTS 方式转换为语音，并合并到新的视频中。
 
@@ -304,7 +320,7 @@ placeholder.*  — 占位页文本
 
 | 字段 | 类型 | 选项 / 范围 |
 |---|---|---|
-| 字体 | `el-select` | 思源黑体 Bold / 思源黑体 Regular / 微软雅黑 Bold / 微软雅黑 Regular / Charm Bold / Charm Regular |
+| 字体 | `el-select` | 动态来自 `GET /tasks/config` 的 `data.subtitle[]`；value 为字体文件名（如 `"Charm-Bold.ttf"`） |
 | 位置 | `el-select` | 底部居中（推荐）/ 顶部居中 / 中间 / 自定义（70，离顶部70%位置） |
 | 自定义位置 | `el-input`（条件显示） | 当位置选"自定义"时出现，默认值 "70" |
 | 字幕颜色 | `<input type="color">` + hex 显示 | 默认 #ffffff（白色） |
@@ -321,7 +337,7 @@ placeholder.*  — 占位页文本
 
 | 字段 | 类型 | 选项 / 说明 |
 |---|---|---|
-| 选择 BGM 库 | `el-select`（全宽） | 推荐轻快背景乐 / 推荐舒缓背景乐 / 随机背景音乐 / 无背景音乐 |
+| 选择 BGM 库 | `el-select`（全宽） | 动态来自 `GET /tasks/config` 的 `data.bgm[]`；当前返回 `random`（随机背景音乐）/ `custom`（自定义背景音乐） |
 | 上传本地音频 | `el-upload` drag 区域（始终显示） | accept="audio/*"，auto-upload=false |
 | 背景音乐音量 | `el-slider`（左右各一个扬声器图标 🔉 🔊） | 0.0–1.0，step 0.05，默认 0.5 |
 
@@ -337,7 +353,7 @@ placeholder.*  — 占位页文本
 
 | 字段 | 选项 |
 |---|---|
-| 视频源 | Pexels / Pixabay / 本地文件（选"本地文件"后显示上传区域） |
+| 视频源 | 动态来自 `GET /tasks/config` 的 `data.material[]`；始终含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 出现；选 `local` 时显示上传区域 |
 | 拼接模式 | 顺序拼接 / 随机拼接（推荐） |
 | 转场模式 | 无转场 / 随机转场 / 渐入 / 渐出 / 淡入淡出 / 滑动入 / 滑动出 |
 
@@ -604,6 +620,8 @@ interface Task {
 
 getTasks(page, pageSize)      // GET /api/tasks/
 addTask(params)               // POST /api/tasks/add
+checkTaskUrl(url)             // GET /api/tasks/check?url=<url> -> {code, msg, data}
+getTaskConfig()               // GET /api/tasks/config -> TaskConfigData（asr/tts/subtitle/bgm/material 五个字段）
 streamUrl(path)               // returns /api/stream/{path}
 getLlmConfig()                // GET /api/llm_config/ -> LlmConfigData（5 个字段）
 updateLlmConfig(params)       // POST /api/llm_config/update，body: LlmConfigData（5 个字段全量提交）
@@ -622,9 +640,16 @@ updateProxyConfig(params)     // POST /api/proxy_config/update，body: ProxyConf
 
 // ProxyConfigData: { proxy_type: number, proxy_url: string, proxy_username: string, proxy_password: string }
 // 常量: PROXY_TYPE_HTTPS=1, PROXY_TYPE_SOCKS5=2；proxy_type=0 表示未配置，回退到 HTTPS
+
+// TaskConfigData: { asr: TaskConfigAsrItem[], tts: TaskConfigTtsItem[], subtitle: TaskConfigOptionItem[], bgm: TaskConfigOptionItem[], material: TaskConfigOptionItem[] }
+// TaskConfigAsrItem: { name: string, value: number }
+// TaskConfigTtsItem: { name: string, value: string, voices: TtsVoiceItem[] }
+// TaskConfigOptionItem: { name: string, value: string }
+// TTS_ENGINE_MAP（前端常量）: 将 tts.value 字符串映射到数字 engine id，供 getTtsVoicePreview 使用
+//   TTS_LIST_AZURE_TTS_V1→1, TTS_LIST_AZURE_TTS_V2→2, TTS_LIST_SILICON_FLOW_TTS→3, TTS_LIST_GOOGLE_GEMINI_TTS→4, TTS_LIST_XIAOMI_MIMO_TTS→5
 ```
 
-`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；LLM / ASR / TTS 配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
+`/tasks/` 等任务接口响应为服务器直接返回的 JSON（无包装层）；LLM / ASR / TTS / tasks/config 等配置接口响应格式为 `{code, msg, data}`，`code=0` 表示成功。
 
 ---
 
