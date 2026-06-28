@@ -240,3 +240,63 @@ export async function updateProxyConfig(params: ProxyConfigData): Promise<void> 
     throw new Error(res.msg)
   }
 }
+
+interface MaterialListData<T> {
+  data: T[]
+  page: number
+  page_size: number
+}
+
+export interface MaterialPexelsItem {
+  id: number
+  pexels_api_key: string
+}
+
+export interface MaterialPixabayItem {
+  id: number
+  pixabay_api_key: string
+}
+
+export async function getPexelsList(page: number, pageSize: number): Promise<MaterialListData<MaterialPexelsItem>> {
+  const res = await request<ApiResult<MaterialListData<MaterialPexelsItem>>>(
+    http.get('/material_config/pexels_list', { params: { page, page_size: pageSize } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data
+}
+
+export async function addPexelsConfig(apiKey: string): Promise<void> {
+  const res = await request<ApiResult<null>>(
+    http.post('/material_config/add_pexels_config', { pexels_api_key: apiKey })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+}
+
+export async function delPexelsConfig(id: number): Promise<void> {
+  const res = await request<ApiResult<null>>(
+    http.get('/material_config/del_pexels_config', { params: { pexels_config_id: id } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+}
+
+export async function getPixabayList(page: number, pageSize: number): Promise<MaterialListData<MaterialPixabayItem>> {
+  const res = await request<ApiResult<MaterialListData<MaterialPixabayItem>>>(
+    http.get('/material_config/pixabay_list', { params: { page, page_size: pageSize } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data
+}
+
+export async function addPixabayConfig(apiKey: string): Promise<void> {
+  const res = await request<ApiResult<null>>(
+    http.post('/material_config/add_pixabay_config', { pixabay_api_key: apiKey })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+}
+
+export async function delPixabayConfig(id: number): Promise<void> {
+  const res = await request<ApiResult<null>>(
+    http.get('/material_config/del_pixabay_config', { params: { pixabay_config_id: id } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+}

@@ -84,9 +84,15 @@ class VptVideoConfig(Base):
     video_fragment_duration = Column(Integer, nullable=False, server_default=text("0"))
 
 
-class VptVideoMaterialConfig(Base):
-    __tablename__ = 'vpt_video_material_config'
+class VptVideoMaterialPexelsConfig(Base):
+    __tablename__ = 'vpt_video_material_pexels_config'
 
     id = Column(Integer, primary_key=True)
-    pexels_api_keys = Column(Text, nullable=False, server_default=text("''"))
+    pexels_api_key = Column(Text, nullable=False, server_default=text("''"))
+
+
+class VptVideoMaterialPixabayConfig(Base):
+    __tablename__ = 'vpt_video_material_pixabay_config'
+
+    id = Column(Integer, primary_key=True)
     pixabay_api_key = Column(Text, nullable=False, server_default=text("''"))

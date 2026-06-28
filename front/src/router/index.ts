@@ -31,7 +31,7 @@ const router = createRouter({
         },
         {
           path: 'settings/material',
-          component: () => import('@/components/PlaceholderPage.vue'),
+          component: () => import('@/views/MaterialConfig.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.material'] },
         },
         {

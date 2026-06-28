@@ -37,3 +37,11 @@ class ProxyConfigItem(BaseModel):
     proxy_url: str = ""
     proxy_username: str = ""
     proxy_password: str = ""
+
+
+class MaterialPexelsItem(BaseModel):
+    pexels_api_key: str = ""
+
+
+class MaterialPixabayItem(BaseModel):
+    pixabay_api_key: str = ""
