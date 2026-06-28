@@ -101,6 +101,8 @@ export default {
     enterUrl: '请输入视频链接',
     taskCreated: '任务已创建',
     createFailed: '创建失败，请重试',
+    loadConfigFailed: '获取任务配置失败，请刷新页面重试',
+    testVoiceFailed: '试听失败，请重试',
 
     helpDownload: '填入视频播放页的URL地址，然后点击「检查链接」，如果弹出成功后，再继续往下进行，如果提示无法下载，可以在 GitHub 上面提 issue 给作者。',
     helpTranscription: '有两种方式将视频中的语音转换为文字：「从字幕提取」适合 YouTube 等带有自动字幕的视频网站；「从ASR转换」直接提取视频中的语音并转为文字（除非是 YouTube 视频，否则建议使用 ASR 方式，避免出错）。',

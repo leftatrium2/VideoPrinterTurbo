@@ -19,7 +19,7 @@ export interface TaskListResult {
 
 export interface AddTaskParams {
   task_url: string
-  transcription_mode?: string
+  transcription_mode?: number
   llm_enabled?: boolean
   llm_prompt?: string
   output_mode?: string
@@ -48,6 +48,30 @@ export interface CheckUrlResult {
   code: number
   msg: string
   data: Record<string, unknown>
+}
+
+export interface TaskConfigAsrItem {
+  name: string
+  value: number
+}
+
+export interface TaskConfigTtsItem {
+  name: string
+  value: string
+  voices: TtsVoiceItem[]
+}
+
+export interface TaskConfigOptionItem {
+  name: string
+  value: string
+}
+
+export interface TaskConfigData {
+  asr: TaskConfigAsrItem[]
+  tts: TaskConfigTtsItem[]
+  subtitle: TaskConfigOptionItem[]
+  bgm: TaskConfigOptionItem[]
+  material: TaskConfigOptionItem[]
 }
 
 export interface TtsListItem {
@@ -92,6 +116,16 @@ export function addTask(params: AddTaskParams): Promise<{ message: string }> {
 
 export function checkTaskUrl(url: string): Promise<CheckUrlResult> {
   return request(http.get('/tasks/check', { params: { url } }))
+}
+
+export async function getTaskConfig(): Promise<TaskConfigData> {
+  const res = await request<ApiResult<TaskConfigData>>(
+    http.get('/tasks/config')
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
 }
 
 export function streamUrl(path: string): string {

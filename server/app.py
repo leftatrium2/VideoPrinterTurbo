@@ -18,6 +18,9 @@ from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
 from server.service.task_manager import task_manager
 from utils.database import database
+from utils.gen_config import gen_config
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 
 @asynccontextmanager
@@ -28,6 +31,9 @@ async def lifespan(app: FastAPI):
     # 建库部分
     async with database.get_engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    async_session_factory = sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)
+    async with async_session_factory() as session:
+        await gen_config(db=session)
     yield  # 服务正式开始运行，接收请求
     # ========== 应用关闭时执行（服务停止前） ==========
     task_manager.stop()
@@ -44,7 +50,7 @@ app = FastAPI(
 )
 # 注册中间件
 register_cors_middleware(app)
-register_exception_middleware(app)
+# register_exception_middleware(app)
 # 注册路由
 app.include_router(index_router)
 app.include_router(tasks_router)

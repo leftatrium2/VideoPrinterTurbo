@@ -101,6 +101,8 @@ export default {
     enterUrl: 'Please enter a video URL',
     taskCreated: 'Task created',
     createFailed: 'Creation failed, please try again',
+    loadConfigFailed: 'Failed to load task config, please refresh and try again',
+    testVoiceFailed: 'Voice preview failed, please try again',
 
     helpDownload: 'Enter the video page URL, then click "Check Link". If successful, continue to the next steps. If download fails, please submit an issue on GitHub.',
     helpTranscription: 'Two methods available: "Extract from Subtitles" works for YouTube and similar sites with auto-captions; "Convert via ASR" extracts audio directly (recommended for non-YouTube videos).',

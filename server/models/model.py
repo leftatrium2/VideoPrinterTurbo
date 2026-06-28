@@ -73,6 +73,15 @@ class VptTtsConfig(Base):
     tts_apikey = Column(Text, nullable=False, server_default=text("''"))
 
 
+class VptTtsVoiceConfig(Base):
+    __tablename__ = 'vpt_tts_voice_config'
+
+    id = Column(Integer, primary_key=True)
+    tts_server_name = Column(Text, nullable=False, server_default=text("''"))
+    tts_voice_content = Column(Text, nullable=False, server_default=text("''"))
+    tts_server_time = Column(Text, nullable=False, server_default=text("''"))
+
+
 class VptVideoConfig(Base):
     __tablename__ = 'vpt_video_config'
 

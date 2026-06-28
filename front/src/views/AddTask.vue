@@ -33,8 +33,7 @@
       <div class="section-body">
         <div class="field-label">{{ t('addTask.transcriptionMode') }}</div>
         <el-select v-model="form.transcription_mode" class="full-width">
-          <el-option :label="t('addTask.fromSubtitle')" value="subtitle" />
-          <el-option :label="t('addTask.fromAsr')" value="asr" />
+          <el-option v-for="item in taskConfig.asr" :key="item.value" :label="item.name" :value="item.value" />
         </el-select>
       </div>
     </div>
@@ -73,26 +72,28 @@
       <div class="section-body">
         <div class="field-label">{{ t('addTask.ttsService') }}</div>
         <el-select v-model="form.tts_service" class="full-width">
-          <el-option label="Edge TTS" value="edge-tts" />
-          <el-option label="Azure TTS V1" value="azure-v1" />
-          <el-option label="Azure TTS V2" value="azure-v2" />
-          <el-option label="SiliconFlow TTS" value="siliconflow" />
-          <el-option label="Google Gemini TTS" value="gemini" />
-          <el-option label="Xiaomi MiMo TTS" value="mimo" />
+          <el-option v-for="item in taskConfig.tts" :key="item.value" :label="item.name" :value="item.value" />
         </el-select>
 
         <div class="voice-role-row">
           <div class="voice-role-field">
             <div class="field-label">{{ t('addTask.voiceRole') }}</div>
             <el-select v-model="form.tts_voice" class="full-width">
-              <el-option label="zh-CN-XiaoXiaoNeural" value="zh-CN-XiaoXiaoNeural" />
-              <el-option label="zh-CN-YunXiNeural" value="zh-CN-YunXiNeural" />
-              <el-option label="zh-CN-XiaoYiNeural" value="zh-CN-XiaoYiNeural" />
+              <el-option v-for="voice in ttsVoices" :key="voice.Value" :label="voice.DisplayName" :value="voice.Value" />
             </el-select>
           </div>
-          <el-button class="test-voice-btn" @click="handleTestVoice">
-            <el-icon><VideoPlay /></el-icon>{{ t('addTask.testVoice') }}
+          <el-button class="test-voice-btn" :loading="previewLoading" @click="handleTestVoice">
+            <el-icon v-if="!previewLoading"><component :is="isPlaying ? VideoPause : VideoPlay" /></el-icon>
+            {{ testVoiceLabel }}
           </el-button>
+          <audio
+            ref="audioRef"
+            :src="previewUrl"
+            style="display: none"
+            @play="isPlaying = true"
+            @pause="isPlaying = false"
+            @ended="isPlaying = false"
+          />
         </div>
 
         <div class="sliders-row">
@@ -123,12 +124,7 @@
           <div>
             <div class="field-label">{{ t('addTask.font') }}</div>
             <el-select v-model="form.subtitle_font" class="full-width">
-              <el-option label="思源黑体 Bold" value="SourceHanSans-Bold" />
-              <el-option label="思源黑体 Regular" value="SourceHanSans-Regular" />
-              <el-option label="微软雅黑 Bold" value="MicrosoftYaHeiBold.ttc" />
-              <el-option label="微软雅黑 Regular" value="MicrosoftYaHeiNormal.ttc" />
-              <el-option label="Charm Bold" value="Charm-Bold.ttf" />
-              <el-option label="Charm Regular" value="Charm-Regular.ttf" />
+              <el-option v-for="item in taskConfig.subtitle" :key="item.value" :label="item.name" :value="item.value" />
             </el-select>
           </div>
           <div>
@@ -184,10 +180,7 @@
       <div class="section-body">
         <div class="field-label">{{ t('addTask.bgmLibrary') }}</div>
         <el-select v-model="form.bgm_library" class="full-width">
-          <el-option :label="t('addTask.lightBgm')" value="light" />
-          <el-option :label="t('addTask.calmBgm')" value="calm" />
-          <el-option :label="t('addTask.randomBgm')" value="random" />
-          <el-option :label="t('addTask.noBgm')" value="none" />
+          <el-option v-for="item in taskConfig.bgm" :key="item.value" :label="item.name" :value="item.value" />
         </el-select>
 
         <div class="bgm-layout mt-12">
@@ -231,9 +224,7 @@
           <div>
             <div class="field-label">{{ t('addTask.videoSource') }}</div>
             <el-select v-model="form.video_source" class="full-width">
-              <el-option label="Pexels" value="pexels" />
-              <el-option label="Pixabay" value="pixabay" />
-              <el-option :label="t('addTask.localFile')" value="local" />
+              <el-option v-for="item in taskConfig.material" :key="item.value" :label="item.name" :value="item.value" />
             </el-select>
           </div>
           <div>
@@ -319,16 +310,17 @@
 </template>
 
 <script setup lang="ts">
-import { defineComponent, reactive, ref, h } from 'vue'
+import { defineComponent, reactive, ref, h, onMounted, watch, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElPopover } from 'element-plus'
 import type { UploadFile } from 'element-plus'
 import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
-  QuestionFilled, Upload, Document, Link, VideoPlay,
+  QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause,
 } from '@element-plus/icons-vue'
-import { addTask, checkTaskUrl } from '@/services/api'
+import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl } from '@/services/api'
+import type { TaskConfigData, TtsVoiceItem } from '@/services/api'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -347,6 +339,15 @@ const HelpPopover = defineComponent({
   },
 })
 
+/* -------- task config from server -------- */
+const taskConfig = reactive<TaskConfigData>({
+  asr: [],
+  tts: [],
+  subtitle: [],
+  bgm: [],
+  material: [],
+})
+
 /* -------- section enable flags -------- */
 const enabled = reactive({
   transcription: false,
@@ -361,26 +362,81 @@ const enabled = reactive({
 /* -------- form state -------- */
 const form = reactive({
   task_url: '',
-  transcription_mode: 'asr',
+  transcription_mode: 0 as number,
   llm_prompt: '',
-  tts_service: 'edge-tts',
-  tts_voice: 'zh-CN-XiaoXiaoNeural',
+  tts_service: '',
+  tts_voice: '',
   tts_volume: 1.0,
   tts_speed: 1.0,
-  subtitle_font: 'SourceHanSans-Bold',
+  subtitle_font: '',
   subtitle_position: 'bottom-center',
   subtitle_position_custom: '70',
   subtitle_color: '#ffffff',
   subtitle_stroke_color: '#000000',
   subtitle_size: 60,
-  bgm_library: 'light',
+  bgm_library: '',
   bgm_volume: 0.5,
-  video_source: 'pexels',
+  video_source: '',
   video_concat_mode: 'sequential',
   video_transition: 'fadeinout',
   video_aspect: '9:16',
   video_fragment_duration: 10,
   video_count: 1,
+})
+
+const TTS_ENGINE_MAP: Record<string, number> = {
+  TTS_LIST_AZURE_TTS_V1: 1,
+  TTS_LIST_AZURE_TTS_V2: 2,
+  TTS_LIST_SILICON_FLOW_TTS: 3,
+  TTS_LIST_GOOGLE_GEMINI_TTS: 4,
+  TTS_LIST_XIAOMI_MIMO_TTS: 5,
+}
+
+const ttsVoices = computed((): TtsVoiceItem[] => {
+  const found = taskConfig.tts.find(t => t.value === form.tts_service)
+  return found ? found.voices : []
+})
+
+const audioRef = ref<HTMLAudioElement | null>(null)
+const previewUrl = ref('')
+const previewLoading = ref(false)
+const isPlaying = ref(false)
+const testVoiceLabel = computed(() => {
+  if (!previewUrl.value) return t('addTask.testVoice')
+  return isPlaying.value ? t('ttsConfig.pause') : t('ttsConfig.play')
+})
+
+onMounted(async () => {
+  try {
+    const config = await getTaskConfig()
+    taskConfig.asr = config.asr
+    taskConfig.tts = config.tts
+    taskConfig.subtitle = config.subtitle
+    taskConfig.bgm = config.bgm
+    taskConfig.material = config.material
+    if (config.asr.length > 0) form.transcription_mode = config.asr[0].value
+    if (config.tts.length > 0) {
+      form.tts_service = config.tts[0].value
+      if (config.tts[0].voices.length > 0) form.tts_voice = config.tts[0].voices[0].Value
+    }
+    if (config.subtitle.length > 0) form.subtitle_font = config.subtitle[0].value
+    if (config.bgm.length > 0) form.bgm_library = config.bgm[0].value
+    if (config.material.length > 0) form.video_source = config.material[0].value
+  } catch {
+    ElMessage.error(t('addTask.loadConfigFailed'))
+  }
+})
+
+watch(() => form.tts_service, () => {
+  const found = taskConfig.tts.find(t => t.value === form.tts_service)
+  form.tts_voice = found && found.voices.length > 0 ? found.voices[0].Value : ''
+  previewUrl.value = ''
+  isPlaying.value = false
+})
+
+watch(() => form.tts_voice, () => {
+  previewUrl.value = ''
+  isPlaying.value = false
 })
 
 const submitting = ref(false)
@@ -407,7 +463,27 @@ async function handleCheckLink() {
   }
 }
 
-function handleTestVoice() { ElMessage.info(t('addTask.featureInDev')) }
+async function handleTestVoice() {
+  if (previewUrl.value) {
+    const audio = audioRef.value
+    if (!audio) return
+    if (audio.paused) { audio.play() } else { audio.pause() }
+    return
+  }
+  const engineId = TTS_ENGINE_MAP[form.tts_service]
+  if (!engineId || !form.tts_voice) return
+  previewLoading.value = true
+  try {
+    const result = await getTtsVoicePreview(engineId, form.tts_voice)
+    previewUrl.value = ttsPreviewUrl(result.output)
+    await nextTick()
+    audioRef.value?.play()
+  } catch {
+    ElMessage.error(t('addTask.testVoiceFailed'))
+  } finally {
+    previewLoading.value = false
+  }
+}
 
 function handleBgmFileChange(file: UploadFile) { bgmFileList.value = [file] }
 function handleVideoFileChange(file: UploadFile) { videoFileList.value = [...videoFileList.value, file] }
