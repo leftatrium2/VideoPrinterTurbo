@@ -111,6 +111,7 @@ export default {
     helpSubtitle: '"Output to Subtitle" keeps the original audio and adds the processed text as subtitles in the new video.',
     helpBgm: 'After selecting background music, it will be merged into the new video.',
     helpVideoOverlay: 'When enabled, short clips from Pexels and similar sites will be fetched and stitched together.',
+    publishNotAvailable: 'This feature is not available yet',
     helpPublish: 'This feature is not yet available.',
   },
 

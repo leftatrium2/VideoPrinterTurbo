@@ -111,6 +111,7 @@ export default {
     helpSubtitle: '「输出到字幕」原视频中的语音不动，只是将处理好的文本转为字幕，添加到新的视频中。',
     helpBgm: '选择相关的背景音乐后，将会将此背景音乐合并到新的视频中。',
     helpVideoOverlay: '点击「视频覆盖」复选框后，将从 Pexels 等网站获取短视频进行拼接。',
+    publishNotAvailable: '没有此功能，此复选框无法选中',
     helpPublish: '此功能暂未开放。',
   },
 

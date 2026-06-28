@@ -281,7 +281,7 @@
       <div class="section-header">
         <div class="header-left">
           <el-icon class="section-icon"><Share /></el-icon>
-          <el-checkbox v-model="enabled.publish" class="section-toggle" />
+          <el-checkbox :model-value="false" class="section-toggle" @click="() => ElMessage.warning(t('addTask.publishNotAvailable'))" />
           <span class="section-title">{{ t('addTask.publish') }}</span>
         </div>
         <HelpPopover :content="t('addTask.helpPublish')" />
