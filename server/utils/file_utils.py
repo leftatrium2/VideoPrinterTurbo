@@ -20,6 +20,15 @@ async def get_storage_path() -> str or None:
     return path
 
 
+async def get_upload_path() -> str or None:
+    path = _config.config['storage']['upload']
+    if not path:
+        return None
+    path = os.path.join(get_current_path(), path)
+    await anyio.to_thread.run_sync(lambda: os.makedirs(path, exist_ok=True))
+    return path
+
+
 async def get_download_path() -> str or None:
     path = _config.config['storage']['download']
     if not path:

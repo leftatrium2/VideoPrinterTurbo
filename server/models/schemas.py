@@ -45,3 +45,14 @@ class MaterialPexelsItem(BaseModel):
 
 class MaterialPixabayItem(BaseModel):
     pixabay_api_key: str = ""
+
+
+class TaskItem(BaseModel):
+    task_url: str = ""
+    is_from_asr_or_subtitle: bool = False
+    is_llm: bool = False
+    is_rewrite_to_tts: bool = False
+    is_rewrite_to_subtitle: bool = False
+    is_bgm: bool = False
+    is_video_material: bool = False
+    is_publish: bool = False

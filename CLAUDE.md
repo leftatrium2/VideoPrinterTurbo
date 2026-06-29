@@ -52,10 +52,10 @@ cd front && npm run build
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
-| `GET` | `/` | 查询所有未删除任务（有真实数据） |
-| `GET` | `/tasks/` | 查询任务列表（stub，返回 `{"tasks": []}` ） |
-| `POST` | `/tasks/add` | 新建任务（stub，返回 `{"message": "任务添加成功"}` ） |
-| `GET` | `/tasks/config` | 添加任务页动态配置（`{code,msg,data}`；data 含 5 个字段，见下方说明） |
+| `GET` | `/` | 健康检查（返回 `{"message": "VideoPrinterTurbo API is running"}`） |
+| `GET` | `/tasks/` | 添加任务页动态配置（`{code,msg,data}`；data 含 5 个字段，见下方说明） |
+| `POST` | `/tasks/add` | 新建任务（返回 `{code,msg,data}` 标准格式） |
+| `GET` | `/tasks/list` | 查询任务列表（**待实现**，前端 `getTasks` 已指向此端点） |
 | `GET` | `/tasks/check?url=<url>` | 检查视频链接是否可下载（`{code,msg,data}`；`code=0` 表示可用） |
 | `GET` | `/llm_config/` | LLM 已保存配置（`{code,msg,data}`；data 含 5 个字段：`base_url`、`api_key`、`provider_name`、`llm_model_name`、`memo`，未配置时为空串） |
 | `POST` | `/llm_config/update` | 保存 LLM 配置，body: `{base_url, api_key, provider_name, llm_model_name, memo}` |
@@ -338,10 +338,11 @@ placeholder.*  — 占位页文本
 | 字段 | 类型 | 选项 / 说明 |
 |---|---|---|
 | 选择 BGM 库 | `el-select`（全宽） | 动态来自 `GET /tasks/config` 的 `data.bgm[]`；当前返回 `random`（随机背景音乐）/ `custom`（自定义背景音乐） |
-| 上传本地音频 | `el-upload` drag 区域（始终显示） | accept="audio/*"，auto-upload=false |
+| 上传本地音频 | `el-upload` drag 区域（**仅 `custom` 时显示**） | accept="audio/*"，auto-upload=false，`:show-file-list="false"`（文件列表自定义渲染）；选中文件后自动调用 `POST /tasks/upload_bgm`（multipart/form-data），返回 `data.saved_as`（服务器绝对路径）存入 `bgmUploadedPath`，成功弹 `ElMessage.success`，失败清空文件列表并弹错误提示；切换到其他选项时上传区隐藏但已上传文件状态保留，切回 `custom` 时文件仍显示；**不设 `:limit`**，每次选文件直接替换（设 limit=1 会导致第二次选文件触发 on-exceed 而非 on-change）|
+| 已上传文件行 | 自定义文件行（`bgm-file-item`） | 显示文件名；「试听/暂停」按钮——点击后以 `ttsPreviewUrl(bgmUploadedPath)` 为 src 播放，再次点击暂停；状态由 `bgmIsPlaying` ref 驱动（不依赖 `audio.src` 判断，因 `audio.src=''` 会被浏览器解析为页面 URL）；「✕」按钮调 `handleBgmRemove` 清除文件与音频（清除用 `audio.removeAttribute('src')`，不用 `audio.src=''`）|
 | 背景音乐音量 | `el-slider`（左右各一个扬声器图标 🔉 🔊） | 0.0–1.0，step 0.05，默认 0.5 |
 
-上传区域与音量控制并排（两列布局）。
+上传区域与音量控制并排（两列布局）；选 `random` 时只显示音量控制。
 
 使用说明：选择相关的背景音乐后，将会将此背景音乐合并到新的视频中。
 
@@ -374,6 +375,8 @@ placeholder.*  — 占位页文本
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | 发布设置 (JSON 配置或描述) | `el-input type="textarea"` rows=5 readonly | 占位内容：`{ 'platform': 'douyin', 'auto_publish': true, ... }` |
+
+**复选框行为**：`:model-value="false"` 始终保持不选中；点击时触发 `ElMessage.warning`（「没有此功能，此复选框无法选中」），不写入 `enabled.publish`。
 
 使用说明：此功能暂未开放。
 
@@ -618,10 +621,10 @@ interface Task {
   local_path?: string
 }
 
-getTasks(page, pageSize)      // GET /api/tasks/
-addTask(params)               // POST /api/tasks/add
+getTasks(page, pageSize)      // GET /api/tasks/list（待实现）-> TaskListResult
+addTask(params)               // POST /api/tasks/add -> {code, msg, data}
 checkTaskUrl(url)             // GET /api/tasks/check?url=<url> -> {code, msg, data}
-getTaskConfig()               // GET /api/tasks/config -> TaskConfigData（asr/tts/subtitle/bgm/material 五个字段）
+getTaskConfig()               // GET /api/tasks/ -> TaskConfigData（asr/tts/subtitle/bgm/material 五个字段）
 streamUrl(path)               // returns /api/stream/{path}
 getLlmConfig()                // GET /api/llm_config/ -> LlmConfigData（5 个字段）
 updateLlmConfig(params)       // POST /api/llm_config/update，body: LlmConfigData（5 个字段全量提交）
@@ -637,6 +640,7 @@ getTtsVoicePreview(engine, voice) // GET /api/tts_config/tts_voice_preview -> {o
 ttsPreviewUrl(filePath)       // returns /api/tts_config/preview?file_path=<path>
 getProxyConfig()              // GET /api/proxy_config/ -> ProxyConfigData（4 个字段）
 updateProxyConfig(params)     // POST /api/proxy_config/update，body: ProxyConfigData（4 个字段全量提交）
+uploadBgm(file)               // POST /tasks/upload_bgm（multipart/form-data，field="file"）-> saved_as: string（服务器绝对路径，供 ttsPreviewUrl 使用）
 
 // ProxyConfigData: { proxy_type: number, proxy_url: string, proxy_username: string, proxy_password: string }
 // 常量: PROXY_TYPE_HTTPS=1, PROXY_TYPE_SOCKS5=2；proxy_type=0 表示未配置，回退到 HTTPS

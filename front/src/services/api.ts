@@ -107,10 +107,10 @@ async function request<T>(promise: Promise<{ data: T }>): Promise<T> {
 }
 
 export function getTasks(page: number, pageSize: number): Promise<TaskListResult> {
-  return request(http.get('/tasks/', { params: { page, page_size: pageSize } }))
+  return request(http.get('/tasks/list', { params: { page, page_size: pageSize } }))
 }
 
-export function addTask(params: AddTaskParams): Promise<{ message: string }> {
+export function addTask(params: AddTaskParams): Promise<ApiResult<Record<string, unknown>>> {
   return request(http.post('/tasks/add', params))
 }
 
@@ -120,7 +120,7 @@ export function checkTaskUrl(url: string): Promise<CheckUrlResult> {
 
 export async function getTaskConfig(): Promise<TaskConfigData> {
   const res = await request<ApiResult<TaskConfigData>>(
-    http.get('/tasks/config')
+    http.get('/tasks/')
   )
   if (res.code !== 0) {
     throw new Error(res.msg)
@@ -333,4 +333,14 @@ export async function delPixabayConfig(id: number): Promise<void> {
     http.get('/material_config/del_pixabay_config', { params: { pixabay_config_id: id } })
   )
   if (res.code !== 0) throw new Error(res.msg)
+}
+
+export async function uploadBgm(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await request<ApiResult<{ saved_as: string }>>(
+    http.post('/tasks/upload_bgm', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data.saved_as
 }

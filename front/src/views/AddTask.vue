@@ -184,18 +184,27 @@
         </el-select>
 
         <div class="bgm-layout mt-12">
-          <div class="bgm-upload">
+          <div v-if="form.bgm_library === 'custom'" class="bgm-upload">
             <el-upload
               drag
               :auto-upload="false"
               accept="audio/*"
               :on-change="handleBgmFileChange"
               :file-list="bgmFileList"
-              :limit="1"
+              :show-file-list="false"
             >
               <el-icon class="upload-icon"><Document /></el-icon>
               <div class="upload-text">{{ t('addTask.uploadAudio') }}</div>
             </el-upload>
+            <div v-if="bgmFileList.length > 0" class="bgm-file-item">
+              <el-icon class="bgm-file-icon"><Document /></el-icon>
+              <span class="bgm-file-name">{{ bgmFileList[0].name }}</span>
+              <el-button size="small" :loading="bgmPreviewLoading" @click="handleBgmPreview">
+                {{ bgmIsPlaying ? t('addTask.bgmPreviewPause') : t('addTask.bgmPreview') }}
+              </el-button>
+              <el-icon class="bgm-file-remove" @click="handleBgmRemove"><Close /></el-icon>
+            </div>
+            <audio ref="bgmPreviewAudioRef" style="display:none" @ended="bgmIsPlaying = false" />
           </div>
           <div class="bgm-volume">
             <div class="field-label">{{ t('addTask.bgmVolume') }}</div>
@@ -317,9 +326,9 @@ import { ElMessage, ElPopover } from 'element-plus'
 import type { UploadFile } from 'element-plus'
 import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
-  QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause,
+  QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
-import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl } from '@/services/api'
+import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl, uploadBgm } from '@/services/api'
 import type { TaskConfigData, TtsVoiceItem } from '@/services/api'
 
 const router = useRouter()
@@ -439,9 +448,14 @@ watch(() => form.tts_voice, () => {
   isPlaying.value = false
 })
 
+
 const submitting = ref(false)
 const checkingLink = ref(false)
 const bgmFileList = ref<UploadFile[]>([])
+const bgmUploadedPath = ref('')
+const bgmPreviewAudioRef = ref<HTMLAudioElement | null>(null)
+const bgmPreviewLoading = ref(false)
+const bgmIsPlaying = ref(false)
 const videoFileList = ref<UploadFile[]>([])
 
 const publishPlaceholder = `{ 'platform': 'douyin', 'auto_publish': true, ... }`
@@ -485,7 +499,56 @@ async function handleTestVoice() {
   }
 }
 
-function handleBgmFileChange(file: UploadFile) { bgmFileList.value = [file] }
+async function handleBgmFileChange(file: UploadFile) {
+  const audio = bgmPreviewAudioRef.value
+  if (audio) { audio.pause(); audio.removeAttribute('src') }
+  bgmIsPlaying.value = false
+  bgmUploadedPath.value = ''
+  bgmFileList.value = [file]
+  if (form.bgm_library !== 'custom') return
+  const rawFile = file.raw
+  if (!rawFile) return
+  try {
+    bgmUploadedPath.value = await uploadBgm(rawFile)
+    ElMessage.success(t('addTask.bgmUploadSuccess'))
+  } catch {
+    ElMessage.error(t('addTask.bgmUploadFailed'))
+    bgmFileList.value = []
+    bgmUploadedPath.value = ''
+  }
+}
+
+async function handleBgmPreview() {
+  const audio = bgmPreviewAudioRef.value
+  if (!audio) return
+
+  if (bgmIsPlaying.value) {
+    audio.pause()
+    bgmIsPlaying.value = false
+    return
+  }
+
+  if (!bgmUploadedPath.value) return
+  bgmPreviewLoading.value = true
+  try {
+    audio.src = ttsPreviewUrl(bgmUploadedPath.value)
+    await audio.play()
+    bgmIsPlaying.value = true
+  } catch {
+    ElMessage.error(t('addTask.bgmUploadFailed'))
+  } finally {
+    bgmPreviewLoading.value = false
+  }
+}
+
+function handleBgmRemove() {
+  const audio = bgmPreviewAudioRef.value
+  if (audio) { audio.pause(); audio.removeAttribute('src') }
+  bgmFileList.value = []
+  bgmUploadedPath.value = ''
+  bgmIsPlaying.value = false
+}
+
 function handleVideoFileChange(file: UploadFile) { videoFileList.value = [...videoFileList.value, file] }
 
 async function handleSubmit() {
@@ -666,6 +729,38 @@ async function handleSubmit() {
   border: 1px dashed var(--color-border);
   border-radius: 6px;
   overflow: hidden;
+}
+
+.bgm-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--el-fill-color-light);
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-regular);
+}
+
+.bgm-file-icon {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.bgm-file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bgm-file-remove {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  &:hover { color: var(--el-color-danger); }
 }
 
 .bgm-volume {
