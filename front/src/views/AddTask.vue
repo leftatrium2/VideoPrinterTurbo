@@ -258,11 +258,16 @@
         </div>
 
         <div v-if="form.video_source === 'local'" class="upload-zone mt-12">
-          <el-upload drag :auto-upload="false" accept="video/*" :on-change="handleVideoFileChange" :file-list="videoFileList" multiple>
+          <el-upload drag :auto-upload="false" accept="video/*" :on-change="handleVideoFileChange" :file-list="videoFileList" :show-file-list="false" multiple>
             <el-icon class="upload-icon"><Upload /></el-icon>
             <div class="upload-text">{{ t('addTask.uploadVideo') }}</div>
             <div class="upload-hint">{{ t('addTask.uploadVideoHint') }}</div>
           </el-upload>
+          <div v-for="(file, index) in videoFileList" :key="file.uid" class="bgm-file-item mt-4">
+            <el-icon class="bgm-file-icon"><Film /></el-icon>
+            <span class="bgm-file-name">{{ file.name }}</span>
+            <el-icon class="bgm-file-remove" @click="handleVideoFileRemove(index)"><Close /></el-icon>
+          </div>
         </div>
 
         <div class="form-grid-3 mt-12">
@@ -328,7 +333,7 @@ import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
-import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl, uploadBgm } from '@/services/api'
+import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial } from '@/services/api'
 import type { TaskConfigData, TtsVoiceItem } from '@/services/api'
 
 const router = useRouter()
@@ -457,6 +462,7 @@ const bgmPreviewAudioRef = ref<HTMLAudioElement | null>(null)
 const bgmPreviewLoading = ref(false)
 const bgmIsPlaying = ref(false)
 const videoFileList = ref<UploadFile[]>([])
+const materialUploadedPaths = ref<string[]>([])
 
 const publishPlaceholder = `{ 'platform': 'douyin', 'auto_publish': true, ... }`
 
@@ -549,7 +555,24 @@ function handleBgmRemove() {
   bgmIsPlaying.value = false
 }
 
-function handleVideoFileChange(file: UploadFile) { videoFileList.value = [...videoFileList.value, file] }
+async function handleVideoFileChange(file: UploadFile) {
+  const rawFile = file.raw
+  if (!rawFile) return
+  videoFileList.value = [...videoFileList.value, file]
+  try {
+    const results = await uploadMaterial([rawFile])
+    materialUploadedPaths.value = [...materialUploadedPaths.value, results[0].saved_as]
+    ElMessage.success(t('addTask.materialUploadSuccess'))
+  } catch {
+    ElMessage.error(t('addTask.materialUploadFailed'))
+    videoFileList.value = videoFileList.value.filter(f => f.uid !== file.uid)
+  }
+}
+
+function handleVideoFileRemove(index: number) {
+  videoFileList.value = videoFileList.value.filter((_, i) => i !== index)
+  materialUploadedPaths.value = materialUploadedPaths.value.filter((_, i) => i !== index)
+}
 
 async function handleSubmit() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrl')); return }
@@ -574,6 +597,7 @@ async function handleSubmit() {
       bgm_type: enabled.bgm ? form.bgm_library : 'none',
       bgm_volume: enabled.bgm ? form.bgm_volume : undefined,
       video_source: enabled.video_overlay ? form.video_source : undefined,
+      video_local_files: (enabled.video_overlay && form.video_source === 'local') ? materialUploadedPaths.value : undefined,
       video_concat_mode: enabled.video_overlay ? form.video_concat_mode : undefined,
       video_transition: enabled.video_overlay ? form.video_transition : undefined,
       video_aspect: form.video_aspect,

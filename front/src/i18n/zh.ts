@@ -61,6 +61,8 @@ export default {
     uploadAudio: '点击上传本地音频文件',
     bgmUploadSuccess: '音频上传成功',
     bgmUploadFailed: '音频上传失败，请重试',
+    materialUploadSuccess: '视频上传成功',
+    materialUploadFailed: '视频上传失败，请重试',
     bgmPreview: '试听',
     bgmPreviewPause: '暂停',
     bgmVolume: '背景音乐音量',

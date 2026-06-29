@@ -61,6 +61,8 @@ export default {
     uploadAudio: 'Click to upload local audio file',
     bgmUploadSuccess: 'Audio uploaded successfully',
     bgmUploadFailed: 'Audio upload failed, please try again',
+    materialUploadSuccess: 'Video uploaded successfully',
+    materialUploadFailed: 'Video upload failed, please try again',
     bgmPreview: 'Preview',
     bgmPreviewPause: 'Pause',
     bgmVolume: 'BGM Volume',

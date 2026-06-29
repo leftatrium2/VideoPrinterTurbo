@@ -354,7 +354,7 @@ placeholder.*  — 占位页文本
 
 | 字段 | 选项 |
 |---|---|
-| 视频源 | 动态来自 `GET /tasks/config` 的 `data.material[]`；始终含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 出现；选 `local` 时显示上传区域 |
+| 视频源 | 动态来自 `GET /tasks/config` 的 `data.material[]`；始终含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 出现；选 `local` 时显示上传区域 `el-upload`（drag，accept="video/*"，multiple，`:show-file-list="false"`，自定义文件列表）；每次选文件后立即调用 `POST /tasks/upload_material`（multipart/form-data，field="files"，支持多文件），返回 `data[].saved_as` 累积存入 `materialUploadedPaths`；成功弹 `ElMessage.success`，失败从显示列表移除该文件并弹错误；自定义文件行显示文件名 + ✕ 移除按钮（复用 `.bgm-file-item` 样式），移除时同步清除 `materialUploadedPaths` 对应项；提交时以 `video_local_files: materialUploadedPaths` 传入 payload |
 | 拼接模式 | 顺序拼接 / 随机拼接（推荐） |
 | 转场模式 | 无转场 / 随机转场 / 渐入 / 渐出 / 淡入淡出 / 滑动入 / 滑动出 |
 
@@ -641,6 +641,7 @@ ttsPreviewUrl(filePath)       // returns /api/tts_config/preview?file_path=<path
 getProxyConfig()              // GET /api/proxy_config/ -> ProxyConfigData（4 个字段）
 updateProxyConfig(params)     // POST /api/proxy_config/update，body: ProxyConfigData（4 个字段全量提交）
 uploadBgm(file)               // POST /tasks/upload_bgm（multipart/form-data，field="file"）-> saved_as: string（服务器绝对路径，供 ttsPreviewUrl 使用）
+uploadMaterial(files)         // POST /tasks/upload_material（multipart/form-data，field="files"，支持多文件）-> MaterialUploadItem[]（每项含 filename、saved_as、size、content_type）
 
 // ProxyConfigData: { proxy_type: number, proxy_url: string, proxy_username: string, proxy_password: string }
 // 常量: PROXY_TYPE_HTTPS=1, PROXY_TYPE_SOCKS5=2；proxy_type=0 表示未配置，回退到 HTTPS

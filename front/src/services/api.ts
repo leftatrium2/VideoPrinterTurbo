@@ -344,3 +344,20 @@ export async function uploadBgm(file: File): Promise<string> {
   if (res.code !== 0) throw new Error(res.msg)
   return res.data.saved_as
 }
+
+export interface MaterialUploadItem {
+  filename: string
+  saved_as: string
+  size: number
+  content_type: string
+}
+
+export async function uploadMaterial(files: File[]): Promise<MaterialUploadItem[]> {
+  const form = new FormData()
+  for (const f of files) form.append('files', f)
+  const res = await request<ApiResult<MaterialUploadItem[]>>(
+    http.post('/tasks/upload_material', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data
+}

@@ -24,7 +24,8 @@ router = APIRouter(
 )
 
 AUDIO_MIME_TYPE = ["audio/mpeg", "audio/wav", "audio/flac", "audio/aac", "audio/amr"]
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+VIDEO_MIME_TYPE = ["video/mp4", "video/mkv", "video/avi", "video/wmv", "video/flv"]
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 
 
 @router.post("/add")
@@ -36,8 +37,28 @@ def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
 async def upload_material(files: list[UploadFile] = File(...)):
     ret_list = []
     for file in files:
+        if file.content_type not in VIDEO_MIME_TYPE:
+            return result_failure(const.TASK_CONFIG_ERR_INVALID_FILE_FORMAT, "上传文件必须是视频格式")
+        # 读取内容以检查大小
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            return result_failure(const.TASK_CONFIG_ERR_FILE_SIZE_LIMIT_EXCEEDED,
+                                  "上传文件大小不能超过50MB,filename: " + file.filename)
         content = await file.read()
         suffix = Path(file.filename).suffix
+        saved_name = f"{uuid.uuid4().hex}{suffix}"
+        upload_path = await get_upload_path()
+        dest = Path(upload_path) / saved_name
+        async with aiofiles.open(dest, "wb") as f:
+            await f.write(content)
+        abs_saved_name = os.path.join(_config.config['storage']['upload'], saved_name)
+        ret_dict = {
+            "filename": file.filename,
+            "saved_as": abs_saved_name,
+            "size": len(content),
+            "content_type": file.content_type,
+        }
+        ret_list.append(ret_dict)
     return result_succ(ret_list)
 
 
