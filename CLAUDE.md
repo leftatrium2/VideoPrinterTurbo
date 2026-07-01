@@ -54,8 +54,9 @@ cd front && npm run build
 |---|---|---|
 | `GET` | `/` | 健康检查（返回 `{"message": "VideoPrinterTurbo API is running"}`） |
 | `GET` | `/tasks/` | 添加任务页动态配置（`{code,msg,data}`；data 含 5 个字段，见下方说明） |
-| `POST` | `/tasks/add` | 新建任务（返回 `{code,msg,data}` 标准格式） |
-| `GET` | `/tasks/list` | 查询任务列表（**待实现**，前端 `getTasks` 已指向此端点） |
+| `POST` | `/tasks/add` | 新建任务：生成 `task_id`（`utils/task_utils.gen_task_id`，`YYYYMMDDHHMMSS` + 6 位随机数，失败时回退 uuid4），将 `TaskItem` 全部业务字段写入 `vpt_tasks` 表；返回 `{code,msg,data}` 标准格式 |
+| `GET` | `/tasks/list` | 查询任务列表，`page`（默认 1）/ `page_size`（默认 10，范围 10–50）；仅统计/查询 `is_deleted=0`；返回 `data: {total, data: VptTask[], page, page_size}`（每项已剔除 `id` 字段） |
+| `GET` | `/tasks/get?task_id=<id>` | 查询单个任务详情（用于编辑模式回填）；`task_id` 为空返回 `TASK_ERR_TASK_ID_EMPTY`(1102)，未找到返回 `TASK_ERR_TASK_NOT_FOUND`(1103）；成功时返回 `VptTask` 记录（已剔除 `id`） |
 | `GET` | `/tasks/check?url=<url>` | 检查视频链接是否可下载（`{code,msg,data}`；`code=0` 表示可用） |
 | `GET` | `/llm_config/` | LLM 已保存配置（`{code,msg,data}`；data 含 5 个字段：`base_url`、`api_key`、`provider_name`、`llm_model_name`、`memo`，未配置时为空串） |
 | `POST` | `/llm_config/update` | 保存 LLM 配置，body: `{base_url, api_key, provider_name, llm_model_name, memo}` |
@@ -88,8 +89,18 @@ cd front && npm run build
 **数据库表（`vpt_tasks`）：**
 
 ```
-id, task_url, create_time, is_deleted, status, task_id, error_code, error_desc
+id, task_url, create_time, is_deleted, status, task_id, error_code, error_desc,
+is_rewrite_to_tts, is_llm, is_publish, is_from_asr_or_subtitle, llm_prompt,
+is_rewrite_to_subtitle, is_bgm, is_video_material,
+tts_speed, subtitle_size, uploaded_bgm, bgm_volume,
+video_material_type, uploaded_video_material, video_material_splicing_mode,
+video_material_transition_mode, video_material_Video_ratio,
+video_material_max_duration, video_material_generate_count,
+subtitle_font, subtitle_font_color, subtitle_border_color,
+audio_rewrite_type, tts_server, tts_voice, tts_volume, subtitle_position
 ```
+
+`task_id` 为 `Text` 类型（非自增数字），由 `gen_task_id()` 生成，`/tasks/get` 用其查询任务。
 
 状态码：`0` 待处理 / `1` 进行中 / `2` 完成 / `-1` 失败
 
@@ -630,7 +641,7 @@ interface Task {
   local_path?: string
 }
 
-getTasks(page, pageSize)      // GET /api/tasks/list（待实现）-> TaskListResult
+getTasks(page, pageSize)      // GET /api/tasks/list -> TaskListResult（{total, data, page, page_size}，仅返回 is_deleted=0 的任务）
 addTask(params)               // POST /api/tasks/add -> {code, msg, data}
 checkTaskUrl(url)             // GET /api/tasks/check?url=<url> -> {code, msg, data}
 getTaskConfig()               // GET /api/tasks/ -> TaskConfigData（asr/tts/subtitle/bgm/material 五个字段）
@@ -666,7 +677,7 @@ uploadMaterial(files)         // POST /tasks/upload_material（multipart/form-da
 //   transition: { name: string, value: number }[], // 转场模式，value 为整数 1–7
 //   ratio: { name: string, value: number }[]       // 视频比例，value 为整数 1=9:16 2=16:9
 // }
-// AddTaskParams 中 video_concat_mode / video_transition / video_aspect 均为 number（整数）
+// AddTaskParams 中 video_material_splicing_mode / video_material_transition_mode / video_material_Video_ratio 均为 number（整数）
 // TTS_ENGINE_MAP（前端常量）: 将 tts.value 字符串映射到数字 engine id，供 getTtsVoicePreview 使用
 //   TTS_LIST_AZURE_TTS_V1→1, TTS_LIST_AZURE_TTS_V2→2, TTS_LIST_SILICON_FLOW_TTS→3, TTS_LIST_GOOGLE_GEMINI_TTS→4, TTS_LIST_XIAOMI_MIMO_TTS→5
 ```

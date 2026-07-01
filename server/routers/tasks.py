@@ -8,15 +8,18 @@ import aiofiles
 from fastapi import APIRouter, Query, Depends, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_
 
-from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig
+import config.config as _config
+from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig, \
+    VptTask
 from models.schemas import TaskItem
 from pipeline.pipeline import pipeline
 from utils import const
 from utils.database import database
 from utils.file_utils import get_upload_path
 from utils.result import result_succ, result_failure
-import config.config as _config
+from utils.task_utils import gen_task_id
 
 router = APIRouter(
     prefix="/tasks",
@@ -28,8 +31,77 @@ VIDEO_MIME_TYPE = ["video/mp4", "video/mkv", "video/avi", "video/wmv", "video/fl
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 
 
+@router.get("/list")
+async def get_tasks(page: int = Query(default=1, min=1), page_size: int = Query(default=10, min=10, max=50),
+                    db: AsyncSession = Depends(database.get_db)):
+    result = await db.execute(select(func.count()).select_from(VptTask).where(VptTask.is_deleted == 0))
+    total = result.scalar_one()
+    offset = (page - 1) * page_size
+    result = await db.execute(select(VptTask).offset(offset).limit(page_size))
+    data = result.scalars().all()
+    for item in data:
+        del item.id
+    return result_succ({
+        "total": total,
+        "data": data,
+        "page": page,
+        "page_size": page_size
+    })
+
+
+@router.get("/get")
+async def get_tasks(task_id: str = Query(default=None), db: AsyncSession = Depends(database.get_db)):
+    if not task_id:
+        return result_failure(const.TASK_ERR_TASK_ID_EMPTY, "任务ID不能为空")
+    result = await db.execute(select(VptTask).where(and_(
+        VptTask.is_deleted == 0,
+        VptTask.task_id == task_id
+    )))
+    item = result.scalar_one_or_none()
+    if not item:
+        return result_failure(const.TASK_ERR_TASK_NOT_FOUND, "任务不存在")
+    del item.id
+    return result_succ(item)
+
+
 @router.post("/add")
-def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
+async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
+    task_id = gen_task_id()
+    item = VptTask(
+        task_id=task_id,
+        task_url=task.task_url,
+        is_from_asr_or_subtitle=task.is_from_asr_or_subtitle,
+        is_llm=task.is_llm,
+        audio_rewrite_type=task.audio_rewrite_type,
+        llm_prompt=task.llm_prompt,
+        is_rewrite_to_tts=task.is_rewrite_to_tts,
+        tts_server=task.tts_server,
+        tts_voice=task.tts_voice,
+        tts_volume=task.tts_volume,
+        tts_speed=task.tts_speed,
+        is_rewrite_to_subtitle=task.is_rewrite_to_subtitle,
+        subtitle_font=task.subtitle_font,
+        subtitle_position=task.subtitle_position,
+        subtitle_font_color=task.subtitle_font_color,
+        subtitle_border_color=task.subtitle_border_color,
+        is_bgm=task.is_bgm,
+        uploaded_bgm=json.dumps(task.uploaded_bgm),
+        bgm_volume=task.bgm_volume,
+        subtitle_size=task.subtitle_size,
+        is_video_material=task.is_video_material,
+        video_material_type=task.video_material_type,
+        uploaded_video_material=json.dumps(task.uploaded_video_material),
+        video_material_splicing_mode=task.video_material_splicing_mode,
+        video_material_transition_mode=task.video_material_transition_mode,
+        video_material_Video_ratio=task.video_material_Video_ratio,
+        video_material_max_duration=task.video_material_max_duration,
+        video_material_generate_count=task.video_material_generate_count,
+        is_publish=task.is_publish
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+
     return result_succ()
 
 
@@ -117,16 +189,37 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
     ret_dict['bgm'].append({"name": "随机背景音乐", "value": "random"})
     ret_dict['bgm'].append({"name": "自定义背景音乐", "value": "custom"})
     # 视频覆盖
-    ret_dict['material'] = []
-    ret_dict['material'].append({"name": "本地文件", "value": "local"})
+    ret_dict['material'] = {}
+    # 视频覆盖-视频源
+    ret_dict['material']['source'] = []
+    ret_dict['material']['source'].append({"name": "本地文件", "value": const.VIDEO_MATERIAL_FROM_LOCAL})
     result = await db.execute(select(func.count()).select_from(VptVideoMaterialPexelsConfig))
     count = result.scalar_one()
     if count > 0:
-        ret_dict['material'].append({"name": "Pexels", "value": "pexels"})
+        ret_dict['material']['source'].append({"name": "Pexels", "value": const.VIDEO_MATERIAL_FROM_PEXELS})
     result = await db.execute(select(func.count()).select_from(VptVideoMaterialPixabayConfig))
     count = result.scalar_one()
     if count > 0:
-        ret_dict['material'].append({"name": "Pixabay", "value": "pixabay"})
+        ret_dict['material']['source'].append({"name": "Pixabay", "value": const.VIDEO_MATERIAL_FROM_PIXABAY})
+    # 视频覆盖-拼接模式
+    ret_dict['material']['splicing'] = []
+    ret_dict['material']['splicing'].append({"name": "随机拼接（推荐）", "value": const.VIDEO_MATERIAL_RANDOM_SPLICING})
+    ret_dict['material']['splicing'].append(
+        {"name": "顺序拼接", "value": const.VIDEO_MATERIAL_SEQUENTIAL_SPLICING})
+    # 视频覆盖-转场模式
+    ret_dict['material']['transition'] = []
+    ret_dict['material']['transition'].append({"name": "无转场", "value": const.VIDEO_MATERIAL_TRANSITION_NO})
+    ret_dict['material']['transition'].append({"name": "随机专场", "value": const.VIDEO_MATERIAL_TRANSITION_RANDOM})
+    ret_dict['material']['transition'].append({"name": "渐入", "value": const.VIDEO_MATERIAL_TRANSITION_GRADUAL_ENTRY})
+    ret_dict['material']['transition'].append({"name": "渐出", "value": const.VIDEO_MATERIAL_TRANSITION_GRADUAL_EXIT})
+    ret_dict['material']['transition'].append(
+        {"name": "淡入淡出", "value": const.VIDEO_MATERIAL_TRANSITION_FADE_IN_OR_FADE_OUT})
+    ret_dict['material']['transition'].append({"name": "滑动入", "value": const.VIDEO_MATERIAL_TRANSITION_SLIDE_IN})
+    ret_dict['material']['transition'].append({"name": "滑动出", "value": const.VIDEO_MATERIAL_TRANSITION_SLIDE_OUT})
+    # 视频覆盖-视频比例
+    ret_dict['material']['ratio'] = []
+    ret_dict['material']['ratio'].append({"name": "9:16", "value": const.VIDEO_MATERIAL_SCREEN_RATIO_9_16})
+    ret_dict['material']['ratio'].append({"name": "16:9", "value": const.VIDEO_MATERIAL_SCREEN_RATIO_16_9})
     # 输出到语音 (TTS)
     ret_dict['tts'] = []
     # 输出到语音 -- Azure TTS V1
