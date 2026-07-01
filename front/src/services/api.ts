@@ -6,7 +6,7 @@ export interface Task {
   create_time: string
   is_deleted: number
   status: number  // 0=pending, 1=running, 2=done, -1=failed
-  task_id: number
+  task_id: string
   error_code: number
   error_desc: string
   local_path?: string
@@ -138,6 +138,53 @@ export async function getTasks(page: number, pageSize: number): Promise<TaskList
     throw new Error(res.msg)
   }
   return { tasks: res.data.data, total: res.data.total }
+}
+
+export interface TaskDetail {
+  task_url: string
+  create_time: string
+  is_deleted: number
+  status: number
+  task_id: string
+  error_code: number
+  error_desc: string
+  is_from_asr_or_subtitle: number
+  audio_rewrite_type: number
+  is_llm: number
+  llm_prompt: string
+  is_rewrite_to_tts: number
+  tts_server: string
+  tts_voice: string
+  tts_volume: number
+  tts_speed: number
+  is_rewrite_to_subtitle: number
+  subtitle_font: string
+  subtitle_position: string
+  subtitle_font_color: number
+  subtitle_border_color: number
+  subtitle_size: number
+  is_bgm: number
+  uploaded_bgm: string
+  bgm_volume: number
+  is_video_material: number
+  video_material_type: string
+  uploaded_video_material: string
+  video_material_splicing_mode: number
+  video_material_transition_mode: number
+  video_material_Video_ratio: number
+  video_material_max_duration: number
+  video_material_generate_count: number
+  is_publish: number
+}
+
+export async function getTaskDetail(taskId: string): Promise<TaskDetail> {
+  const res = await request<ApiResult<TaskDetail>>(
+    http.get('/tasks/get', { params: { task_id: taskId } })
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return res.data
 }
 
 export function addTask(params: AddTaskParams): Promise<ApiResult<Record<string, unknown>>> {

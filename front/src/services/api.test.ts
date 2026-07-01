@@ -28,6 +28,54 @@ describe('api service', () => {
     expect(result).toEqual({ tasks: [], total: 0 })
   })
 
+  it('getTaskDetail 调用正确端点', async () => {
+    const detail = {
+      task_url: 'https://www.youtube.com/shorts/TT9Gl0gR2jg',
+      task_id: '20260701212108501553',
+      is_from_asr_or_subtitle: 1,
+      audio_rewrite_type: 2,
+      is_llm: 1,
+      llm_prompt: 'LLM 提示词 (Prompt)',
+      is_rewrite_to_tts: 1,
+      tts_server: 'TTS_LIST_AZURE_TTS_V1',
+      tts_voice: 'zh-CN-XiaoxiaoNeural',
+      tts_volume: 1.0,
+      tts_speed: 1.0,
+      is_rewrite_to_subtitle: 1,
+      subtitle_font: 'Charm-Bold.ttf',
+      subtitle_position: '',
+      subtitle_font_color: 16777215,
+      subtitle_border_color: 0,
+      subtitle_size: 30,
+      is_bgm: 1,
+      uploaded_bgm: '{}',
+      bgm_volume: 0.5,
+      is_video_material: 1,
+      video_material_type: 'pexels',
+      uploaded_video_material: '[]',
+      video_material_splicing_mode: 1,
+      video_material_transition_mode: 1,
+      video_material_Video_ratio: 1,
+      video_material_max_duration: 10,
+      video_material_generate_count: 1,
+      is_publish: 0,
+      status: 0,
+      create_time: '2026-07-01 21:21:08',
+      is_deleted: 0,
+      error_code: 0,
+      error_desc: '',
+    }
+    mockHttp.get.mockResolvedValue({ data: { code: 0, msg: 'success', data: detail } })
+    const result = await api.getTaskDetail('20260701212108501553')
+    expect(mockHttp.get).toHaveBeenCalledWith('/tasks/get', { params: { task_id: '20260701212108501553' } })
+    expect(result).toEqual(detail)
+  })
+
+  it('getTaskDetail 失败时抛出错误', async () => {
+    mockHttp.get.mockResolvedValue({ data: { code: 1102, msg: '任务不存在', data: {} } })
+    await expect(api.getTaskDetail('bad-id')).rejects.toThrow('任务不存在')
+  })
+
   it('addTask 调用正确端点', async () => {
     mockHttp.post.mockResolvedValue({ data: { message: '任务添加成功' } })
     const params = { task_url: 'https://youtube.com/watch?v=test' }
