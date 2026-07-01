@@ -15,6 +15,11 @@ const router = createRouter({
           meta: { breadcrumb: ['breadcrumb.addTask', 'breadcrumb.addTaskNew'] },
         },
         {
+          path: 'get_task',
+          component: () => import('@/views/AddTask.vue'),
+          meta: { breadcrumb: ['breadcrumb.addTask', 'breadcrumb.editTask'] },
+        },
+        {
           path: 'tasks',
           component: () => import('@/views/TaskList.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.taskList'] },
