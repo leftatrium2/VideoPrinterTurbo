@@ -233,26 +233,19 @@
           <div>
             <div class="field-label">{{ t('addTask.videoSource') }}</div>
             <el-select v-model="form.video_source" class="full-width">
-              <el-option v-for="item in taskConfig.material" :key="item.value" :label="item.name" :value="item.value" />
+              <el-option v-for="item in taskConfig.material.source" :key="item.value" :label="item.name" :value="item.value" />
             </el-select>
           </div>
           <div>
             <div class="field-label">{{ t('addTask.concatMode') }}</div>
             <el-select v-model="form.video_concat_mode" class="full-width">
-              <el-option :label="t('addTask.sequential')" value="sequential" />
-              <el-option :label="t('addTask.randomConcat')" value="random" />
+              <el-option v-for="item in taskConfig.material.splicing" :key="item.value" :label="item.name" :value="item.value" />
             </el-select>
           </div>
           <div>
             <div class="field-label">{{ t('addTask.transitionMode') }}</div>
             <el-select v-model="form.video_transition" class="full-width">
-              <el-option :label="t('addTask.noTransition')" value="none" />
-              <el-option :label="t('addTask.randomTransition')" value="random" />
-              <el-option :label="t('addTask.fadein')" value="fadein" />
-              <el-option :label="t('addTask.fadeout')" value="fadeout" />
-              <el-option :label="t('addTask.fadeinout')" value="fadeinout" />
-              <el-option :label="t('addTask.slidein')" value="slidein" />
-              <el-option :label="t('addTask.slideout')" value="slideout" />
+              <el-option v-for="item in taskConfig.material.transition" :key="item.value" :label="item.name" :value="item.value" />
             </el-select>
           </div>
         </div>
@@ -274,8 +267,7 @@
           <div>
             <div class="field-label">{{ t('addTask.videoAspect') }}</div>
             <el-select v-model="form.video_aspect" class="full-width">
-              <el-option :label="t('addTask.portrait')" value="9:16" />
-              <el-option :label="t('addTask.landscape')" value="16:9" />
+              <el-option v-for="item in taskConfig.material.ratio" :key="item.value" :label="item.name" :value="item.value" />
             </el-select>
           </div>
           <div>
@@ -334,7 +326,7 @@ import {
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
 import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial } from '@/services/api'
-import type { TaskConfigData, TtsVoiceItem } from '@/services/api'
+import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult } from '@/services/api'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -359,7 +351,7 @@ const taskConfig = reactive<TaskConfigData>({
   tts: [],
   subtitle: [],
   bgm: [],
-  material: [],
+  material: { source: [], splicing: [], transition: [], ratio: [] },
 })
 
 /* -------- section enable flags -------- */
@@ -391,9 +383,9 @@ const form = reactive({
   bgm_library: '',
   bgm_volume: 0.5,
   video_source: '',
-  video_concat_mode: 'sequential',
-  video_transition: 'fadeinout',
-  video_aspect: '9:16',
+  video_concat_mode: 0 as number,
+  video_transition: 0 as number,
+  video_aspect: 0 as number,
   video_fragment_duration: 10,
   video_count: 1,
 })
@@ -435,7 +427,10 @@ onMounted(async () => {
     }
     if (config.subtitle.length > 0) form.subtitle_font = config.subtitle[0].value
     if (config.bgm.length > 0) form.bgm_library = config.bgm[0].value
-    if (config.material.length > 0) form.video_source = config.material[0].value
+    if (config.material.source.length > 0) form.video_source = config.material.source[0].value
+    if (config.material.splicing.length > 0) form.video_concat_mode = config.material.splicing[0].value
+    if (config.material.transition.length > 0) form.video_transition = config.material.transition[0].value
+    if (config.material.ratio.length > 0) form.video_aspect = config.material.ratio[0].value
   } catch {
     ElMessage.error(t('addTask.loadConfigFailed'))
   }
@@ -457,7 +452,7 @@ watch(() => form.tts_voice, () => {
 const submitting = ref(false)
 const checkingLink = ref(false)
 const bgmFileList = ref<UploadFile[]>([])
-const bgmUploadedPath = ref('')
+const bgmUploadedData = ref<BgmUploadResult | null>(null)
 const bgmPreviewAudioRef = ref<HTMLAudioElement | null>(null)
 const bgmPreviewLoading = ref(false)
 const bgmIsPlaying = ref(false)
@@ -509,18 +504,18 @@ async function handleBgmFileChange(file: UploadFile) {
   const audio = bgmPreviewAudioRef.value
   if (audio) { audio.pause(); audio.removeAttribute('src') }
   bgmIsPlaying.value = false
-  bgmUploadedPath.value = ''
+  bgmUploadedData.value = null
   bgmFileList.value = [file]
   if (form.bgm_library !== 'custom') return
   const rawFile = file.raw
   if (!rawFile) return
   try {
-    bgmUploadedPath.value = await uploadBgm(rawFile)
+    bgmUploadedData.value = await uploadBgm(rawFile)
     ElMessage.success(t('addTask.bgmUploadSuccess'))
   } catch {
     ElMessage.error(t('addTask.bgmUploadFailed'))
     bgmFileList.value = []
-    bgmUploadedPath.value = ''
+    bgmUploadedData.value = null
   }
 }
 
@@ -534,10 +529,10 @@ async function handleBgmPreview() {
     return
   }
 
-  if (!bgmUploadedPath.value) return
+  if (!bgmUploadedData.value?.saved_as) return
   bgmPreviewLoading.value = true
   try {
-    audio.src = ttsPreviewUrl(bgmUploadedPath.value)
+    audio.src = ttsPreviewUrl(bgmUploadedData.value.saved_as)
     await audio.play()
     bgmIsPlaying.value = true
   } catch {
@@ -551,7 +546,7 @@ function handleBgmRemove() {
   const audio = bgmPreviewAudioRef.value
   if (audio) { audio.pause(); audio.removeAttribute('src') }
   bgmFileList.value = []
-  bgmUploadedPath.value = ''
+  bgmUploadedData.value = null
   bgmIsPlaying.value = false
 }
 
@@ -574,35 +569,53 @@ function handleVideoFileRemove(index: number) {
   materialUploadedPaths.value = materialUploadedPaths.value.filter((_, i) => i !== index)
 }
 
+function hexToInt(hex: string): number {
+  return parseInt(hex.replace('#', ''), 16)
+}
+
 async function handleSubmit() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrl')); return }
   try {
     submitting.value = true
     await addTask({
       task_url: form.task_url,
-      transcription_mode: enabled.transcription ? form.transcription_mode : undefined,
-      llm_enabled: enabled.llm,
-      llm_prompt: enabled.llm ? form.llm_prompt : undefined,
-      output_mode: enabled.voice_output ? 'voice' : enabled.subtitle_output ? 'subtitle' : undefined,
-      tts_service: enabled.voice_output ? form.tts_service : undefined,
-      tts_voice: enabled.voice_output ? form.tts_voice : undefined,
-      tts_speed: enabled.voice_output ? form.tts_speed : undefined,
-      tts_volume: enabled.voice_output ? form.tts_volume : undefined,
-      subtitle_font: enabled.subtitle_output ? form.subtitle_font : undefined,
-      subtitle_position: enabled.subtitle_output ? form.subtitle_position : undefined,
-      subtitle_position_custom: (enabled.subtitle_output && form.subtitle_position === 'custom') ? form.subtitle_position_custom : undefined,
-      subtitle_color: enabled.subtitle_output ? form.subtitle_color : undefined,
-      subtitle_stroke_color: enabled.subtitle_output ? form.subtitle_stroke_color : undefined,
-      subtitle_size: enabled.subtitle_output ? form.subtitle_size : undefined,
-      bgm_type: enabled.bgm ? form.bgm_library : 'none',
-      bgm_volume: enabled.bgm ? form.bgm_volume : undefined,
-      video_source: enabled.video_overlay ? form.video_source : undefined,
-      video_local_files: (enabled.video_overlay && form.video_source === 'local') ? materialUploadedPaths.value : undefined,
-      video_concat_mode: enabled.video_overlay ? form.video_concat_mode : undefined,
-      video_transition: enabled.video_overlay ? form.video_transition : undefined,
-      video_aspect: form.video_aspect,
-      video_fragment_duration: form.video_fragment_duration,
-      video_count: form.video_count,
+      // 音频转文字
+      is_from_asr_or_subtitle: enabled.transcription,
+      audio_rewrite_type: form.transcription_mode,
+      // LLM 改写
+      is_llm: enabled.llm,
+      llm_prompt: form.llm_prompt,
+      // 输出到语音
+      is_rewrite_to_tts: enabled.voice_output,
+      tts_server: form.tts_service,
+      tts_voice: form.tts_voice,
+      tts_volume: form.tts_volume,
+      tts_speed: form.tts_speed,
+      // 输出到字幕
+      is_rewrite_to_subtitle: enabled.subtitle_output,
+      subtitle_font: form.subtitle_font,
+      subtitle_font_color: hexToInt(form.subtitle_color),
+      subtitle_border_color: hexToInt(form.subtitle_stroke_color),
+      subtitle_size: form.subtitle_size,
+      // 背景音乐
+      is_bgm: enabled.bgm,
+      uploaded_bgm: (enabled.bgm && form.bgm_library === 'custom' && bgmUploadedData.value)
+        ? bgmUploadedData.value as Record<string, unknown>
+        : {},
+      bgm_volume: form.bgm_volume,
+      // 视频覆盖
+      is_video_material: enabled.video_overlay,
+      video_material_type: form.video_source,
+      uploaded_video_material: (enabled.video_overlay && form.video_source === 'local')
+        ? materialUploadedPaths.value
+        : [],
+      video_material_splicing_mode: form.video_concat_mode,
+      video_material_transition_mode: form.video_transition,
+      video_material_Video_ratio: form.video_aspect,
+      video_material_max_duration: form.video_fragment_duration,
+      video_material_generate_count: form.video_count,
+      // 发布
+      is_publish: false,
     })
     ElMessage.success(t('addTask.taskCreated'))
     router.push('/tasks')
