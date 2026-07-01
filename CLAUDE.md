@@ -79,7 +79,11 @@ cd front && npm run build
 | `tts` | `{name, value: string, voices: TtsVoiceItem[]}[]` | 可用的 TTS 服务商；value 为字符串常量（`TTS_LIST_AZURE_TTS_V1` 等）；voices 为该服务商声音列表 `{DisplayName, Value}[]` |
 | `subtitle` | `{name, value: string}[]` | 字幕字体列表，value 为字体文件名（如 `"Charm-Bold.ttf"`） |
 | `bgm` | `{name, value: string}[]` | BGM 库选项；当前返回 `random`（随机背景音乐）和 `custom`（自定义背景音乐） |
-| `material` | `{name, value: string}[]` | 视频源选项；始终包含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 动态出现 |
+| `material` | 对象，含 4 个子数组（见下方） | 视频覆盖相关配置，不再是平铺数组 |
+| `material.source` | `{name, value: string}[]` | 视频源；始终含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 动态出现 |
+| `material.splicing` | `{name, value: number}[]` | 拼接模式；`1`=随机拼接（推荐）、`2`=顺序拼接 |
+| `material.transition` | `{name, value: number}[]` | 转场模式；`1`=无转场、`2`=随机转场、`3`=渐入、`4`=渐出、`5`=淡入淡出、`6`=滑动入、`7`=滑动出 |
+| `material.ratio` | `{name, value: number}[]` | 视频比例；`1`=9:16（竖屏）、`2`=16:9（横屏） |
 
 **数据库表（`vpt_tasks`）：**
 
@@ -354,15 +358,15 @@ placeholder.*  — 占位页文本
 
 | 字段 | 选项 |
 |---|---|
-| 视频源 | 动态来自 `GET /tasks/config` 的 `data.material[]`；始终含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 出现；选 `local` 时显示上传区域 `el-upload`（drag，accept="video/*"，multiple，`:show-file-list="false"`，自定义文件列表）；每次选文件后立即调用 `POST /tasks/upload_material`（multipart/form-data，field="files"，支持多文件），返回 `data[].saved_as` 累积存入 `materialUploadedPaths`；成功弹 `ElMessage.success`，失败从显示列表移除该文件并弹错误；自定义文件行显示文件名 + ✕ 移除按钮（复用 `.bgm-file-item` 样式），移除时同步清除 `materialUploadedPaths` 对应项；提交时以 `video_local_files: materialUploadedPaths` 传入 payload |
-| 拼接模式 | 顺序拼接 / 随机拼接（推荐） |
-| 转场模式 | 无转场 / 随机转场 / 渐入 / 渐出 / 淡入淡出 / 滑动入 / 滑动出 |
+| 视频源 | 动态来自 `GET /tasks/config` 的 `data.material.source[]`；始终含 `local`（本地文件），Pexels / Pixabay 按已配置 API Key 出现；选 `local` 时显示上传区域 `el-upload`（drag，accept="video/*"，multiple，`:show-file-list="false"`，自定义文件列表）；每次选文件后立即调用 `POST /tasks/upload_material`（multipart/form-data，field="files"，支持多文件），返回 `data[].saved_as` 累积存入 `materialUploadedPaths`；成功弹 `ElMessage.success`，失败从显示列表移除该文件并弹错误；自定义文件行显示文件名 + ✕ 移除按钮（复用 `.bgm-file-item` 样式），移除时同步清除 `materialUploadedPaths` 对应项；提交时以 `video_local_files: materialUploadedPaths` 传入 payload |
+| 拼接模式 | 动态来自 `data.material.splicing[]`；value 为整数（`1`=随机拼接推荐、`2`=顺序拼接） |
+| 转场模式 | 动态来自 `data.material.transition[]`；value 为整数 `1–7` |
 
 **第二行（3 列）：**
 
 | 字段 | 类型 | 选项 |
 |---|---|---|
-| 视频比例 | `el-select` | 9:16 (竖屏) / 16:9 (横屏) |
+| 视频比例 | `el-select` | 动态来自 `data.material.ratio[]`；value 为整数（`1`=9:16竖屏、`2`=16:9横屏） |
 | 视频片段最大时长(秒) | `el-input type="number"` | 默认 10 |
 | 同时生成视频数量 | `el-input type="number"` | 默认 1，最大 5 |
 
@@ -646,10 +650,17 @@ uploadMaterial(files)         // POST /tasks/upload_material（multipart/form-da
 // ProxyConfigData: { proxy_type: number, proxy_url: string, proxy_username: string, proxy_password: string }
 // 常量: PROXY_TYPE_HTTPS=1, PROXY_TYPE_SOCKS5=2；proxy_type=0 表示未配置，回退到 HTTPS
 
-// TaskConfigData: { asr: TaskConfigAsrItem[], tts: TaskConfigTtsItem[], subtitle: TaskConfigOptionItem[], bgm: TaskConfigOptionItem[], material: TaskConfigOptionItem[] }
+// TaskConfigData: { asr: TaskConfigAsrItem[], tts: TaskConfigTtsItem[], subtitle: TaskConfigOptionItem[], bgm: TaskConfigOptionItem[], material: TaskConfigMaterialData }
 // TaskConfigAsrItem: { name: string, value: number }
 // TaskConfigTtsItem: { name: string, value: string, voices: TtsVoiceItem[] }
 // TaskConfigOptionItem: { name: string, value: string }
+// TaskConfigMaterialData: {
+//   source: TaskConfigOptionItem[],          // 视频源，value 为字符串 "local"/"pexels"/"pixabay"
+//   splicing: { name: string, value: number }[],   // 拼接模式，value 为整数 1=随机 2=顺序
+//   transition: { name: string, value: number }[], // 转场模式，value 为整数 1–7
+//   ratio: { name: string, value: number }[]       // 视频比例，value 为整数 1=9:16 2=16:9
+// }
+// AddTaskParams 中 video_concat_mode / video_transition / video_aspect 均为 number（整数）
 // TTS_ENGINE_MAP（前端常量）: 将 tts.value 字符串映射到数字 engine id，供 getTtsVoicePreview 使用
 //   TTS_LIST_AZURE_TTS_V1→1, TTS_LIST_AZURE_TTS_V2→2, TTS_LIST_SILICON_FLOW_TTS→3, TTS_LIST_GOOGLE_GEMINI_TTS→4, TTS_LIST_XIAOMI_MIMO_TTS→5
 ```
