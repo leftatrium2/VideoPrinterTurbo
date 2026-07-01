@@ -17,6 +17,7 @@ export default {
   breadcrumb: {
     addTask: 'Add Task',
     addTaskNew: 'Add New Task',
+    editTask: 'Edit Task',
     appName: 'VideoPrinterTurbo',
     taskList: 'Task List',
     settings: 'Settings',
@@ -108,6 +109,7 @@ export default {
     taskCreated: 'Task created',
     createFailed: 'Creation failed, please try again',
     loadConfigFailed: 'Failed to load task config, please refresh and try again',
+    loadTaskFailed: 'Failed to load task, please try again',
     testVoiceFailed: 'Voice preview failed, please try again',
 
     helpDownload: 'Enter the video page URL, then click "Check Link". If successful, continue to the next steps. If download fails, please submit an issue on GitHub.',
