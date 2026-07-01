@@ -234,7 +234,7 @@ async function handleRetry(task: Task) {
 }
 
 function handleEdit(task: Task) {
-  router.push(`/add_task?video_url=${encodeURIComponent(task.task_url)}`)
+  router.push(`/get_task?task_id=${encodeURIComponent(task.task_id)}`)
 }
 </script>
 
