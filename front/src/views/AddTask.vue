@@ -317,7 +317,7 @@
 
 <script setup lang="ts">
 import { defineComponent, reactive, ref, h, onMounted, watch, computed, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElPopover } from 'element-plus'
 import type { UploadFile } from 'element-plus'
@@ -325,10 +325,11 @@ import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
-import { addTask, checkTaskUrl, getTaskConfig, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial } from '@/services/api'
-import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult } from '@/services/api'
+import { addTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial } from '@/services/api'
+import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
 
 const router = useRouter()
+const route = useRoute()
 const { t } = useI18n()
 
 /* -------- inline helper component for help popovers -------- */
@@ -433,6 +434,17 @@ onMounted(async () => {
     if (config.material.ratio.length > 0) form.video_aspect = config.material.ratio[0].value
   } catch {
     ElMessage.error(t('addTask.loadConfigFailed'))
+  }
+
+  const taskId = route.query.task_id
+  if (typeof taskId === 'string' && taskId) {
+    try {
+      const detail = await getTaskDetail(taskId)
+      applyTaskDetail(detail)
+    } catch {
+      ElMessage.error(t('addTask.loadTaskFailed'))
+      router.push('/tasks')
+    }
   }
 })
 
@@ -571,6 +583,65 @@ function handleVideoFileRemove(index: number) {
 
 function hexToInt(hex: string): number {
   return parseInt(hex.replace('#', ''), 16)
+}
+
+function intToHex(n: number): string {
+  return '#' + n.toString(16).padStart(6, '0')
+}
+
+const SUBTITLE_POSITION_OPTIONS = ['bottom-center', 'top-center', 'center', 'custom']
+
+function applyTaskDetail(detail: TaskDetail) {
+  form.task_url = detail.task_url
+
+  enabled.transcription = !!detail.is_from_asr_or_subtitle
+  form.transcription_mode = detail.audio_rewrite_type
+
+  enabled.llm = !!detail.is_llm
+  form.llm_prompt = detail.llm_prompt
+
+  enabled.voice_output = !!detail.is_rewrite_to_tts
+  form.tts_service = detail.tts_server
+  form.tts_voice = detail.tts_voice
+  form.tts_volume = detail.tts_volume
+  form.tts_speed = detail.tts_speed
+
+  enabled.subtitle_output = !!detail.is_rewrite_to_subtitle
+  form.subtitle_font = detail.subtitle_font
+  if (SUBTITLE_POSITION_OPTIONS.includes(detail.subtitle_position)) {
+    form.subtitle_position = detail.subtitle_position
+  } else if (detail.subtitle_position) {
+    form.subtitle_position = 'custom'
+    form.subtitle_position_custom = detail.subtitle_position
+  }
+  form.subtitle_color = intToHex(detail.subtitle_font_color)
+  form.subtitle_stroke_color = intToHex(detail.subtitle_border_color)
+  form.subtitle_size = detail.subtitle_size
+
+  enabled.bgm = !!detail.is_bgm
+  form.bgm_volume = detail.bgm_volume
+  const bgmData = JSON.parse(detail.uploaded_bgm || '{}') as Partial<BgmUploadResult>
+  if (bgmData.saved_as) {
+    form.bgm_library = 'custom'
+    bgmUploadedData.value = bgmData as BgmUploadResult
+    bgmFileList.value = [{ name: bgmData.filename ?? bgmData.saved_as, uid: 0 } as UploadFile]
+  }
+
+  enabled.video_overlay = !!detail.is_video_material
+  form.video_source = detail.video_material_type
+  const materialPaths = JSON.parse(detail.uploaded_video_material || '[]') as string[]
+  if (materialPaths.length > 0) {
+    materialUploadedPaths.value = materialPaths
+    videoFileList.value = materialPaths.map((p, index) => ({
+      name: p.split('/').pop() ?? p,
+      uid: index,
+    } as UploadFile))
+  }
+  form.video_concat_mode = detail.video_material_splicing_mode
+  form.video_transition = detail.video_material_transition_mode
+  form.video_aspect = detail.video_material_Video_ratio
+  form.video_fragment_duration = detail.video_material_max_duration
+  form.video_count = detail.video_material_generate_count
 }
 
 async function handleSubmit() {
