@@ -440,7 +440,7 @@ onMounted(async () => {
   if (typeof taskId === 'string' && taskId) {
     try {
       const detail = await getTaskDetail(taskId)
-      applyTaskDetail(detail)
+      await applyTaskDetail(detail)
     } catch {
       ElMessage.error(t('addTask.loadTaskFailed'))
       router.push('/tasks')
@@ -591,7 +591,7 @@ function intToHex(n: number): string {
 
 const SUBTITLE_POSITION_OPTIONS = ['bottom-center', 'top-center', 'center', 'custom']
 
-function applyTaskDetail(detail: TaskDetail) {
+async function applyTaskDetail(detail: TaskDetail) {
   form.task_url = detail.task_url
 
   enabled.transcription = !!detail.is_from_asr_or_subtitle
@@ -602,6 +602,7 @@ function applyTaskDetail(detail: TaskDetail) {
 
   enabled.voice_output = !!detail.is_rewrite_to_tts
   form.tts_service = detail.tts_server
+  await nextTick()
   form.tts_voice = detail.tts_voice
   form.tts_volume = detail.tts_volume
   form.tts_speed = detail.tts_speed
