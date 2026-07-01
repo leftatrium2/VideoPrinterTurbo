@@ -145,6 +145,7 @@ front/
 |---|---|---|
 | `/` | → redirect | → `/add_task` |
 | `/add_task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.addTaskNew']` |
+| `/get_task` | `AddTask.vue` | `['breadcrumb.addTask', 'breadcrumb.editTask']` |
 | `/tasks` | `TaskList.vue` | `['breadcrumb.appName', 'breadcrumb.taskList']` |
 | `/settings/asr` | `AsrConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr']` |
 | `/settings/llm` | `LlmConfig.vue` | `['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.llm']` |
@@ -386,6 +387,10 @@ placeholder.*  — 占位页文本
 
 ---
 
+### 编辑模式
+
+`AddTask.vue` 同时挂载在 `/add_task` 和 `/get_task` 两个路由。当 URL 带 `task_id` 查询参数时（编辑模式），`onMounted` 会在加载完 `/tasks/` 配置后，额外调用 `GET /tasks/get?task_id=` 并用返回数据回填所有表单字段（含各区块开关、TTS/字幕/BGM/素材设置、已上传文件展示行）。加载失败时提示错误并跳转回 `/tasks`。提交逻辑不受影响，仍然调用 `POST /tasks/add`（会创建一条新任务，而非更新原任务）。
+
 ### 提交逻辑
 
 点击"开始任务"：
@@ -434,7 +439,7 @@ placeholder.*  — 占位页文本
 - **播放**：弹出 `el-dialog`（800px），内含 `<video controls autoplay>` 指向 `/api/stream/{local_path}`
 - **查看日志**：弹出 `el-dialog`（600px），显示 `task.error_desc`（`<pre>` 等宽字体）
 - **重试**：重新调用 `POST /api/tasks/add`（携带原 `task_url`），刷新列表
-- **编辑**：跳转 `/add_task?video_url=<encoded_url>`
+- **编辑**：跳转 `/get_task?task_id=<encoded_task_id>`
 - **新建任务 / FAB**：跳转 `/add_task`
 - **轮询**：每 5 秒自动刷新，仅当列表中有 `status === 1`（进行中）的任务时触发
 
@@ -629,6 +634,7 @@ getTasks(page, pageSize)      // GET /api/tasks/list（待实现）-> TaskListRe
 addTask(params)               // POST /api/tasks/add -> {code, msg, data}
 checkTaskUrl(url)             // GET /api/tasks/check?url=<url> -> {code, msg, data}
 getTaskConfig()               // GET /api/tasks/ -> TaskConfigData（asr/tts/subtitle/bgm/material 五个字段）
+getTaskDetail(taskId)         // GET /api/tasks/get?task_id=<id> -> TaskDetail（VptTask 全部业务字段，布尔字段为 0/1，uploaded_bgm/uploaded_video_material 为 JSON 字符串）
 streamUrl(path)               // returns /api/stream/{path}
 getLlmConfig()                // GET /api/llm_config/ -> LlmConfigData（5 个字段）
 updateLlmConfig(params)       // POST /api/llm_config/update，body: LlmConfigData（5 个字段全量提交）
