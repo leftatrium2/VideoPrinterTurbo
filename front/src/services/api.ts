@@ -14,34 +14,51 @@ export interface Task {
 
 export interface TaskListResult {
   tasks: Task[]
-  total?: number
+  total: number
+}
+
+interface TaskListApiData {
+  data: Task[]
+  total: number
+  page: number
+  page_size: number
 }
 
 export interface AddTaskParams {
   task_url: string
-  transcription_mode?: number
-  llm_enabled?: boolean
-  llm_prompt?: string
-  output_mode?: string
-  tts_service?: string
-  tts_voice?: string
-  tts_volume?: number
-  tts_speed?: number
-  subtitle_font?: string
-  subtitle_position?: string
-  subtitle_position_custom?: string
-  subtitle_color?: string
-  subtitle_stroke_color?: string
-  subtitle_stroke_width?: number
-  subtitle_size?: number
-  bgm_type?: string
-  bgm_volume?: number
-  video_source?: string
-  video_concat_mode?: string
-  video_transition?: string
-  video_aspect?: string
-  video_fragment_duration?: number
-  video_count?: number
+  // 音频转文字
+  is_from_asr_or_subtitle: boolean
+  audio_rewrite_type: number
+  // LLM 改写
+  is_llm: boolean
+  llm_prompt: string
+  // 输出到语音
+  is_rewrite_to_tts: boolean
+  tts_server: string
+  tts_voice: string
+  tts_volume: number
+  tts_speed: number
+  // 输出到字幕
+  is_rewrite_to_subtitle: boolean
+  subtitle_font: string
+  subtitle_font_color: number
+  subtitle_border_color: number
+  subtitle_size: number
+  // 背景音乐
+  is_bgm: boolean
+  uploaded_bgm: Record<string, unknown>
+  bgm_volume: number
+  // 视频覆盖
+  is_video_material: boolean
+  video_material_type: string
+  uploaded_video_material: string[]
+  video_material_splicing_mode: number
+  video_material_transition_mode: number
+  video_material_Video_ratio: number
+  video_material_max_duration: number
+  video_material_generate_count: number
+  // 发布
+  is_publish: boolean
 }
 
 export interface CheckUrlResult {
@@ -66,12 +83,19 @@ export interface TaskConfigOptionItem {
   value: string
 }
 
+export interface TaskConfigMaterialData {
+  source: TaskConfigOptionItem[]
+  splicing: { name: string; value: number }[]
+  transition: { name: string; value: number }[]
+  ratio: { name: string; value: number }[]
+}
+
 export interface TaskConfigData {
   asr: TaskConfigAsrItem[]
   tts: TaskConfigTtsItem[]
   subtitle: TaskConfigOptionItem[]
   bgm: TaskConfigOptionItem[]
-  material: TaskConfigOptionItem[]
+  material: TaskConfigMaterialData
 }
 
 export interface TtsListItem {
@@ -106,8 +130,14 @@ async function request<T>(promise: Promise<{ data: T }>): Promise<T> {
   return res.data
 }
 
-export function getTasks(page: number, pageSize: number): Promise<TaskListResult> {
-  return request(http.get('/tasks/list', { params: { page, page_size: pageSize } }))
+export async function getTasks(page: number, pageSize: number): Promise<TaskListResult> {
+  const res = await request<ApiResult<TaskListApiData>>(
+    http.get('/tasks/list', { params: { page, page_size: pageSize } })
+  )
+  if (res.code !== 0) {
+    throw new Error(res.msg)
+  }
+  return { tasks: res.data.data, total: res.data.total }
 }
 
 export function addTask(params: AddTaskParams): Promise<ApiResult<Record<string, unknown>>> {
@@ -335,14 +365,21 @@ export async function delPixabayConfig(id: number): Promise<void> {
   if (res.code !== 0) throw new Error(res.msg)
 }
 
-export async function uploadBgm(file: File): Promise<string> {
+export interface BgmUploadResult {
+  filename: string
+  saved_as: string
+  size: number
+  content_type: string
+}
+
+export async function uploadBgm(file: File): Promise<BgmUploadResult> {
   const form = new FormData()
   form.append('file', file)
-  const res = await request<ApiResult<{ saved_as: string }>>(
+  const res = await request<ApiResult<BgmUploadResult>>(
     http.post('/tasks/upload_bgm', form, { headers: { 'Content-Type': 'multipart/form-data' } })
   )
   if (res.code !== 0) throw new Error(res.msg)
-  return res.data.saved_as
+  return res.data
 }
 
 export interface MaterialUploadItem {

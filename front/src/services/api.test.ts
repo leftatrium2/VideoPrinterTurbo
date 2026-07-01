@@ -22,9 +22,9 @@ describe('api service', () => {
   })
 
   it('getTasks 调用正确端点', async () => {
-    mockHttp.get.mockResolvedValue({ data: { tasks: [], total: 0 } })
+    mockHttp.get.mockResolvedValue({ data: { code: 0, msg: 'success', data: { data: [], total: 0, page: 1, page_size: 10 } } })
     const result = await api.getTasks(1, 10)
-    expect(mockHttp.get).toHaveBeenCalledWith('/tasks/', { params: { page: 1, page_size: 10 } })
+    expect(mockHttp.get).toHaveBeenCalledWith('/tasks/list', { params: { page: 1, page_size: 10 } })
     expect(result).toEqual({ tasks: [], total: 0 })
   })
 
