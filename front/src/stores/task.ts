@@ -15,7 +15,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       const result = await getTasks(page.value, pageSize.value)
       tasks.value = result.tasks
-      total.value = result.total ?? result.tasks.length
+      total.value = result.total
     } finally {
       loading.value = false
     }
