@@ -26,18 +26,20 @@ from sqlalchemy.orm import sessionmaker
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ========== 应用启动时执行（只运行一次） ==========
-    task_manager.start()
     database.start()
     # 建库部分
     async with database.get_engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # 同步config
+    # 启动 task manager
     async_session_factory = sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)
     async with async_session_factory() as session:
         await gen_config(db=session)
+        await task_manager.start()
     yield  # 服务正式开始运行，接收请求
     # ========== 应用关闭时执行（服务停止前） ==========
-    task_manager.stop()
     database.stop()
+    await task_manager.stop()
 
 
 init_config()

@@ -30,7 +30,6 @@ dependencies = [
     "pydantic-settings>=2.14.1",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
-    "apscheduler>=3.11.2",
     "aiosqlite>=0.22.1",
     "greenlet>=3.5.1",
     "aiofiles>=25.1.0",
@@ -38,6 +37,7 @@ dependencies = [
     "google-genai>=2.10.0",
     "mlx-whisper>=0.4.3",
     "openai-whisper>=20250625",
+    "apscheduler>=3.11.2",
 ]
 
 [project.optional-dependencies]
