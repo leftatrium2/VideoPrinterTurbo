@@ -195,6 +195,10 @@ export function checkTaskUrl(url: string): Promise<CheckUrlResult> {
   return request(http.get('/tasks/check', { params: { url } }))
 }
 
+export function deleteTask(taskId: string): Promise<ApiResult<Record<string, unknown>>> {
+  return request(http.get('/tasks/del', { params: { task_id: taskId } }))
+}
+
 export async function getTaskConfig(): Promise<TaskConfigData> {
   const res = await request<ApiResult<TaskConfigData>>(
     http.get('/tasks/')

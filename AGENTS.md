@@ -58,6 +58,7 @@ cd front && npm run build
 | `GET` | `/tasks/list` | 查询任务列表，`page`（默认 1）/ `page_size`（默认 10，范围 10–50）；仅统计/查询 `is_deleted=0`；返回 `data: {total, data: VptTask[], page, page_size}`（每项已剔除 `id` 字段） |
 | `GET` | `/tasks/get?task_id=<id>` | 查询单个任务详情（用于编辑模式回填）；`task_id` 为空返回 `TASK_ERR_TASK_ID_EMPTY`(1102)，未找到返回 `TASK_ERR_TASK_NOT_FOUND`(1103）；成功时返回 `VptTask` 记录（已剔除 `id`） |
 | `GET` | `/tasks/check?url=<url>` | 检查视频链接是否可下载（`{code,msg,data}`；`code=0` 表示可用） |
+| `GET` | `/tasks/del?task_id=<id>` | 删除任务（软删除，设置 `is_deleted=1`）；返回 `{code,msg,data}` 标准格式 |
 | `GET` | `/llm_config/` | LLM 已保存配置（`{code,msg,data}`；data 含 5 个字段：`base_url`、`api_key`、`provider_name`、`llm_model_name`、`memo`，未配置时为空串） |
 | `POST` | `/llm_config/update` | 保存 LLM 配置，body: `{base_url, api_key, provider_name, llm_model_name, memo}` |
 | `GET` | `/tts_config/` | TTS 配置（stub，返回 `{"abc": "bcd"}`） |
@@ -474,7 +475,7 @@ placeholder.*  — 占位页文本
 | 地址 (Address) | URL 超链接 + 状态图标；下方显示 "Added: YYYY-MM-DD HH:mm" |
 | 本地路径 (Local Path) | 文件路径，无路径显示 "— No path assigned —"（斜体灰色） |
 | 状态 (Status) | `el-tag`：完成(success绿) / 失败(danger红) / 进行中(warning橙) / 待处理(info灰)；失败时额外显示"查看日志"链接 |
-| 操作 (Operations) | 完成 → [播放] [编辑]；失败 → [重试] [编辑]；其他 → [编辑] |
+| 操作 (Operations) | 完成 → [播放] [编辑] [删除]；失败 → [重试] [编辑] [删除]；其他 → [编辑] [删除] |
 
 ### 状态码映射
 
@@ -491,6 +492,7 @@ placeholder.*  — 占位页文本
 - **查看日志**：弹出 `el-dialog`（600px），显示 `task.error_desc`（`<pre>` 等宽字体）
 - **重试**：重新调用 `POST /api/tasks/add`（携带原 `task_url`），刷新列表
 - **编辑**：跳转 `/get_task?task_id=<encoded_task_id>`
+- **删除**：弹出确认对话框，确认后调用 `GET /api/tasks/del?task_id=<id>`，成功后刷新列表
 - **新建任务 / FAB**：跳转 `/add_task`
 - **轮询**：每 5 秒自动刷新，仅当列表中有 `status === 1`（进行中）的任务时触发
 
@@ -684,6 +686,7 @@ interface Task {
 getTasks(page, pageSize)      // GET /api/tasks/list -> TaskListResult（{total, data, page, page_size}，仅返回 is_deleted=0 的任务）
 addTask(params)               // POST /api/tasks/add -> {code, msg, data}
 checkTaskUrl(url)             // GET /api/tasks/check?url=<url> -> {code, msg, data}
+deleteTask(taskId)            // GET /api/tasks/del?task_id=<id> -> {code, msg, data}
 getTaskConfig()               // GET /api/tasks/ -> TaskConfigData（asr/tts/subtitle/bgm/material 五个字段）
 getTaskDetail(taskId)         // GET /api/tasks/get?task_id=<id> -> TaskDetail（VptTask 全部业务字段，布尔字段为 0/1，uploaded_bgm/uploaded_video_material 为 JSON 字符串）
 streamUrl(path)               // returns /api/stream/{path}

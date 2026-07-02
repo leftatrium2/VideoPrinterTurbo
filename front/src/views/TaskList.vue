@@ -87,6 +87,13 @@
                 :icon="Edit"
                 @click="handleEdit(row)"
               >{{ t('taskList.edit') }}</el-button>
+              <el-button
+                size="small"
+                type="danger"
+                plain
+                :icon="Delete"
+                @click="handleDelete(row)"
+              >{{ t('taskList.delete') }}</el-button>
             </div>
           </template>
         </el-table-column>
@@ -138,10 +145,10 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Plus, VideoPlay, Refresh, Edit, CircleCheckFilled, CircleCloseFilled, Loading, Clock } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Plus, VideoPlay, Refresh, Edit, Delete, CircleCheckFilled, CircleCloseFilled, Loading, Clock } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTaskStore } from '@/stores/task'
-import { addTask, streamUrl, type Task } from '@/services/api'
+import { addTask, deleteTask, streamUrl, type Task } from '@/services/api'
 
 const router = useRouter()
 const store = useTaskStore()
@@ -235,6 +242,28 @@ async function handleRetry(task: Task) {
 
 function handleEdit(task: Task) {
   router.push(`/get_task?task_id=${encodeURIComponent(task.task_id)}`)
+}
+
+async function handleDelete(task: Task) {
+  try {
+    await ElMessageBox.confirm(
+      t('taskList.deleteConfirm'),
+      t('taskList.deleteTitle'),
+      {
+        confirmButtonText: t('taskList.confirm'),
+        cancelButtonText: t('taskList.cancel'),
+        type: 'warning',
+      }
+    )
+    await deleteTask(task.task_id)
+    ElMessage.success(t('taskList.deleteSuccess'))
+    store.fetchTasks()
+  } catch (action: unknown) {
+    // action === 'cancel' 表示用户取消，不显示错误
+    if (action !== 'cancel') {
+      ElMessage.error(t('taskList.deleteFailed'))
+    }
+  }
 }
 </script>
 

@@ -146,6 +146,13 @@ export default {
     noError: 'No error info',
     retrySuccess: 'Task resubmitted',
     retryFailed: 'Retry failed',
+    delete: 'Delete',
+    deleteTitle: 'Confirm Delete',
+    deleteConfirm: 'Are you sure you want to delete this task?',
+    deleteSuccess: 'Deleted successfully',
+    deleteFailed: 'Delete failed',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
   },
 
   placeholder: {

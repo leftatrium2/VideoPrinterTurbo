@@ -37,7 +37,7 @@ async def get_tasks(page: int = Query(default=1, min=1), page_size: int = Query(
     result = await db.execute(select(func.count()).select_from(VptTask).where(VptTask.is_deleted == 0))
     total = result.scalar_one()
     offset = (page - 1) * page_size
-    result = await db.execute(select(VptTask).offset(offset).limit(page_size))
+    result = await db.execute(select(VptTask).where(VptTask.is_deleted == 0).offset(offset).limit(page_size))
     data = result.scalars().all()
     for item in data:
         del item.id
@@ -62,6 +62,23 @@ async def get_tasks(task_id: str = Query(default=None), db: AsyncSession = Depen
         return result_failure(const.TASK_ERR_TASK_NOT_FOUND, "任务不存在")
     del item.id
     return result_succ(item)
+
+
+@router.get("/del")
+async def del_tasks(task_id: str = Query(default=None), db: AsyncSession = Depends(database.get_db)):
+    if not task_id:
+        return result_failure(const.TASK_ERR_TASK_ID_EMPTY, "任务ID不能为空")
+    result = await db.execute(select(VptTask).where(and_(
+        VptTask.is_deleted == 0,
+        VptTask.task_id == task_id
+    )))
+    item = result.scalar_one_or_none()
+    if not item:
+        return result_failure(const.TASK_ERR_TASK_NOT_FOUND, "任务不存在")
+    item.is_deleted = 1
+    await db.commit()
+    await db.refresh(item)
+    return result_succ()
 
 
 @router.post("/add")

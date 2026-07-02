@@ -146,6 +146,13 @@ export default {
     noError: '无错误信息',
     retrySuccess: '已重新提交任务',
     retryFailed: '重试失败',
+    delete: '删除',
+    deleteTitle: '确认删除',
+    deleteConfirm: '确定要删除这个任务吗？',
+    deleteSuccess: '删除成功',
+    deleteFailed: '删除失败',
+    confirm: '确定',
+    cancel: '取消',
   },
 
   placeholder: {
