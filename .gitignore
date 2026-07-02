@@ -45,6 +45,7 @@ docs/
 
 .playwright-mcp/
 .claude/
+.qoder/
 .pytest_cache/
 
 app/.env
