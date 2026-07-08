@@ -2,10 +2,13 @@ import asyncio
 import importlib
 import logging
 
+from sqlalchemy import select
+
 import config.config as _config
+from models.model import VptTask
 from pipeline.downloader.base import DownloaderContext, BaseDownloader
-from pipeline.downloader.bilibili.bilibili_downloader import BilibiliDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
+from utils.database import database
 
 downloaders = {}
 
@@ -39,16 +42,7 @@ class Pipeline:
     def __init__(self):
         pass
 
-    async def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
-        if not url.strip():
-            logging.error("Url is empty")
-            return None
-        downloader = await get_downloader(url)
-        if not downloader:
-            logging.error("Downloader is None")
-            return None
-        return await downloader.download(url, output_dir, ctx)
-
+    # 检查 视频url 是否可下载
     async def check(self, url: str) -> bool:
         if not url.strip():
             logging.error("Url is empty")
@@ -59,17 +53,31 @@ class Pipeline:
             return False
         return await downloader.check(url)
 
+    # 下载视频
+    async def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
+        if not url.strip():
+            logging.error("Url is empty")
+            return None
+        downloader = await get_downloader(url)
+        if not downloader:
+            logging.error("Downloader is None")
+            return None
+        return await downloader.download(url, output_dir, ctx)
+
 
 pipeline = Pipeline()
 
 
 async def main():
-    url = "https://www.youtube.com/shorts/hjhkjhk"
-    downloader = await get_downloader(url)
-    if isinstance(downloader, YtDlpDownloader):
-        print("YtDlpDownloader")
-    if isinstance(downloader, BilibiliDownloader):
-        print("BilibiliDownloader")
+    task_id = "20260701212108501553"
+    database.start()
+    db = database.get_db()
+    result = await db.execute(select(VptTask).where(
+        VptTask.task_id == task_id,
+        VptTask.is_deleted == 0
+    ).order_by(VptTask.create_time.asc()).limit(1))
+    item = result.scalar_one_or_none()
+    print(item)
 
 
 if __name__ == "__main__":
