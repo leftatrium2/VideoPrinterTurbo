@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 router = APIRouter(
     prefix="/publish_config",
-    tags=["publish配置模块"]
+    tags=["Publish Config Module"]
 )
 
 

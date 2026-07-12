@@ -2,20 +2,20 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 
-# 跨域
+# CORS
 def register_cors_middleware(app: FastAPI):
     app.add_middleware(
         CORSMiddleware,
-        # 允许跨域的源地址
+        # Allowed origin addresses for cross-origin requests
         allow_origins=[
             # "http://localhost:8080",
             # "http://localhost:5173",
             # "http://127.0.0.1:8080",
             # "http://127.0.0.1:5173",
-            # "*" 表示允许所有域名(开发临时用，生产不推荐)
+            # "*" means allow all domains (for dev only, not recommended for production)
             "*"
         ],
-        allow_credentials=True,  # 允许携带 Cookie
-        allow_methods=["*"],  # 允许所有请求方法: GET/POST/PUT/DELETE...
-        allow_headers=["*"],  # 允许所有请求头
+        allow_credentials=True,  # Allow cookies
+        allow_methods=["*"],  # Allow all HTTP methods: GET/POST/PUT/DELETE...
+        allow_headers=["*"],  # Allow all request headers
     )

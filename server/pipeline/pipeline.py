@@ -42,7 +42,7 @@ class Pipeline:
     def __init__(self):
         pass
 
-    # 检查 视频url 是否可下载
+    # Check if the video URL is downloadable
     async def check(self, url: str) -> bool:
         if not url.strip():
             logging.error("Url is empty")
@@ -53,7 +53,7 @@ class Pipeline:
             return False
         return await downloader.check(url)
 
-    # 下载视频
+    # 1. Download video
     async def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
         if not url.strip():
             logging.error("Url is empty")
@@ -63,6 +63,36 @@ class Pipeline:
             logging.error("Downloader is None")
             return None
         return await downloader.download(url, output_dir, ctx)
+
+    # 2. Audio to text (ASR or subtitle)
+    async def transcribe(self, download_path: str) -> str or None:
+        return None
+
+    # 3. LLM rewrite
+    async def rewrite(self, text: str) -> str or None:
+        return None
+
+    # 4. Output to speech
+    # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
+    async def text_to_speech(self, text: str) -> str or None:
+        return None
+
+    # 5. Output to subtitle
+    async def text_to_subtitle(self, text: str) -> str or None:
+        return None
+
+    # 6. BGM
+    # The BGM part will be merged with the original audio track
+    async def bgm(self) -> str or None:
+        return None
+
+    # 7. Video overlay
+    async def video_overlay(self) -> str or None:
+        return None
+
+    # 8. Publish (not yet implemented)
+    async def publish(self) -> bool:
+        return True
 
 
 pipeline = Pipeline()

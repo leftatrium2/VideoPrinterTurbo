@@ -1,22 +1,22 @@
 # crawler request timeout (s)
-REQUEST_TIME_OUT = 10  # 访问超时时间设置10s
+REQUEST_TIME_OUT = 10  # Request timeout set to 10s
 # downloader codec type
 DOWNLOADER_CODEC_VIDEO_TYPE = 1
 DOWNLOADER_CODEC_AUDIO_TYPE = 2
 DOWNLOADER_CODEC_MUXER_TYPE = 3
-# 配置部分
-# 音频转文字
-# 不提取
+# Configuration section
+# Audio to Text
+# Do not extract
 TASK_CONFIG_ASR_FROM_NONE = 0
-# 从字幕提取
+# Extract from subtitles
 TASK_CONFIG_ASR_FROM_SUBTITLE = 1
-# 本地 whisper
+# Local whisper
 TASK_CONFIG_ASR_FROM_FASTER_WHISPER = 2
-# 腾讯云ASR
+# Tencent Cloud ASR
 TASK_CONFIG_ASR_FROM_TENCENT_CLOUD = 3
-# 讯飞云ASR
+# XFYun ASR
 TASK_CONFIG_ASR_FROM_XF_YUN = 4
-# 本地 whisper 配置
+# Local whisper config
 TASK_CONFIG_ASR_MLX_WHISPER = 1
 TASK_CONFIG_ASR_FASTER_WHISPER = 2
 TASK_CONFIG_ASR_OPENAI_WHISPER = 3
@@ -35,14 +35,14 @@ TTS_CONFIG_PREVIEW = {
 PROXY_CONFIG_TYPE_UNKNOWN = 0
 PROXY_CONFIG_TYPE_HTTPS = 1
 PROXY_CONFIG_TYPE_SOCKS5 = 2
-# 视频覆盖-视频源
+# Video overlay - Video source
 VIDEO_MATERIAL_FROM_LOCAL = "local"
 VIDEO_MATERIAL_FROM_PEXELS = "pexels"
 VIDEO_MATERIAL_FROM_PIXABAY = "pixabay"
-# 视频覆盖-拼接模式
+# Video overlay - Splicing mode
 VIDEO_MATERIAL_RANDOM_SPLICING = 1
 VIDEO_MATERIAL_SEQUENTIAL_SPLICING = 2
-# 视频覆盖-转场模式
+# Video overlay - Transition mode
 VIDEO_MATERIAL_TRANSITION_NO = 1
 VIDEO_MATERIAL_TRANSITION_RANDOM = 2
 VIDEO_MATERIAL_TRANSITION_GRADUAL_ENTRY = 3
@@ -50,11 +50,11 @@ VIDEO_MATERIAL_TRANSITION_GRADUAL_EXIT = 4
 VIDEO_MATERIAL_TRANSITION_FADE_IN_OR_FADE_OUT = 5
 VIDEO_MATERIAL_TRANSITION_SLIDE_IN = 6
 VIDEO_MATERIAL_TRANSITION_SLIDE_OUT = 7
-# 视频覆盖-视频比例
+# Video overlay - Video aspect ratio
 VIDEO_MATERIAL_SCREEN_RATIO_9_16 = 1
 VIDEO_MATERIAL_SCREEN_RATIO_16_9 = 2
-# 视频覆盖-视频片段最大时长(秒)
-# 视频覆盖-同时生成视频数量
+# Video overlay - Max clip duration (seconds)
+# Video overlay - Number of videos to generate
 # error code for successful
 GLOBAL_SUCC = 0
 # global error code 1000-1099

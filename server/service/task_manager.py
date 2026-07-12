@@ -1,6 +1,3 @@
-import queue
-import threading
-
 from sqlalchemy import select, and_
 from tenacity import sleep
 
@@ -11,13 +8,14 @@ from service import task_const
 from utils.database import database
 
 
-# 任务管理器
-# 第一期，先按照串行处理方式进行，一次只进行一个任务
-# 后面需要优化的点：
-# 1. 下载实际上是可以并行的
-# 2. Fast Whisper 在本机运行的时候，是串行的。但其他的ASR线上服务是可以并行的
-# 3. 很多本地运行的大模型，都只能串行，但线上的服务，大部分都可以并行
-# 所以，需要有一个专门的设置页面，来设置并行的数量，并在任务并行拥堵的时候，给出拥堵的提示
+# Task Manager
+# Phase 1: Process tasks sequentially, one task at a time
+# Points for future optimization:
+# 1. Downloads can actually be parallelized
+# 2. When running Fast Whisper locally, it is serial. But other online ASR services can be parallelized
+# 3. Many locally-run large models can only run serially, but most online services can be parallelized
+# Therefore, a dedicated settings page is needed to configure the level of parallelism,
+# and provide congestion alerts when task processing is overloaded
 class TaskManager(object):
     processes_threading = None
 

@@ -39,6 +39,8 @@ const currentLocale = ref(locale.value as 'zh' | 'en')
 
 function onLocaleChange(val: 'zh' | 'en') {
   setLocale(val)
+  // 刷新页面以重新拉取接口数据，适配新语言
+  window.location.reload()
 }
 </script>
 

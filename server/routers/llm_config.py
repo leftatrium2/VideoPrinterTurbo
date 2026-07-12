@@ -10,7 +10,7 @@ from utils.result import result_succ
 
 router = APIRouter(
     prefix="/llm_config",
-    tags=["llm配置模块"]
+    tags=["LLM Config Module"]
 )
 
 

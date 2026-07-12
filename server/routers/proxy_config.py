@@ -11,7 +11,7 @@ from utils.result import result_succ
 
 router = APIRouter(
     prefix="/proxy_config",
-    tags=["proxy配置模块"]
+    tags=["Proxy Config Module"]
 )
 
 

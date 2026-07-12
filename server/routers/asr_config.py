@@ -3,11 +3,13 @@ from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from middleware.i18n_middleware import get_current_lang
 from models.model import VptAsrConfig
 from models.schemas import ASRConfigItem
 from utils import const
 from utils.database import database
 from utils.result import result_succ
+import config.config as _config
 
 router = APIRouter(
     prefix="/asr_config",
@@ -42,10 +44,14 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
 
 @router.get("/local_whisper_list")
 async def get_local_whisper_list():
+    lang = get_current_lang()
     return result_succ([
-        {"name": "OpenAI Whisper（CPU调用）", "value": const.TASK_CONFIG_ASR_OPENAI_WHISPER},
-        {"name": "MLX Whisper（推荐 Apple Silicon 选用）", "value": const.TASK_CONFIG_ASR_MLX_WHISPER},
-        {"name": "Faster Whisper（推荐 NVIDIA GPU 选用）", "value": const.TASK_CONFIG_ASR_FASTER_WHISPER}
+        {"name": _config.i18n_config['asr_config']['local_whisper_list'][0][lang],
+         "value": const.TASK_CONFIG_ASR_OPENAI_WHISPER},
+        {"name": _config.i18n_config['asr_config']['local_whisper_list'][1][lang],
+         "value": const.TASK_CONFIG_ASR_MLX_WHISPER},
+        {"name": _config.i18n_config['asr_config']['local_whisper_list'][2][lang],
+         "value": const.TASK_CONFIG_ASR_FASTER_WHISPER}
     ])
 
 

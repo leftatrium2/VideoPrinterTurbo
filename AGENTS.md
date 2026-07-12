@@ -669,6 +669,10 @@ TTS 配置  ⓘ使用说明
 
 ## API 封装（`src/services/api.ts`）
 
+**自定义 Header：** 所有请求通过 axios 拦截器自动添加 `X-I18n` Header，用于标识当前语言环境：
+- 中文环境（`zh`）→ `X-I18n: cn`
+- 英文环境（`en`）→ `X-I18n: en`
+
 ```typescript
 // Task 接口（对应 vpt_tasks 表）
 interface Task {

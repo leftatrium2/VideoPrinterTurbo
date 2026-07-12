@@ -20,7 +20,7 @@ from utils.tts_voice import get_edge_tts_voices, get_azure_tts_v2_voices, get_si
 
 router = APIRouter(
     prefix="/tts_config",
-    tags=["tts配置模块"]
+    tags=["TTS Config Module"]
 )
 
 
@@ -66,7 +66,7 @@ async def get_tts_list():
 @router.get("/tts_config_detail")
 async def get_tts_voice_list(engine: int = Query(default=0), db: AsyncSession = Depends(database.get_db)):
     if engine <= 0 or engine > 6:
-        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND, f"TTS engine {engine} 不存在 ")
+        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND, f"TTS engine {engine} does not exist ")
     ret_list = {'voice': []}
     match engine:
         case const.TTS_LIST_AZURE_TTS_V1:
@@ -93,7 +93,7 @@ async def get_tts_voice_list(engine: int = Query(default=0), db: AsyncSession = 
     return result_succ(ret_list)
 
 
-# voice 音色试听
+# Voice preview audition
 @router.get("/tts_voice_preview")
 async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Query(default="")):
     cwd = f"{Path.cwd().parent}"
@@ -101,17 +101,17 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
     await anyio.to_thread.run_sync(lambda: os.makedirs(out_path, exist_ok=True))
     output = os.path.join(out_path, voice + ".mp3")
     if engine <= 0 or engine > 6:
-        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND, f"TTS engine {engine} 不存在 ")
+        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND, f"TTS engine {engine} does not exist ")
     voice = voice.strip()
     if not voice.startswith("zh-CN") and not voice.strip("en-US"):
-        return result_failure(const.TTS_CONFIG_ERR_VOICE_NOT_FOUND, "tts语音不存在")
+        return result_failure(const.TTS_CONFIG_ERR_VOICE_NOT_FOUND, "TTS voice does not exist")
     text = None
     if voice.strip().startswith("zh-CN"):
         text = const.TTS_CONFIG_PREVIEW['zh']
     if voice.strip().startswith("en-US"):
         text = const.TTS_CONFIG_PREVIEW['en']
     if not text:
-        return result_failure(const.TTS_CONFIG_ERR_VOICE_TEXT_NOT_FOUND, "tts预览文本不存在")
+        return result_failure(const.TTS_CONFIG_ERR_VOICE_TEXT_NOT_FOUND, "TTS preview text does not exist")
     communicate = edge_tts.Communicate(text=text, voice=voice)
     await communicate.save(output)
     return result_succ({"output": output.replace(f"{cwd}/", "")})
@@ -120,11 +120,11 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
 @router.get("/preview")
 async def get_tts_preview(file_path: str = Query(default="")):
     if not file_path.strip():
-        return result_failure(const.TTS_CONFIG_ERR_PREVIEW_FILE_EMPTY, "文件路径不能为空")
+        return result_failure(const.TTS_CONFIG_ERR_PREVIEW_FILE_EMPTY, "File path cannot be empty")
 
     abs_file_path = os.path.join(get_current_path(), file_path)
     if not os.path.exists(abs_file_path):
-        return result_failure(const.TTS_CONFIG_ERR_PREVIEW_FILE_NOT_EXISTS, "文件路径不存在")
+        return result_failure(const.TTS_CONFIG_ERR_PREVIEW_FILE_NOT_EXISTS, "File path does not exist")
 
     def iterfile():
         with open(abs_file_path, "rb") as f:

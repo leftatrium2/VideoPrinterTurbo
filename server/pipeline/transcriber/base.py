@@ -4,13 +4,13 @@ from typing import Optional
 
 class BaseTranscriber(ABC):
 
-    # 将音频文件转写为带时间轴的文本片段
+    # Transcribe audio file into text segments with timestamps
     @abstractmethod
     def transcribe(self, audio_path: str, language: Optional[str] = None) -> list:
         pass
 
-    # 视频文件中提取字幕
-    # video_path：本地视频文件路径
+    # Extract subtitles from video file
+    # video_path: local video file path
     @abstractmethod
     def extract_subtitles(self, video_path: str) -> list:
         pass

@@ -13,7 +13,7 @@ from utils.result import result_succ, result_failure
 
 router = APIRouter(
     prefix="/material_config",
-    tags=["material配置模块"]
+    tags=["Material Config Module"]
 )
 
 
@@ -42,12 +42,12 @@ async def add_pexels_config(data: MaterialPexelsItem, db: AsyncSession = Depends
 @router.get("/del_pexels_config")
 async def del_pexels_config(pexels_config_id: int = Query(default=0), db: AsyncSession = Depends(database.get_db)):
     if not pexels_config_id:
-        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pexels_config_id 为空")
+        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pexels_config_id is empty")
     result = await db.execute(
         select(VptVideoMaterialPexelsConfig).where(VptVideoMaterialPexelsConfig.id == pexels_config_id))
     item = result.scalar_one_or_none()
     if not item:
-        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pexels_config_id 不存在")
+        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pexels_config_id does not exist")
     print(item)
     await db.delete(item)
     await db.commit()
@@ -79,12 +79,12 @@ async def add_pixabay_config(data: MaterialPixabayItem, db: AsyncSession = Depen
 @router.get("/del_pixabay_config")
 async def del_pixabay_config(pixabay_config_id: int = Query(default=0), db: AsyncSession = Depends(database.get_db)):
     if not pixabay_config_id:
-        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pixabay_config_id 为空")
+        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pixabay_config_id is empty")
     result = await db.execute(
         select(VptVideoMaterialPixabayConfig).where(VptVideoMaterialPixabayConfig.id == pixabay_config_id))
     item = result.scalar_one_or_none()
     if not item:
-        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pixabay_config_id 不存在")
+        return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pixabay_config_id does not exist")
     await db.delete(item)
     await db.commit()
     return result_succ()

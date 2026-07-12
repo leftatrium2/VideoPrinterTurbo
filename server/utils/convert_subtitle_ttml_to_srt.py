@@ -134,7 +134,7 @@ def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> bool:
                     fp.write(
                         f"{convert_subtitle_timestamp_to_str(last_begin)} --> {convert_subtitle_timestamp_to_str(last_end)}\n")
                     fp.write(f"{subtitle}\n\n")
-        # 因为是后置方式处理subtitle的，所以，需要最后判断一下，count是否与item count是否一致
+        # Since subtitle is processed in post-processing mode, need to check if count matches item count at the end
     pass
 
 

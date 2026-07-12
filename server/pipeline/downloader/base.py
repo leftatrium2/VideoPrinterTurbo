@@ -17,8 +17,8 @@ class VideoPackage:
 
 class DownloaderContext(ABC):
     """
-    下载器的上下文接口
-    用来将当前下载的状态回调到pipeline里面
+    Downloader context interface.
+    Used to callback current download progress to the pipeline.
     """
 
     @abstractmethod
@@ -44,7 +44,7 @@ class DownloaderContext(ABC):
 
 class BaseDownloader(ABC):
     """
-    下载器基类
+    Base downloader class.
     """
 
     @abstractmethod

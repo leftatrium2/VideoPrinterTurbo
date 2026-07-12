@@ -1,0 +1,166 @@
+{
+  "task": {
+    "asr": [
+      {
+        "cn": "从字幕提取",
+        "en": "Extract from Subtitles"
+      },
+      {
+        "cn": "从本地Whisper",
+        "en": "Local Whisper"
+      },
+      {
+        "cn": "从腾讯云ASR",
+        "en": "Tencent Cloud ASR"
+      },
+      {
+        "cn": "从科大讯飞ASR",
+        "en": "XFYun ASR"
+      }
+    ],
+    "subtitle": [
+      {
+        "cn": "Charm-Bold.ttf",
+        "en": "Charm-Bold.ttf"
+      },
+      {
+        "cn": "Charm-Regular.ttf",
+        "en": "Charm-Regular.ttf"
+      },
+      {
+        "cn": "MicrosoftYaHeiBold.ttf",
+        "en": "MicrosoftYaHeiBold.ttf"
+      },
+      {
+        "cn": "MicrosoftYaHeiNormal.ttf",
+        "en": "MicrosoftYaHeiNormal.ttf"
+      },
+      {
+        "cn": "STHeitiLight.ttf",
+        "en": "STHeitiLight.ttf"
+      },
+      {
+        "cn": "STHeitiMedium.ttf",
+        "en": "STHeitiMedium.ttf"
+      },
+      {
+        "cn": "UTM Kabel KT.ttf",
+        "en": "UTM Kabel KT.ttf"
+      }
+    ],
+    "bgm": [
+      {
+        "cn": "随机背景音乐",
+        "en": "Random BGM"
+      },
+      {
+        "cn": "自定义背景音乐",
+        "en": "Custom BGM"
+      }
+    ],
+    "material": {
+      "source": [
+        {
+          "cn": "本地素材",
+          "en": "Local File"
+        },
+        {
+          "cn": "Pexels",
+          "en": "Pexels"
+        },
+        {
+          "cn": "Pixabay",
+          "en": "Pixabay"
+        }
+      ],
+      "splicing": [
+        {
+          "cn": "随机拼接（推荐）",
+          "en": "Random Splicing (Recommended)"
+        },
+        {
+          "cn": "顺序拼接",
+          "en": "Sequential Splicing"
+        }
+      ],
+      "transition": [
+        {
+          "cn": "无转场",
+          "en": "No Transition"
+        },
+        {
+          "cn": "随机转场",
+          "en": "Random Transition"
+        },
+        {
+          "cn": "渐入",
+          "en": "Fade In"
+        },
+        {
+          "cn": "渐出",
+          "en": "Fade Out"
+        },
+        {
+          "cn": "淡入淡出",
+          "en": "Fade In & Out"
+        },
+        {
+          "cn": "滑动入",
+          "en": "Slide In"
+        },
+        {
+          "cn": "滑动出",
+          "en": "Slide Out"
+        }
+      ],
+      "ratio": [
+        {
+          "cn": "9:16",
+          "en": "9:16"
+        },
+        {
+          "cn": "16:9",
+          "en": "16:9"
+        }
+      ]
+    },
+    "tts": [
+      {
+        "cn": "Azure TTS V1",
+        "en": "Azure TTS V1"
+      },
+      {
+        "cn": "Azure TTS V2",
+        "en": "Azure TTS V2"
+      },
+      {
+        "cn": "SiliconFlow TTS",
+        "en": "SiliconFlow TTS"
+      },
+      {
+        "cn": "Google Gemini TTS",
+        "en": "Google Gemini TTS"
+      },
+      {
+        "cn": "Xiaomi MiMo TTS",
+        "en": "Xiaomi MiMo TTS"
+      }
+    ]
+  },
+  "asr_config": {
+    "local_whisper_list": [
+      {
+        "cn": "OpenAI Whisper（CPU调用）",
+        "en": "OpenAI Whisper (CPU)"
+      },
+      {
+        "cn": "MLX Whisper（推荐 Apple Silicon 选用）",
+        "en": "MLX Whisper (Recommended for Apple Silicon)"
+      },
+      {
+        "cn": "Faster Whisper（推荐 NVIDIA GPU 选用）",
+        "en": "Faster Whisper (Recommended for NVIDIA GPU)"
+      }
+    ]
+  }
+}

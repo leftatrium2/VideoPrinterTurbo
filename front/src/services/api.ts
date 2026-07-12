@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { i18n } from '@/i18n'
 
 export interface Task {
   id: number
@@ -124,6 +125,13 @@ interface ApiResult<T> {
 
 const baseURL = import.meta.env.VITE_API_BASE_URL
 const http = axios.create({ baseURL })
+
+// 请求拦截器：添加 X-I18n 自定义 Header
+http.interceptors.request.use((config) => {
+  const locale = (i18n.global.locale as unknown as { value: string }).value || 'zh'
+  config.headers['X-I18n'] = locale === 'zh' ? 'cn' : 'en'
+  return config
+})
 
 async function request<T>(promise: Promise<{ data: T }>): Promise<T> {
   const res = await promise

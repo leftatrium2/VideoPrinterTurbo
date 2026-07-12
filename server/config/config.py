@@ -6,12 +6,13 @@ import yaml
 
 from utils.file_utils import get_current_path
 
-# 模块级全局变量，调用 init_config() 后生效
+# Module-level global variables, effective after calling init_config()
 config: dict = {}
 downloader_config: dict | None = None
+i18n_config: dict | None = None
 
 
-# 加载 yaml 配置
+# Load yaml configuration
 def load_yaml_config(file_path: str) -> dict:
     config_path = Path(file_path)
     with open(config_path, "r", encoding="utf-8") as f:
@@ -33,3 +34,6 @@ def init_config():
     global downloader_config
     downloader_config_path = os.path.join(get_current_path(), "downloader.json")
     downloader_config = load_json_config(downloader_config_path)
+    global i18n_config
+    i18n_config_path = os.path.join(get_current_path(), "i18n.json")
+    i18n_config = load_json_config(i18n_config_path)

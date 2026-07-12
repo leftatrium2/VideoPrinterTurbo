@@ -1,4 +1,4 @@
-# 创建config缓存文件
+# Create config cache file
 import asyncio
 import json
 from datetime import datetime, timedelta
@@ -136,13 +136,13 @@ async def gen_config(db: AsyncSession):
 
 async def main():
     init_config()
-    # 在脚本环境中直接创建数据库会话，而不是使用 get_db() 生成器
+    # Create a database session directly in script environment instead of using get_db() generator
     from sqlalchemy.orm import sessionmaker
     from sqlalchemy.ext.asyncio import AsyncSession
 
     engine = database.get_engine()
     if engine is None:
-        # 如果引擎未初始化，先启动
+        # If engine is not initialized, start it first
         database.start()
         engine = database.get_engine()
 
