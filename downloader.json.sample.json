@@ -1,5 +1,1 @@
-{
-  "bilibili.com": "pipeline.downloader.bilibili.bilibili_downloader.BilibiliDownloader",
-  "douyin.com": "pipeline.downloader.douyin.douyin_downloader.DouyinDownloader",
-  "xiaohongshu.com": "pipeline.downloader.xiaohongshu.xhs_downloader.XHSDownloader"
-}
+{}
