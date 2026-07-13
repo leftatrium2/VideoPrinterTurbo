@@ -9,6 +9,8 @@ import config.config as _config
 from models.model import VptTask
 from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
+from pipeline.llm.base import BaseLLMProvider
+from pipeline.llm.openai_provider import OpenAIProvider
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.subtitle_transcriber import SubTitleTranscriber
 from pipeline.transcriber.tencent_cloud_transcriber import TencentCloudTranscriber
@@ -103,8 +105,16 @@ class Pipeline:
         return transcriber.transcribe(download_path)
 
     # 3. LLM rewrite
-    def rewrite(self, text: str) -> str or None:
-        return None
+    def rewrite(self, text: str, src_path: str, dst_path: str,
+                config: dict):
+        if 'api_key' not in config or 'base_url' not in config or 'model' not in config:
+            return None
+        llm: BaseLLMProvider = OpenAIProvider()
+        api_key = config['api_key']
+        base_url = config['base_url']
+        model = config['model']
+        llm.config(api_key, base_url, model)
+        llm.rewrite(text, src_path, dst_path)
 
     # 4. Output to speech
     # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
