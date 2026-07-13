@@ -30,7 +30,6 @@ def init_downloader():
         cls = getattr(importlib.import_module(module_path), class_name)
         downloaders[k] = cls()
     downloaders['others'] = YtDlpDownloader()
-    print(downloaders)
 
 
 def get_downloader(url: str) -> BaseDownloader or None:
