@@ -207,6 +207,10 @@ export function deleteTask(taskId: string): Promise<ApiResult<Record<string, unk
   return request(http.get('/tasks/del', { params: { task_id: taskId } }))
 }
 
+export function getAsrLang(asrType: number): Promise<ApiResult<string[]>> {
+  return request(http.get('/tasks/get_asr_lang', { params: { asr_type: asrType } }))
+}
+
 export async function getTaskConfig(): Promise<TaskConfigData> {
   const res = await request<ApiResult<TaskConfigData>>(
     http.get('/tasks/')

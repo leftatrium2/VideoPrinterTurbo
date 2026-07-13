@@ -45,6 +45,8 @@ export default {
     transcriptionMode: 'Transcription Method',
     fromSubtitle: 'Extract from Subtitles',
     fromAsr: 'Convert via ASR',
+    subtitleLang: 'Subtitle Language',
+    subtitleLangPlaceholder: 'Please select subtitle language',
     llmPrompt: 'LLM Prompt',
     llmPromptPlaceholder: 'Enter rewriting instructions, e.g.: Rewrite the following into a humorous short video script...',
     ttsService: 'TTS Service',

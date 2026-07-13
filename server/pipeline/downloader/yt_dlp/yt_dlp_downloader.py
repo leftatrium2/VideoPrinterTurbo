@@ -1,8 +1,6 @@
 """YtDlpDownloader — downloads videos via yt-dlp with subtitle extraction."""
-import asyncio
 import subprocess
 
-import anyio
 import yt_dlp
 from loguru import logger
 
@@ -10,7 +8,6 @@ from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoPac
 from utils import const
 from utils.const import DOWNLOADER_CODEC_VIDEO_TYPE, DOWNLOADER_CODEC_AUDIO_TYPE, DOWNLOADER_CODEC_MUXER_TYPE
 from utils.exception import VPTException
-from utils.file_utils import get_download_path
 
 
 def make_hook(context: DownloaderContext):
@@ -52,7 +49,7 @@ class YtDlpDownloader(BaseDownloader):
             raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
                                message="yt-dlp not found. Install with: pip install yt-dlp")
 
-    async def check(self, url: str) -> bool:
+    def check(self, url: str, proxy: str = None) -> bool:
         yt_dlp_opts = {
             'quiet': True,
             'ignoreerrors': True,
@@ -60,16 +57,19 @@ class YtDlpDownloader(BaseDownloader):
             'extract_flat': True,
             'skip_download': True
         }
+        if proxy:
+            yt_dlp_opts['proxy'] = proxy
         with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
             try:
-                result = await anyio.to_thread.run_sync(lambda: ydl.extract_info(url, download=False))
+                result = ydl.extract_info(url, download=False)
                 if result['duration'] > 0:
                     return True
             except Exception as e:
                 logger.error(e)
         return False
 
-    async def download(self, url: str, output_dir: str, context: DownloaderContext or None) -> VideoPackage or None:
+    def download(self, url: str, output_dir: str, context: DownloaderContext or None,
+                 proxy: str = None) -> VideoPackage or None:
         if context:
             context.on_create(url)
         yt_dlp_opts = {
@@ -82,39 +82,12 @@ class YtDlpDownloader(BaseDownloader):
             "noprogress": True,
             "progress_hooks": [make_hook(context)],
         }
+        if proxy:
+            yt_dlp_opts['proxy'] = proxy
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
-                await anyio.to_thread.run_sync(lambda: ydl.download([url]))
+                ydl.download([url])
         except Exception as e:
             if context:
                 context.on_error(url, e)
         return None
-
-
-async def __main():
-    class YTDDownloadContext(DownloaderContext):
-        def on_create(self, url: str):
-            print("Creating download context for", url)
-
-        def on_start(self, url: str):
-            print("Starting download for", url)
-
-        def on_progress(self, url: str, codec_type: int, progress: float):
-            print("Download progress for", url, codec_type, progress)
-
-        def on_error(self, url: str, error: Exception):
-            print("Download error for", url, error)
-
-        def on_complete(self, url: str):
-            print("Completing download for", url)
-
-    downloader = YtDlpDownloader()
-    # asyncio.run(downloader.check('https://www.youtube.com/watch?v=WER937zS5sw'))
-    # asyncio.run(downloader.check('https://www.youtube.com/watch?v=WER937zS5sd'))
-    path = await get_download_path()
-    await downloader.download('https://www.youtube.com/shorts/9OFFkNhVXnQ', path,
-                              YTDDownloadContext())
-
-
-if __name__ == "__main__":
-    asyncio.run(__main())

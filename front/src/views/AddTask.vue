@@ -35,6 +35,13 @@
         <el-select v-model="form.transcription_mode" class="full-width">
           <el-option v-for="item in taskConfig.asr" :key="item.value" :label="item.name" :value="item.value" />
         </el-select>
+
+        <div v-if="form.transcription_mode === 1" class="mt-12">
+          <div class="field-label">{{ t('addTask.subtitleLang') }}</div>
+          <el-select v-model="form.subtitle_lang" class="full-width" :placeholder="t('addTask.subtitleLangPlaceholder')">
+            <el-option v-for="(lang, index) in subtitleLangList" :key="index" :label="lang" :value="index" />
+          </el-select>
+        </div>
       </div>
     </div>
 
@@ -325,7 +332,7 @@ import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
-import { addTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial } from '@/services/api'
+import { addTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, getAsrLang } from '@/services/api'
 import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
 
 const router = useRouter()
@@ -370,6 +377,7 @@ const enabled = reactive({
 const form = reactive({
   task_url: '',
   transcription_mode: 0 as number,
+  subtitle_lang: '',
   llm_prompt: '',
   tts_service: '',
   tts_voice: '',
@@ -399,6 +407,8 @@ const TTS_ENGINE_MAP: Record<string, number> = {
   TTS_LIST_XIAOMI_MIMO_TTS: 5,
 }
 
+const subtitleLangList = ref<string[]>([])
+
 const ttsVoices = computed((): TtsVoiceItem[] => {
   const found = taskConfig.tts.find(t => t.value === form.tts_service)
   return found ? found.voices : []
@@ -421,7 +431,10 @@ onMounted(async () => {
     taskConfig.subtitle = config.subtitle
     taskConfig.bgm = config.bgm
     taskConfig.material = config.material
-    if (config.asr.length > 0) form.transcription_mode = config.asr[0].value
+    if (config.asr.length > 0) {
+      form.transcription_mode = config.asr[0].value
+      if (config.asr[0].value === 1) await loadSubtitleLangList()
+    }
     if (config.tts.length > 0) {
       form.tts_service = config.tts[0].value
       if (config.tts[0].voices.length > 0) form.tts_voice = config.tts[0].voices[0].Value
@@ -454,6 +467,27 @@ watch(() => form.tts_service, () => {
   previewUrl.value = ''
   isPlaying.value = false
 })
+
+watch(() => form.transcription_mode, async (newVal) => {
+  if (newVal === 1) {
+    await loadSubtitleLangList()
+  } else {
+    subtitleLangList.value = []
+    form.subtitle_lang = ''
+  }
+})
+
+async function loadSubtitleLangList() {
+  try {
+    const res = await getAsrLang(1)
+    subtitleLangList.value = res.data || []
+    if (subtitleLangList.value.length > 0 && !form.subtitle_lang) {
+      form.subtitle_lang = 0
+    }
+  } catch {
+    subtitleLangList.value = []
+  }
+}
 
 watch(() => form.tts_voice, () => {
   previewUrl.value = ''
@@ -596,6 +630,10 @@ async function applyTaskDetail(detail: TaskDetail) {
 
   enabled.transcription = !!detail.is_from_asr_or_subtitle
   form.transcription_mode = detail.audio_rewrite_type
+  if (detail.audio_rewrite_type === 1) {
+    await loadSubtitleLangList()
+    form.subtitle_lang = detail.subtitle_lang ?? ''
+  }
 
   enabled.llm = !!detail.is_llm
   form.llm_prompt = detail.llm_prompt
@@ -654,6 +692,7 @@ async function handleSubmit() {
       // 音频转文字
       is_from_asr_or_subtitle: enabled.transcription,
       audio_rewrite_type: form.transcription_mode,
+      subtitle_lang: form.transcription_mode === 1 ? form.subtitle_lang : '',
       // LLM 改写
       is_llm: enabled.llm,
       llm_prompt: form.llm_prompt,

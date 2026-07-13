@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os.path
@@ -91,6 +92,7 @@ async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db))
         is_from_asr_or_subtitle=task.is_from_asr_or_subtitle,
         is_llm=task.is_llm,
         audio_rewrite_type=task.audio_rewrite_type,
+        subtitle_lang=task.subtitle_lang,
         llm_prompt=task.llm_prompt,
         is_rewrite_to_tts=task.is_rewrite_to_tts,
         tts_server=task.tts_server,
@@ -175,6 +177,18 @@ async def upload_bgm(file: UploadFile = File(...)):
         "content_type": file.content_type,
     }
     return result_succ(ret_dict)
+
+
+@router.get("/get_asr_lang")
+async def get_asr_lang(asr_type: int = Query(default=None), db: AsyncSession = Depends(database.get_db)):
+    lang = get_current_lang()
+    if asr_type == const.TASK_CONFIG_ASR_FROM_SUBTITLE:
+        ret_list = []
+        for item in _config.i18n_config['asr_lang_list']['asr_lang_subtitle']:
+            ret_list.append(item[lang])
+        return result_succ(ret_list)
+
+    return result_failure(const.TASK_ERR_UNKNOWN, "Unknown ASR type")
 
 
 @router.get("/")
@@ -305,6 +319,7 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
 @router.get("/check")
 async def check_task_url(url: str = Query(default="", min_length=1, max_length=300)):
     logging.info(f"Checking task url: {url}")
-    if not await pipeline.check(url):
+    result = await asyncio.to_thread(pipeline.check, url)
+    if not result:
         return result_failure(const.TASK_ERR_CHECK_URL, f"Task URL check failed, {url}")
     return result_succ()

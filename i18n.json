@@ -162,5 +162,285 @@
         "en": "Faster Whisper (Recommended for NVIDIA GPU)"
       }
     ]
+  },
+  "asr_lang_list": {
+    "asr_lang_subtitle": [
+      {
+        "cn": "南非荷兰语",
+        "en": "Afrikaans"
+      },
+      {
+        "cn": "阿尔巴尼亚语",
+        "en": "Albanian"
+      },
+      {
+        "cn": "阿姆哈拉语",
+        "en": "Amharic"
+      },
+      {
+        "cn": "阿拉伯语",
+        "en": "Arabic"
+      },
+      {
+        "cn": "亚美尼亚语",
+        "en": "Armenian"
+      },
+      {
+        "cn": "阿塞拜疆语",
+        "en": "Azerbaijani"
+      },
+      {
+        "cn": "巴斯克语",
+        "en": "Basque"
+      },
+      {
+        "cn": "白俄罗斯语",
+        "en": "Belarusian"
+      },
+      {
+        "cn": "孟加拉语",
+        "en": "Bengali"
+      },
+      {
+        "cn": "保加利亚语",
+        "en": "Bulgarian"
+      },
+      {
+        "cn": "缅甸语",
+        "en": "Burmese"
+      },
+      {
+        "cn": "中文(简体)",
+        "en": "Chinese Simplified"
+      },
+      {
+        "cn": "中文(繁体)",
+        "en": "Chinese Traditional"
+      },
+      {
+        "cn": "捷克语",
+        "en": "Czech"
+      },
+      {
+        "cn": "丹麦语",
+        "en": "Danish"
+      },
+      {
+        "cn": "荷兰语",
+        "en": "Dutch"
+      },
+      {
+        "cn": "英语",
+        "en": "English"
+      },
+      {
+        "cn": "英语(原声)",
+        "en": "English original"
+      },
+      {
+        "cn": "爱沙尼亚语",
+        "en": "Estonian"
+      },
+      {
+        "cn": "菲律宾语",
+        "en": "Filipino"
+      },
+      {
+        "cn": "芬兰语",
+        "en": "Finnish"
+      },
+      {
+        "cn": "法语",
+        "en": "French"
+      },
+      {
+        "cn": "加利西亚语",
+        "en": "Galician"
+      },
+      {
+        "cn": "格鲁吉亚语",
+        "en": "Georgian"
+      },
+      {
+        "cn": "德语",
+        "en": "German"
+      },
+      {
+        "cn": "希腊语",
+        "en": "Greek"
+      },
+      {
+        "cn": "古吉拉特语",
+        "en": "Gujarati"
+      },
+      {
+        "cn": "希伯来语",
+        "en": "Hebrew"
+      },
+      {
+        "cn": "印地语",
+        "en": "Hindi"
+      },
+      {
+        "cn": "匈牙利语",
+        "en": "Hungarian"
+      },
+      {
+        "cn": "冰岛语",
+        "en": "Icelandic"
+      },
+      {
+        "cn": "印尼语",
+        "en": "Indonesian"
+      },
+      {
+        "cn": "意大利语",
+        "en": "Italian"
+      },
+      {
+        "cn": "日语",
+        "en": "Japanese"
+      },
+      {
+        "cn": "爪哇语",
+        "en": "Javanese"
+      },
+      {
+        "cn": "卡纳达语",
+        "en": "Kannada"
+      },
+      {
+        "cn": "高棉语",
+        "en": "Khmer"
+      },
+      {
+        "cn": "韩语",
+        "en": "Korean"
+      },
+      {
+        "cn": "老挝语",
+        "en": "Lao"
+      },
+      {
+        "cn": "拉脱维亚语",
+        "en": "Latvian"
+      },
+      {
+        "cn": "立陶宛语",
+        "en": "Lithuanian"
+      },
+      {
+        "cn": "马其顿语",
+        "en": "Macedonian"
+      },
+      {
+        "cn": "马来语",
+        "en": "Malay"
+      },
+      {
+        "cn": "马拉雅拉姆语",
+        "en": "Malayalam"
+      },
+      {
+        "cn": "马拉地语",
+        "en": "Marathi"
+      },
+      {
+        "cn": "蒙古语",
+        "en": "Mongolian"
+      },
+      {
+        "cn": "尼泊尔语",
+        "en": "Nepali"
+      },
+      {
+        "cn": "挪威语",
+        "en": "Norwegian"
+      },
+      {
+        "cn": "波斯语",
+        "en": "Farsi"
+      },
+      {
+        "cn": "波兰语",
+        "en": "Polish"
+      },
+      {
+        "cn": "葡萄牙语",
+        "en": "Portuguese"
+      },
+      {
+        "cn": "葡萄牙语(葡萄牙)",
+        "en": "Portuguese-Portugal"
+      },
+      {
+        "cn": "旁遮普语",
+        "en": "Punjabi"
+      },
+      {
+        "cn": "罗马尼亚语",
+        "en": "Romanian"
+      },
+      {
+        "cn": "俄语",
+        "en": "Russian"
+      },
+      {
+        "cn": "僧伽罗语",
+        "en": "Sinhala"
+      },
+      {
+        "cn": "斯洛伐克语",
+        "en": "Slovak"
+      },
+      {
+        "cn": "西班牙语",
+        "en": "Spanish"
+      },
+      {
+        "cn": "巽他语",
+        "en": "Sundanese"
+      },
+      {
+        "cn": "斯瓦希里语",
+        "en": "Swahili"
+      },
+      {
+        "cn": "瑞典语",
+        "en": "Swedish"
+      },
+      {
+        "cn": "泰米尔语",
+        "en": "Tamil"
+      },
+      {
+        "cn": "泰卢固语",
+        "en": "Telugu"
+      },
+      {
+        "cn": "泰语",
+        "en": "Thai"
+      },
+      {
+        "cn": "土耳其语",
+        "en": "Turkish"
+      },
+      {
+        "cn": "乌克兰语",
+        "en": "Ukrainian"
+      },
+      {
+        "cn": "乌兹别克语",
+        "en": "Uzbek"
+      },
+      {
+        "cn": "越南语",
+        "en": "Vietnamese"
+      },
+      {
+        "cn": "祖鲁语",
+        "en": "Zulu"
+      }
+    ]
   }
 }

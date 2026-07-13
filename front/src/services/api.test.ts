@@ -3,11 +3,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mockHttp = {
   get: vi.fn(),
   post: vi.fn(),
+  interceptors: {
+    request: { use: vi.fn() },
+    response: { use: vi.fn() },
+  },
 }
 
 vi.mock('axios', () => ({
   default: {
     create: vi.fn(() => mockHttp),
+  },
+}))
+
+vi.mock('@/i18n', () => ({
+  i18n: {
+    global: {
+      locale: { value: 'zh' },
+    },
   },
 }))
 

@@ -77,6 +77,7 @@ class VptTask(Base):
     tts_voice = Column(Text, nullable=False, server_default=text("''"))
     tts_volume = Column(Float, nullable=False, server_default=text("0"))
     subtitle_position = Column(Text, nullable=False, server_default=text("''"))
+    subtitle_lang = Column(Integer, nullable=False, server_default=text("0"))
 
 
 class VptTtsConfig(Base):

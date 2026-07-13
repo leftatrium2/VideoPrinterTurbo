@@ -22,23 +22,23 @@ class DownloaderContext(ABC):
     """
 
     @abstractmethod
-    async def on_create(self, url: str):
+    def on_create(self, url: str):
         pass
 
     @abstractmethod
-    async def on_start(self, url: str):
+    def on_start(self, url: str):
         pass
 
     @abstractmethod
-    async def on_progress(self, url: str, codec_type: int, progress: float):
+    def on_progress(self, url: str, codec_type: int, progress: float):
         pass
 
     @abstractmethod
-    async def on_error(self, url: str, error: Exception):
+    def on_error(self, url: str, error: Exception):
         pass
 
     @abstractmethod
-    async def on_complete(self, url: str):
+    def on_complete(self, url: str):
         pass
 
 
@@ -48,9 +48,10 @@ class BaseDownloader(ABC):
     """
 
     @abstractmethod
-    async def download(self, url: str, output_dir: str, context: DownloaderContext) -> VideoPackage or None:
+    def download(self, url: str, output_dir: str, context: DownloaderContext,
+                 proxy: str = None) -> VideoPackage or None:
         pass
 
     @abstractmethod
-    async def check(self, url: str) -> bool:
+    def check(self, url: str, proxy: str = None) -> bool:
         pass

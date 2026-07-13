@@ -53,6 +53,8 @@ class TaskItem(BaseModel):
     is_from_asr_or_subtitle: bool = False
     # Audio conversion method
     audio_rewrite_type: int = 0
+    # Subtitle language
+    subtitle_lang:int = 0
     ### 2. LLM Rewrite
     is_llm: bool = False
     # LLM Prompt

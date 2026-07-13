@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import logging
+import os.path
 
 from sqlalchemy import select
 
@@ -8,6 +9,12 @@ import config.config as _config
 from models.model import VptTask
 from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
+from pipeline.transcriber.base import BaseTranscriber
+from pipeline.transcriber.subtitle_transcriber import SubTitleTranscriber
+from pipeline.transcriber.tencent_cloud_transcriber import TencentCloudTranscriber
+from pipeline.transcriber.whisper_transcriber import WhisperTranscriber
+from pipeline.transcriber.xf_cloud_asr import XFCloudASR
+from utils import const
 from utils.database import database
 
 downloaders = {}
@@ -24,7 +31,7 @@ def init_downloader():
     print(downloaders)
 
 
-async def get_downloader(url: str) -> BaseDownloader or None:
+def get_downloader(url: str) -> BaseDownloader or None:
     if not url:
         return None
     for k, v in _config.downloader_config.items():
@@ -39,70 +46,97 @@ async def get_downloader(url: str) -> BaseDownloader or None:
 
 
 class Pipeline:
+    __proxy = None
+
     def __init__(self):
         pass
 
+    def set_proxy(self, proxy: str):
+        self.__proxy = proxy
+
     # Check if the video URL is downloadable
-    async def check(self, url: str) -> bool:
+    def check(self, url: str) -> bool:
         if not url.strip():
             logging.error("Url is empty")
             return False
-        downloader = await get_downloader(url)
+        downloader = get_downloader(url)
         if not downloader:
             logging.error("Downloader is None")
             return False
-        return await downloader.check(url)
+        return downloader.check(url, self.__proxy)
 
     # 1. Download video
-    async def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
+    def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
         if not url.strip():
             logging.error("Url is empty")
             return None
-        downloader = await get_downloader(url)
+        downloader = get_downloader(url)
         if not downloader:
             logging.error("Downloader is None")
             return None
-        return await downloader.download(url, output_dir, ctx)
+        return downloader.download(url, output_dir, ctx, self.__proxy)
 
-    # 2. Audio to text (ASR or subtitle)
-    async def transcribe(self, download_path: str) -> str or None:
-        return None
+    # 2. Audio to text (subtitle)
+    def subtitle(self, url: str, lang: int) -> str or None:
+        if not url.strip():
+            logging.error("Url is empty")
+            return None
+        subtitle = SubTitleTranscriber()
+        path = subtitle.subtitle(url, lang, self.__proxy)
+        return path
+
+    # 2. Audio to text (ASR)
+    def transcribe(self, download_path: str, audio_rewrite_type: int) -> str or None:
+        if not download_path.strip():
+            logging.error("download path is empty")
+            return None
+        if not os.path.exists(download_path):
+            logging.error("download path is not exists")
+            return None
+        transcriber: BaseTranscriber = None
+        if audio_rewrite_type == const.TASK_CONFIG_ASR_FASTER_WHISPER or audio_rewrite_type == const.TASK_CONFIG_ASR_MLX_WHISPER or audio_rewrite_type == const.TASK_CONFIG_ASR_OPENAI_WHISPER:
+            transcriber = WhisperTranscriber()
+        elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD:
+            transcriber = TencentCloudTranscriber()
+        elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_XF_YUN:
+            transcriber = XFCloudASR()
+        return transcriber.transcribe(download_path)
 
     # 3. LLM rewrite
-    async def rewrite(self, text: str) -> str or None:
+    def rewrite(self, text: str) -> str or None:
         return None
 
     # 4. Output to speech
     # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
-    async def text_to_speech(self, text: str) -> str or None:
+    def text_to_speech(self, text: str) -> str or None:
         return None
 
     # 5. Output to subtitle
-    async def text_to_subtitle(self, text: str) -> str or None:
+    def text_to_subtitle(self, text: str) -> str or None:
         return None
 
     # 6. BGM
     # The BGM part will be merged with the original audio track
-    async def bgm(self) -> str or None:
+    def bgm(self) -> str or None:
         return None
 
     # 7. Video overlay
-    async def video_overlay(self) -> str or None:
+    def video_overlay(self) -> str or None:
         return None
 
     # 8. Publish (not yet implemented)
-    async def publish(self) -> bool:
+    def publish(self) -> bool:
         return True
 
 
 pipeline = Pipeline()
 
 
-async def main():
+def main():
     task_id = "20260701212108501553"
     database.start()
-    db = database.get_db()
-    result = await db.execute(select(VptTask).where(
+    db = database.get_sync_session()
+    result = db.execute(select(VptTask).where(
         VptTask.task_id == task_id,
         VptTask.is_deleted == 0
     ).order_by(VptTask.create_time.asc()).limit(1))
@@ -111,4 +145,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

@@ -1,0 +1,1 @@
+# In a pipeline, all objects, methods, and functions are synchronous. If you need to call an asynchronous function, you need to handle it specially.

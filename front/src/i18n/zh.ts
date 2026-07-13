@@ -45,6 +45,8 @@ export default {
     transcriptionMode: '选择音频转换方式',
     fromSubtitle: '从字幕提取',
     fromAsr: '从ASR转换',
+    subtitleLang: '字幕语言',
+    subtitleLangPlaceholder: '请选择字幕语言',
     llmPrompt: 'LLM 提示词 (Prompt)',
     llmPromptPlaceholder: '请输入改写要求，例如：请将以下文案改写成幽默风趣的短视频脚本...',
     ttsService: 'TTS 服务',
