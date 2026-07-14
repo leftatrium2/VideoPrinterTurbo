@@ -2266,6 +2266,12 @@ wheels = [
 ]
 
 [[package]]
+name = "srt"
+version = "3.5.3"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/66/b7/4a1bc231e0681ebf339337b0cd05b91dc6a0d701fa852bb812e244b7a030/srt-3.5.3.tar.gz", hash = "sha256:4884315043a4f0740fd1f878ed6caa376ac06d70e135f306a6dc44632eed0cc0", size = 28296, upload-time = "2023-03-28T02:35:44.007Z" }
+
+[[package]]
 name = "starlette"
 version = "0.41.3"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
@@ -2620,6 +2626,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "sqlalchemy" },
+    { name = "srt" },
     { name = "streamlit" },
     { name = "tencentcloud-sdk-python", extra = ["async"] },
     { name = "tencentcloud-sdk-python-common", extra = ["async"] },
@@ -2667,6 +2674,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = "==2.33.1" },
     { name = "sqlalchemy", specifier = ">=2.0.50" },
+    { name = "srt", specifier = ">=3.5.3" },
     { name = "streamlit", specifier = "==1.45.0" },
     { name = "tencentcloud-sdk-python", extras = ["async"], specifier = ">=3.1.111" },
     { name = "tencentcloud-sdk-python-common", extras = ["async"], specifier = ">=3.1.111" },

@@ -16,6 +16,7 @@ from pipeline.transcriber.subtitle_transcriber import SubTitleTranscriber
 from pipeline.transcriber.tencent_cloud_transcriber import TencentCloudTranscriber
 from pipeline.transcriber.whisper_transcriber import WhisperTranscriber
 from pipeline.transcriber.xf_cloud_asr import XFCloudASR
+from pipeline.tts.base import TTSBase
 from utils import const
 from utils.database import database
 
@@ -101,37 +102,44 @@ class Pipeline:
             transcriber = TencentCloudTranscriber()
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_XF_YUN:
             transcriber = XFCloudASR()
+        if not transcriber:
+            return None
         return transcriber.transcribe(download_path)
 
     # 3. LLM rewrite
     def rewrite(self, text: str, src_path: str, dst_path: str,
-                config: dict):
+                config: dict) -> bool:
         if 'api_key' not in config or 'base_url' not in config or 'model' not in config:
-            return None
+            return False
         llm: BaseLLMProvider = OpenAIProvider()
         api_key = config['api_key']
         base_url = config['base_url']
         model = config['model']
         llm.config(api_key, base_url, model)
         llm.rewrite(text, src_path, dst_path)
+        return True
 
     # 4. Output to speech
     # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
-    def text_to_speech(self, text: str) -> str or None:
-        return None
+    def text_to_speech(self, subtitle_path: str, lang: str, voice: str) -> bool:
+        tts_base: TTSBase = None
+
+        if not tts_base:
+            return False
+        return True
 
     # 5. Output to subtitle
-    def text_to_subtitle(self, text: str) -> str or None:
-        return None
+    def text_to_subtitle(self, text: str) -> bool:
+        return True
 
     # 6. BGM
     # The BGM part will be merged with the original audio track
-    def bgm(self) -> str or None:
-        return None
+    def bgm(self) -> bool:
+        return True
 
     # 7. Video overlay
-    def video_overlay(self) -> str or None:
-        return None
+    def video_overlay(self) -> bool:
+        return True
 
     # 8. Publish (not yet implemented)
     def publish(self) -> bool:

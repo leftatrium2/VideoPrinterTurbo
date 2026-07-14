@@ -39,6 +39,7 @@ dependencies = [
     "openai-whisper>=20250625",
     "apscheduler>=3.11.2",
     "contextvars>=2.4",
+    "srt>=3.5.3",
 ]
 
 [project.optional-dependencies]
