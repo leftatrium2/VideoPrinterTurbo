@@ -92,7 +92,7 @@ class AzureTTSV1(TTSBase):
         stretched.export(out_path, format="wav")
 
     @staticmethod
-    def build_timeline(subs, voice, tmp_dir):
+    def build_timeline(subs, voice, tmp_dir, proxy):
         total_end_ms = AzureTTSV1.timedelta_to_ms(subs[-1].end) if subs else 0
         timeline = AudioSegment.silent(duration=total_end_ms)
 
@@ -105,10 +105,12 @@ class AzureTTSV1(TTSBase):
             fit_wav = os.path.join(tmp_dir, f"fit_{i}.wav")
 
             text = sub.content.strip()
+            logging.info(f"[{i + 1}/{len(subs)}] {text[:24]!r}  "
+                         f"{start_ms}ms -> {end_ms}ms (目标 {target_ms}ms)")
             print(f"[{i + 1}/{len(subs)}] {text[:24]!r}  "
                   f"{start_ms}ms -> {end_ms}ms (目标 {target_ms}ms)")
 
-            synthesize_to_file(text, voice, raw_mp3, proxy=proxy)
+            AzureTTSV1.synthesize_to_file(text, voice, raw_mp3, proxy=proxy)
             AzureTTSV1.stretch_to_duration(raw_mp3, fit_wav, target_ms)
 
             clip = AudioSegment.from_file(fit_wav)
@@ -117,10 +119,12 @@ class AzureTTSV1(TTSBase):
         return timeline
 
     __bitrate = "128k"
+    __proxy = None
 
-    def config(self, area: str, api_key: str, region: str):
+    def config(self, api_key: str = None, region: str = None, proxy: str = None):
         # edge-tts 不需要设置
-        pass
+        if proxy:
+            self.__proxy = proxy
 
     def rewrite(self, subtitle_path: str, lang: str, voice: str) -> str or None:
         if not os.path.exists(subtitle_path):
@@ -134,7 +138,7 @@ class AzureTTSV1(TTSBase):
             return None
         tts_file_path = os.path.join(path, f"{name}.m4a")
         with tempfile.TemporaryDirectory() as tmp_dir:
-            timeline = AzureTTSV1.build_timeline(subs, voice, tmp_dir)
+            timeline = AzureTTSV1.build_timeline(subs, voice, tmp_dir, self.__proxy)
 
             timeline.export(
                 tts_file_path,
@@ -150,4 +154,4 @@ if __name__ == "__main__":
     llm_rewrite_path = os.path.join(lang, "gSNFJbgoaHI.cn.srt")
     tts: TTSBase = AzureTTSV1()
     tts.config()
-    tts.rewrite(llm_rewrite_path, "zh-CN")
+    tts.rewrite(llm_rewrite_path, "zh-CN", "zh-CN-XiaoxiaoNeural")

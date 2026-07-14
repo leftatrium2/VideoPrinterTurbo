@@ -121,7 +121,7 @@ class Pipeline:
 
     # 4. Output to speech
     # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
-    def text_to_speech(self, subtitle_path: str, lang: str, voice: str) -> bool:
+    def text_to_speech(self, tts_engine: str, subtitle_path: str, lang: str, voice: str) -> bool:
         tts_base: TTSBase = None
 
         if not tts_base:

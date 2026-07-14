@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 
 class TTSBase(ABC):
     @abstractmethod
-    def config(self, area: str, api_key: str, region: str):
+    def config(self, api_key: str = None, region: str = None, proxy: str = None):
         pass
 
     @abstractmethod
