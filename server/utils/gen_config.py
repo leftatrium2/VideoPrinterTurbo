@@ -58,7 +58,7 @@ async def gen_config(db: AsyncSession):
         if dt_str.strip():
             the_update_datetime = datetime.strptime(dt_str, DATETIME_FORMAT_STR)
         if abs(the_update_datetime - datetime.now()) > timedelta(days=10):
-            voices = await get_edge_tts_voices()
+            voices = await get_azure_tts_v2_voices(db)
             item.tts_voice_content = json.dumps(voices)
             item.tts_server_time = datetime.now().strftime(DATETIME_FORMAT_STR)
     await db.commit()
@@ -81,7 +81,7 @@ async def gen_config(db: AsyncSession):
         if dt_str.strip():
             the_update_datetime = datetime.strptime(dt_str, DATETIME_FORMAT_STR)
         if abs(the_update_datetime - datetime.now()) > timedelta(days=10):
-            voices = await get_edge_tts_voices()
+            voices = await get_silicon_flow_tts_voices()
             item.tts_voice_content = json.dumps(voices)
             item.tts_server_time = datetime.now().strftime(DATETIME_FORMAT_STR)
     await db.commit()
@@ -104,7 +104,7 @@ async def gen_config(db: AsyncSession):
         if dt_str.strip():
             the_update_datetime = datetime.strptime(dt_str, DATETIME_FORMAT_STR)
         if abs(the_update_datetime - datetime.now()) > timedelta(days=10):
-            voices = await get_edge_tts_voices()
+            voices = await get_google_gemini_tts_voices()
             item.tts_voice_content = json.dumps(voices)
             item.tts_server_time = datetime.now().strftime(DATETIME_FORMAT_STR)
     await db.commit()
@@ -127,7 +127,7 @@ async def gen_config(db: AsyncSession):
         if dt_str.strip():
             the_update_datetime = datetime.strptime(dt_str, DATETIME_FORMAT_STR)
         if abs(the_update_datetime - datetime.now()) > timedelta(days=10):
-            voices = await get_edge_tts_voices()
+            voices = await get_xiaomi_mimo_tts_voices()
             item.tts_voice_content = json.dumps(voices)
             item.tts_server_time = datetime.now().strftime(DATETIME_FORMAT_STR)
     await db.commit()
