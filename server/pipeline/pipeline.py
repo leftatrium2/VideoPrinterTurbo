@@ -1,4 +1,3 @@
-import asyncio
 import importlib
 import logging
 import os.path
@@ -11,12 +10,15 @@ from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 from pipeline.llm.base import BaseLLMProvider
 from pipeline.llm.openai_provider import OpenAIProvider
+from pipeline.material.base import BaseMaterialSearcher
 from pipeline.transcriber.base import BaseTranscriber
-from pipeline.transcriber.subtitle_transcriber import SubTitleTranscriber
-from pipeline.transcriber.tencent_cloud_transcriber import TencentCloudTranscriber
-from pipeline.transcriber.whisper_transcriber import WhisperTranscriber
-from pipeline.transcriber.xf_cloud_asr import XFCloudASR
+from pipeline.transcriber.subtitle.subtitle_transcriber import SubTitleTranscriber
+from pipeline.transcriber.tencent_asr.tencent_cloud_transcriber import TencentCloudTranscriber
+from pipeline.transcriber.whisper_asr.whisper_transcriber import WhisperTranscriber
+from pipeline.transcriber.xunfei_asr.xf_cloud_asr import XFCloudASR
+from pipeline.tts.azure_tts_v1 import AzureTTSV1
 from pipeline.tts.base import TTSBase
+from pipeline.tts.google_gemini_tts import GoogleGeminiTTS
 from utils import const
 from utils.database import database
 
@@ -121,24 +123,24 @@ class Pipeline:
 
     # 4. Output to speech
     # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
-    def text_to_speech(self, tts_engine: str, subtitle_path: str, lang: str, voice: str) -> bool:
-        tts_base: TTSBase = None
-
-        if not tts_base:
+    def text_to_speech(self, tts_engine: str, subtitle_path: str, lang: str, voice: str, api_key: str = None,
+                       region: str = None, proxy: str = None) -> bool:
+        tts: TTSBase = None
+        if tts_engine == "Azure TTS V1":
+            tts = AzureTTSV1()
+        elif tts_engine == "Google Gemini TTS":
+            tts = GoogleGeminiTTS()
+        if not tts:
             return False
-        return True
-
-    # 5. Output to subtitle
-    def text_to_subtitle(self, text: str) -> bool:
-        return True
-
-    # 6. BGM
-    # The BGM part will be merged with the original audio track
-    def bgm(self) -> bool:
+        tts.config(api_key=api_key, region=region, proxy=proxy)
+        tts.rewrite(subtitle_path, lang, voice)
         return True
 
     # 7. Video overlay
     def video_overlay(self) -> bool:
+        video_searcher: BaseMaterialSearcher = None
+        # 7.1 先搜索
+        # 7.2 根据搜索拿到的素材，下载
         return True
 
     # 8. Publish (not yet implemented)

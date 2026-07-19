@@ -83,8 +83,6 @@ async def get_tts_voice_list(engine: int = Query(default=0), db: AsyncSession = 
             ret_list['voice'] = await get_silicon_flow_tts_voices()
         case const.TTS_LIST_GOOGLE_GEMINI_TTS:
             ret_list['voice'] = await get_google_gemini_tts_voices()
-        case const.TTS_LIST_XIAOMI_MIMO_TTS:
-            ret_list['voice'] = await get_xiaomi_mimo_tts_voices()
     result = await db.execute(select(VptTtsConfig).where(VptTtsConfig.tts_server == engine).limit(1))
     item = result.scalar_one_or_none()
     ret_list['tts_area'] = ""

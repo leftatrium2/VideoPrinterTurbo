@@ -1,6 +1,0 @@
-from pipeline.transcriber.base import BaseTranscriber
-
-
-class TencentCloudTranscriber(BaseTranscriber):
-    def transcribe(self, audio_path: str) -> str or None:
-        pass

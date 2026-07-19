@@ -1,8 +1,7 @@
-import asyncio
 import datetime
 import logging
-import uuid
 import random
+import uuid
 
 
 def gen_task_id() -> str:

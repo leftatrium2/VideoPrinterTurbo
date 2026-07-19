@@ -1,8 +1,6 @@
-from collections.abc import Awaitable
-
 from fastapi import APIRouter
 from fastapi.params import Depends, Query
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.model import VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig

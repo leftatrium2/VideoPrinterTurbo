@@ -26,7 +26,7 @@ class PixabaySearcher(BaseMaterialSearcher):
 
         logger.info(f"searching pixabay: {query}")
         try:
-            r = requests.get(url, proxies=config.proxy, verify=_get_tls_verify(), timeout=(30, 60))
+            r = requests.get(url, proxies=config.proxies, verify=_get_tls_verify(), timeout=(30, 60))
             response = r.json()
         except Exception as e:
             logger.error(f"pixabay search failed: {e}")
@@ -62,7 +62,7 @@ class PixabaySearcher(BaseMaterialSearcher):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
         try:
-            r = requests.get(material.url, headers=headers, proxies=config.proxy,
+            r = requests.get(material.url, headers=headers, proxies=config.proxies,
                              verify=_get_tls_verify(), timeout=(60, 240))
             with open(video_path, "wb") as f:
                 f.write(r.content)

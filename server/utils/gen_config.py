@@ -3,7 +3,6 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 
-import aiofiles
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

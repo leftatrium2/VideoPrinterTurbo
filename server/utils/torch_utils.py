@@ -11,7 +11,6 @@ def load_asr_model():
         return "faster_whisper", WhisperModel("large-v3-turbo", device="cuda", compute_type="float16")
     elif platform.processor() == "arm" and torch.backends.mps.is_available():
         # Apple Silicon
-        import mlx_whisper
         return "mlx", None  # mlx loaded at invocation time
     else:
         import whisper
