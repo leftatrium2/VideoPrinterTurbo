@@ -17,6 +17,7 @@
             <el-button :icon="Link" :loading="checkingLink" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
           </template>
         </el-input>
+        <el-checkbox v-model="form.is_download_proxy" class="mt-12">{{ t('addTask.downloadUseProxy') }}</el-checkbox>
       </div>
     </div>
 
@@ -332,12 +333,14 @@ import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
-import { addTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, getAsrLang } from '@/services/api'
+import { addTask, updateTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, getAsrLang } from '@/services/api'
 import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
 
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
+
+const editingTaskId = ref('')
 
 /* -------- inline helper component for help popovers -------- */
 const HelpPopover = defineComponent({
@@ -376,8 +379,9 @@ const enabled = reactive({
 /* -------- form state -------- */
 const form = reactive({
   task_url: '',
+  is_download_proxy: false,
   transcription_mode: 0 as number,
-  subtitle_lang: '',
+  subtitle_lang: 0 as number,
   llm_prompt: '',
   tts_service: '',
   tts_voice: '',
@@ -454,6 +458,7 @@ onMounted(async () => {
     try {
       const detail = await getTaskDetail(taskId)
       await applyTaskDetail(detail)
+      editingTaskId.value = taskId
     } catch {
       ElMessage.error(t('addTask.loadTaskFailed'))
       router.push('/tasks')
@@ -473,7 +478,7 @@ watch(() => form.transcription_mode, async (newVal) => {
     await loadSubtitleLangList()
   } else {
     subtitleLangList.value = []
-    form.subtitle_lang = ''
+    form.subtitle_lang = 0
   }
 })
 
@@ -627,12 +632,13 @@ const SUBTITLE_POSITION_OPTIONS = ['bottom-center', 'top-center', 'center', 'cus
 
 async function applyTaskDetail(detail: TaskDetail) {
   form.task_url = detail.task_url
+  form.is_download_proxy = !!detail.is_download_proxy
 
   enabled.transcription = !!detail.is_from_asr_or_subtitle
   form.transcription_mode = detail.audio_rewrite_type
   if (detail.audio_rewrite_type === 1) {
     await loadSubtitleLangList()
-    form.subtitle_lang = detail.subtitle_lang ?? ''
+    form.subtitle_lang = detail.subtitle_lang ?? 0
   }
 
   enabled.llm = !!detail.is_llm
@@ -687,12 +693,13 @@ async function handleSubmit() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrl')); return }
   try {
     submitting.value = true
-    await addTask({
+    const payload = {
       task_url: form.task_url,
+      is_download_proxy: form.is_download_proxy,
       // 音频转文字
       is_from_asr_or_subtitle: enabled.transcription,
       audio_rewrite_type: form.transcription_mode,
-      subtitle_lang: form.transcription_mode === 1 ? form.subtitle_lang : '',
+      subtitle_lang: form.transcription_mode === 1 ? form.subtitle_lang : 0,
       // LLM 改写
       is_llm: enabled.llm,
       llm_prompt: form.llm_prompt,
@@ -727,11 +734,17 @@ async function handleSubmit() {
       video_material_generate_count: form.video_count,
       // 发布
       is_publish: false,
-    })
-    ElMessage.success(t('addTask.taskCreated'))
+    }
+    if (editingTaskId.value) {
+      await updateTask({ ...payload, task_id: editingTaskId.value })
+      ElMessage.success(t('addTask.taskUpdated'))
+    } else {
+      await addTask(payload)
+      ElMessage.success(t('addTask.taskCreated'))
+    }
     router.push('/tasks')
   } catch {
-    ElMessage.error(t('addTask.createFailed'))
+    ElMessage.error(editingTaskId.value ? t('addTask.updateFailed') : t('addTask.createFailed'))
   } finally {
     submitting.value = false
   }

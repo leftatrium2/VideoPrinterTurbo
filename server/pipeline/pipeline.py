@@ -50,10 +50,9 @@ def get_downloader(url: str) -> BaseDownloader or None:
 
 
 class Pipeline:
-    __proxy = None
 
     def __init__(self):
-        pass
+        self.__proxy = None
 
     def set_proxy(self, proxy: str):
         self.__proxy = proxy
@@ -70,7 +69,8 @@ class Pipeline:
         return downloader.check(url, self.__proxy)
 
     # 1. Download video
-    def download(self, url: str, output_dir: str, ctx: DownloaderContext) -> str or None:
+    def download(self, url: str, output_dir: str, ctx: DownloaderContext,
+                 is_download_proxy: bool = True) -> str or None:
         if not url.strip():
             logging.error("Url is empty")
             return None
@@ -78,7 +78,9 @@ class Pipeline:
         if not downloader:
             logging.error("Downloader is None")
             return None
-        return downloader.download(url, output_dir, ctx, self.__proxy)
+        if is_download_proxy:
+            return downloader.download(url, output_dir, ctx, self.__proxy)
+        return downloader.download(url, output_dir, ctx)
 
     # 2. Audio to text (subtitle)
     def subtitle(self, url: str, lang: int) -> str or None:
@@ -99,7 +101,9 @@ class Pipeline:
             return None
         transcriber: BaseTranscriber = None
         if audio_rewrite_type == const.TASK_CONFIG_ASR_FASTER_WHISPER or audio_rewrite_type == const.TASK_CONFIG_ASR_MLX_WHISPER or audio_rewrite_type == const.TASK_CONFIG_ASR_OPENAI_WHISPER:
-            transcriber = WhisperTranscriber()
+            transcriber = WhisperTranscriber(
+                local_whisper_type=audio_rewrite_type
+            )
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD:
             transcriber = TencentCloudTranscriber()
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_XF_YUN:

@@ -48,13 +48,16 @@ class MaterialPixabayItem(BaseModel):
 
 
 class TaskItem(BaseModel):
+    task_id: str = ""
     task_url: str = ""
+    # Is a proxy used for the downloader?
+    is_download_proxy: bool = False
     ### 1. Audio to Text
     is_from_asr_or_subtitle: bool = False
     # Audio conversion method
     audio_rewrite_type: int = 0
     # Subtitle language
-    subtitle_lang:int = 0
+    subtitle_lang: int = 0
     ### 2. LLM Rewrite
     is_llm: bool = False
     # LLM Prompt

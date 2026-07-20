@@ -27,9 +27,11 @@ interface TaskListApiData {
 
 export interface AddTaskParams {
   task_url: string
+  is_download_proxy: boolean
   // 音频转文字
   is_from_asr_or_subtitle: boolean
   audio_rewrite_type: number
+  subtitle_lang: number
   // LLM 改写
   is_llm: boolean
   llm_prompt: string
@@ -150,6 +152,7 @@ export async function getTasks(page: number, pageSize: number): Promise<TaskList
 
 export interface TaskDetail {
   task_url: string
+  is_download_proxy: number
   create_time: string
   is_deleted: number
   status: number
@@ -158,6 +161,7 @@ export interface TaskDetail {
   error_desc: string
   is_from_asr_or_subtitle: number
   audio_rewrite_type: number
+  subtitle_lang: number
   is_llm: number
   llm_prompt: string
   is_rewrite_to_tts: number
@@ -197,6 +201,14 @@ export async function getTaskDetail(taskId: string): Promise<TaskDetail> {
 
 export function addTask(params: AddTaskParams): Promise<ApiResult<Record<string, unknown>>> {
   return request(http.post('/tasks/add', params))
+}
+
+export interface UpdateTaskParams extends AddTaskParams {
+  task_id: string
+}
+
+export function updateTask(params: UpdateTaskParams): Promise<ApiResult<Record<string, unknown>>> {
+  return request(http.post('/tasks/update', params))
 }
 
 export function checkTaskUrl(url: string): Promise<CheckUrlResult> {

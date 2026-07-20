@@ -83,12 +83,54 @@ async def del_tasks(task_id: str = Query(default=None), db: AsyncSession = Depen
     return result_succ()
 
 
+@router.post("/update")
+async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
+    result = await db.execute(select(VptTask).where(VptTask.task_id == task.task_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        return result_failure(const.TASK_ERR_TASK_NOT_FOUND, "Task not found")
+    item.task_url = task.task_url
+    item.is_download_proxy = task.is_download_proxy
+    item.is_from_asr_or_subtitle = task.is_from_asr_or_subtitle
+    item.is_llm = task.is_llm
+    item.audio_rewrite_type = task.audio_rewrite_type
+    item.subtitle_lang = task.subtitle_lang
+    item.llm_prompt = task.llm_prompt
+    item.is_rewrite_to_tts = task.is_rewrite_to_tts
+    item.tts_server = task.tts_server
+    item.tts_voice = task.tts_voice
+    item.tts_volume = task.tts_volume
+    item.tts_speed = task.tts_speed
+    item.is_rewrite_to_subtitle = task.is_rewrite_to_subtitle
+    item.subtitle_font = task.subtitle_font
+    item.subtitle_position = task.subtitle_position
+    item.subtitle_font_color = task.subtitle_font_color
+    item.subtitle_border_color = task.subtitle_border_color
+    item.is_bgm = task.is_bgm
+    item.uploaded_bgm = json.dumps(task.uploaded_bgm)
+    item.bgm_volume = task.bgm_volume
+    item.subtitle_size = task.subtitle_size
+    item.is_video_material = task.is_video_material
+    item.video_material_type = task.video_material_type
+    item.uploaded_video_material = json.dumps(task.uploaded_video_material)
+    item.video_material_splicing_mode = task.video_material_splicing_mode
+    item.video_material_transition_mode = task.video_material_transition_mode
+    item.video_material_Video_ratio = task.video_material_Video_ratio
+    item.video_material_max_duration = task.video_material_max_duration
+    item.video_material_generate_count = task.video_material_generate_count
+    item.is_publish = task.is_publish
+    await db.commit()
+    await db.refresh(item)
+    return result_succ()
+
+
 @router.post("/add")
 async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
     task_id = gen_task_id()
     item = VptTask(
         task_id=task_id,
         task_url=task.task_url,
+        is_download_proxy=task.is_download_proxy,
         is_from_asr_or_subtitle=task.is_from_asr_or_subtitle,
         is_llm=task.is_llm,
         audio_rewrite_type=task.audio_rewrite_type,

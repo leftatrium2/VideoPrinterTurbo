@@ -78,6 +78,7 @@ class VptTask(Base):
     tts_volume = Column(Float, nullable=False, server_default=text("0"))
     subtitle_position = Column(Text, nullable=False, server_default=text("''"))
     subtitle_lang = Column(Integer, nullable=False, server_default=text("0"))
+    is_download_proxy = Column(Integer, nullable=False, server_default=text("0"))
 
 
 class VptTtsConfig(Base):

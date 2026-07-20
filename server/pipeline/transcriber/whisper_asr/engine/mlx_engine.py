@@ -34,11 +34,15 @@ class MLXWhisperEngine(BaseWhisperEngine):
         repo = self._resolve_repo()
         logger.info(f"[MLXWhisperEngine] 使用模型: {repo}")
 
+        transcribe_kwargs = {}
+        if self.language is not None:
+            transcribe_kwargs["language"] = self.language
+        transcribe_kwargs.update(self.extra_kwargs)
+
         result = mlx_whisper.transcribe(
             audio_path,
             path_or_hf_repo=repo,
-            language=self.language,
-            **self.extra_kwargs,
+            **transcribe_kwargs,
         )
 
         segments = []
