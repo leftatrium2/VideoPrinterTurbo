@@ -27,7 +27,7 @@ _UPLOAD_POLICY_URL = f"{_BASE_URL}/uploads"
 class AliyunASR(BaseTranscriber):
     def __init__(
             self,
-            api_key: str,
+            api_key: Optional[str],
             model: str = "paraformer-v2",
             poll_interval_seconds: float = 5.0,
             poll_timeout_seconds: float = 1800.0,
