@@ -125,7 +125,8 @@ class Pipeline:
         audio_rewrite_type = args['audio_rewrite_type']
         transcriber: BaseTranscriber = None
         if audio_rewrite_type == const.TASK_CONFIG_ASR_FASTER_WHISPER or audio_rewrite_type == const.TASK_CONFIG_ASR_MLX_WHISPER or audio_rewrite_type == const.TASK_CONFIG_ASR_OPENAI_WHISPER:
-            model_size = None
+            # local whisper
+            model_size = "large-v3"
             if args['model_size']:
                 model_size = args['model_size']
             language = None
@@ -137,6 +138,8 @@ class Pipeline:
                 language=language
             )
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD:
+            # tencent cloud asr service
+            # https://intl.cloud.tencent.com/en/products/asr
             secret_id = None
             if args['secret_id']:
                 secret_id = args['secret_id']
@@ -164,6 +167,8 @@ class Pipeline:
                 poll_timeout_seconds=poll_timeout_seconds
             )
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_XF_YUN:
+            # xfyun cloud asr service
+            # https://global.xfyun.cn/
             app_id = None
             if args['app_id']:
                 app_id = args['app_id']
@@ -183,6 +188,8 @@ class Pipeline:
                 language=language
             )
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_ALIYUN:
+            # aliyun cloud asr
+            # https://www.alibabacloud.com/help/en/model-studio/qwen-asr-api-reference?scm=20140722.S_help%40%40%E6%96%87%E6%A1%A3%40%402986952._.RL_asr-LOC_2024NSHelpLink-OR_ser-PAR1_0bc3b4b317846037013694282e5ff8-V_4-P0_0-P1_0
             api_key = None
             if args['api_key']:
                 api_key = args['api_key']
@@ -195,6 +202,8 @@ class Pipeline:
             )
             pass
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_AZURE:
+            # azure cloud asr
+            # https://azure.microsoft.com/en-us
             subscription_key = None
             if args['api_key']:
                 subscription_key = args['api_key']
@@ -214,6 +223,8 @@ class Pipeline:
                 enable_diarization=enable_diarization
             )
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_BYTEDANCE:
+            # bytedance volcengine asr
+            # https://www.volcengine.com/
             app_id = None
             if args['app_id']:
                 app_id = args['app_id']
@@ -229,6 +240,8 @@ class Pipeline:
                 audio_format=audio_format
             )
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_OPENAI:
+            # openai asr
+            # https://developers.openai.com/api/docs/guides/speech-to-text
             api_key = None
             if args['api_key']:
                 api_key = args['api_key']

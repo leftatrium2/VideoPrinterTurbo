@@ -22,6 +22,15 @@ class ASRConfigItem(BaseModel):
     xfyun_secret_key: str = ""
     xfyun_web_api: str = ""
     local_whisper_type: int = 0
+    aliyun_cloud_api_key: str = ""
+    aliyun_cloud_model: str = ""
+    azure_subscription_key: str = ""
+    azure_region: str = ""
+    openai_api_key: str = ""
+    openai_model: str = ""
+    openai_base_url: str = ""
+    volcengine_appid: str = ""
+    volcengine_access_token: str = ""
 
 
 class LLMConfigItem(BaseModel):

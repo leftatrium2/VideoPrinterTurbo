@@ -50,6 +50,62 @@
           </div>
         </el-tab-pane>
 
+        <el-tab-pane :label="t('asrConfig.aliyunTab')" name="aliyun">
+          <div class="tab-body">
+            <div class="field">
+              <div class="field-label">API Key</div>
+              <el-input v-model="aliyunForm.apiKey" class="field-input" type="password" show-password :placeholder="t('asrConfig.placeholder')" />
+            </div>
+            <div class="field">
+              <div class="field-label">Model</div>
+              <el-input v-model="aliyunForm.model" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('asrConfig.openaiTab')" name="openai">
+          <div class="tab-body">
+            <div class="field">
+              <div class="field-label">API Key</div>
+              <el-input v-model="openaiForm.apiKey" class="field-input" type="password" show-password :placeholder="t('asrConfig.placeholder')" />
+            </div>
+            <div class="field">
+              <div class="field-label">Model</div>
+              <el-input v-model="openaiForm.model" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+            </div>
+            <div class="field">
+              <div class="field-label">Base URL</div>
+              <el-input v-model="openaiForm.baseUrl" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('asrConfig.azureTab')" name="azure">
+          <div class="tab-body">
+            <div class="field">
+              <div class="field-label">Subscription Key</div>
+              <el-input v-model="azureForm.subscriptionKey" class="field-input" type="password" show-password :placeholder="t('asrConfig.placeholder')" />
+            </div>
+            <div class="field">
+              <div class="field-label">Region</div>
+              <el-input v-model="azureForm.region" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane :label="t('asrConfig.volcengineTab')" name="volcengine">
+          <div class="tab-body">
+            <div class="field">
+              <div class="field-label">App ID</div>
+              <el-input v-model="volcengineForm.appId" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+            </div>
+            <div class="field">
+              <div class="field-label">Access Token</div>
+              <el-input v-model="volcengineForm.accessToken" class="field-input" type="password" show-password :placeholder="t('asrConfig.placeholder')" />
+            </div>
+          </div>
+        </el-tab-pane>
+
       </el-tabs>
 
       <div class="card-footer">
@@ -79,10 +135,18 @@ const loadingWhisperList = ref(false)
 function defaultWhisperForm() { return { model: 0 } }
 function defaultTencentForm() { return { secretId: '', secretKey: '' } }
 function defaultXunfeiForm()  { return { appId: '', secretKey: '', webApi: '' } }
+function defaultAliyunForm() { return { apiKey: '', model: 'paraformer-v2' } }
+function defaultOpenaiForm() { return { apiKey: '', model: 'whisper-1', baseUrl: '' } }
+function defaultAzureForm() { return { subscriptionKey: '', region: '' } }
+function defaultVolcengineForm() { return { appId: '', accessToken: '' } }
 
 const whisperForm = reactive(defaultWhisperForm())
 const tencentForm = reactive(defaultTencentForm())
 const xunfeiForm  = reactive(defaultXunfeiForm())
+const aliyunForm = reactive(defaultAliyunForm())
+const openaiForm = reactive(defaultOpenaiForm())
+const azureForm = reactive(defaultAzureForm())
+const volcengineForm = reactive(defaultVolcengineForm())
 
 async function loadInitialData() {
   loadingWhisperList.value = true
@@ -111,6 +175,15 @@ async function loadInitialData() {
     xunfeiForm.appId      = d.xfyun_appid              || ''
     xunfeiForm.secretKey  = d.xfyun_secret_key         || ''
     xunfeiForm.webApi     = d.xfyun_web_api            || ''
+    aliyunForm.apiKey     = d.aliyun_cloud_api_key     || ''
+    aliyunForm.model      = d.aliyun_cloud_model       || defaultAliyunForm().model
+    openaiForm.apiKey     = d.openai_api_key           || ''
+    openaiForm.model      = d.openai_model             || defaultOpenaiForm().model
+    openaiForm.baseUrl    = d.openai_base_url          || ''
+    azureForm.subscriptionKey = d.azure_subscription_key || ''
+    azureForm.region      = d.azure_region             || ''
+    volcengineForm.appId       = d.volcengine_appid         || ''
+    volcengineForm.accessToken = d.volcengine_access_token  || ''
   } else if (whisperModelList.value.length > 0) {
     // no saved config — default to first model
     whisperForm.model = whisperModelList.value[0].value
@@ -122,8 +195,16 @@ function handleReset() {
     Object.assign(whisperForm, defaultWhisperForm())
   } else if (activeTab.value === 'tencent') {
     Object.assign(tencentForm, defaultTencentForm())
-  } else {
+  } else if (activeTab.value === 'xunfei') {
     Object.assign(xunfeiForm, defaultXunfeiForm())
+  } else if (activeTab.value === 'aliyun') {
+    Object.assign(aliyunForm, defaultAliyunForm())
+  } else if (activeTab.value === 'openai') {
+    Object.assign(openaiForm, defaultOpenaiForm())
+  } else if (activeTab.value === 'azure') {
+    Object.assign(azureForm, defaultAzureForm())
+  } else if (activeTab.value === 'volcengine') {
+    Object.assign(volcengineForm, defaultVolcengineForm())
   }
 }
 
@@ -137,6 +218,15 @@ async function handleSubmit() {
       xfyun_appid:               xunfeiForm.appId,
       xfyun_secret_key:          xunfeiForm.secretKey,
       xfyun_web_api:             xunfeiForm.webApi,
+      aliyun_cloud_api_key:      aliyunForm.apiKey,
+      aliyun_cloud_model:        aliyunForm.model,
+      azure_subscription_key:    azureForm.subscriptionKey,
+      azure_region:              azureForm.region,
+      openai_api_key:            openaiForm.apiKey,
+      openai_model:              openaiForm.model,
+      openai_base_url:           openaiForm.baseUrl,
+      volcengine_appid:          volcengineForm.appId,
+      volcengine_access_token:   volcengineForm.accessToken,
     })
     ElMessage.success(t('asrConfig.submitSuccess'))
   } catch {

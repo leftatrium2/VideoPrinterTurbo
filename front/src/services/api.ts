@@ -303,6 +303,15 @@ export interface AsrConfigData {
   xfyun_secret_key: string
   xfyun_web_api: string
   local_whisper_type: number
+  aliyun_cloud_api_key: string
+  aliyun_cloud_model: string
+  azure_subscription_key: string
+  azure_region: string
+  openai_api_key: string
+  openai_model: string
+  openai_base_url: string
+  volcengine_appid: string
+  volcengine_access_token: string
 }
 
 export async function getAsrConfig(): Promise<AsrConfigData> {

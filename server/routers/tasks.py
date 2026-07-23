@@ -365,3 +365,4 @@ async def check_task_url(url: str = Query(default="", min_length=1, max_length=3
     if not result:
         return result_failure(const.TASK_ERR_CHECK_URL, f"Task URL check failed, {url}")
     return result_succ()
+

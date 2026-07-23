@@ -16,6 +16,26 @@
       {
         "cn": "从科大讯飞ASR",
         "en": "XFYun ASR"
+      },
+      {
+        "cn": "从科大讯飞ASR",
+        "en": "XFYun ASR"
+      },
+      {
+        "cn": "从阿里云ASR",
+        "en": "Aliyun Cloud ASR"
+      },
+      {
+        "cn": "从微软Azure云ASR",
+        "en": "Azure ASR"
+      },
+      {
+        "cn": "从OpenAI ASR",
+        "en": "OpenAI ASR"
+      },
+      {
+        "cn": "从火山引擎 ASR",
+        "en": "ByteDance Volcengine ASR"
       }
     ],
     "subtitle": [
