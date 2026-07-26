@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -8,6 +9,7 @@ from typing import List, Optional
 
 from pipeline.transcriber.asr_exception import ASRException
 from pipeline.transcriber.segment import Segment
+from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -168,3 +170,19 @@ def build_proxies(proxy: Optional[str]) -> Optional[dict]:
     if not proxy:
         return None
     return {"http": proxy, "https": proxy}
+
+
+def save_to_srt(asr_text: str, audio_path: str) -> Optional[str]:
+    try:
+        asr_path = asyncio.run(get_video_to_text_path())
+        if asr_path:
+            from pathlib import Path
+            asr_file_name = Path(audio_path).stem
+            asr_full_file_name = f"{asr_file_name}.srt"
+            asr_full_path = os.path.join(asr_path, asr_full_file_name)
+            with open(asr_full_path, "w", encoding="utf-8") as f:
+                f.write(asr_text)
+            return asr_full_path
+    except Exception as e:
+        logger.warning(f"保存 SRT 文件失败: {e}")
+        return None

@@ -1,6 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Column, Float, Integer, Table, Text, text
-from sqlalchemy.sql.sqltypes import NullType
+from sqlalchemy import Column, Float, Integer, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -17,8 +16,6 @@ class VptAsrConfig(Base):
     xfyun_secret_key = Column(Text, nullable=False, server_default=text("''"))
     xfyun_web_api = Column(Text, nullable=False, server_default=text("''"))
     local_whisper_type = Column(Integer, nullable=False, server_default=text("0"))
-    aliyun_cloud_api_key = Column(Text, nullable=False, server_default=text("''"))
-    aliyun_cloud_model = Column(Text, nullable=False, server_default=text("'paraformer-v2'"))
     azure_subscription_key = Column(Text, nullable=False, server_default=text("''"))
     azure_region = Column(Text, nullable=False, server_default=text("''"))
     openai_api_key = Column(Text, nullable=False, server_default=text("''"))

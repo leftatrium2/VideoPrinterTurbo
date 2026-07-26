@@ -11,7 +11,6 @@ from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 from pipeline.llm.base import BaseLLMProvider
 from pipeline.llm.openai_provider import OpenAIProvider
 from pipeline.material.base import BaseMaterialSearcher
-from pipeline.transcriber.aliyun_asr.aliyun_transcriber import AliyunASR
 from pipeline.transcriber.azure_asr.azure_transcriber import AzureASR
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.bytedance_asr.volcengine_transcriber import VolcengineASR
@@ -187,20 +186,6 @@ class Pipeline:
                 api_secret=api_secret,
                 language=language
             )
-        elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_ALIYUN:
-            # aliyun cloud asr
-            # https://www.alibabacloud.com/help/en/model-studio/qwen-asr-api-reference?scm=20140722.S_help%40%40%E6%96%87%E6%A1%A3%40%402986952._.RL_asr-LOC_2024NSHelpLink-OR_ser-PAR1_0bc3b4b317846037013694282e5ff8-V_4-P0_0-P1_0
-            api_key = None
-            if args['api_key']:
-                api_key = args['api_key']
-            model = "paraformer-v2"
-            if args['model']:
-                model = args['model']
-            transcriber = AliyunASR(
-                api_key=api_key,
-                model=model
-            )
-            pass
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_AZURE:
             # azure cloud asr
             # https://azure.microsoft.com/en-us

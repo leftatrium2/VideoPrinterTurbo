@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 
 # mlx_whisper 官方仓库中常见的模型命名规则（HuggingFace repo），
 # 允许用户直接传完整 repo id，也允许传简写（如 "large-v3"）自动补全。
+# mlx-community 组织下的 Whisper 仓库统一带 "-mlx" 后缀（如
+# mlx-community/whisper-large-v3-mlx），裸名（不带后缀）仓库基本不存在。
 _MLX_REPO_PREFIX = "mlx-community/whisper-"
+_MLX_REPO_SUFFIX = "-mlx"
 
 
 class MLXWhisperEngine(BaseWhisperEngine):
@@ -21,7 +24,7 @@ class MLXWhisperEngine(BaseWhisperEngine):
         if "/" in self.model_size:
             # 用户直接传入了完整的 HuggingFace repo id
             return self.model_size
-        return f"{_MLX_REPO_PREFIX}{self.model_size}"
+        return f"{_MLX_REPO_PREFIX}{self.model_size}{_MLX_REPO_SUFFIX}"
 
     def run(self, audio_path: str) -> List[Segment]:
         try:

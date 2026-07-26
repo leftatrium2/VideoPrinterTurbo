@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -8,10 +9,12 @@ from typing import Optional, List, Tuple
 
 import requests
 
+from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import get_duration_seconds, get_file_size, segments_to_srt, cleanup_dir, \
-    split_audio_by_duration, build_proxies
+    split_audio_by_duration, build_proxies, save_to_srt
+from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +101,8 @@ class XFCloudASR(BaseTranscriber):
             if not all_segments:
                 logger.warning(f"[XunfeiASRTranscriber] 未识别到任何内容: {audio_path}")
                 return None
-            return segments_to_srt(all_segments)
+            asr_text = segments_to_srt(all_segments)
+            return save_to_srt(asr_text, audio_path)
         except Exception as e:
             logger.error(f"[XunfeiASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
             return None

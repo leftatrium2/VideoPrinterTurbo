@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import hmac
@@ -8,10 +9,12 @@ from typing import List, Optional
 
 import requests
 
+from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import get_duration_seconds, segments_to_srt, cleanup_dir, build_proxies, \
     convert_audio, split_audio_by_duration
+from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +23,29 @@ _SERVICE = "asr"
 _VERSION = "2019-06-14"
 _ALGORITHM = "TC3-HMAC-SHA256"
 
-# 单文件 Data(base64) 上传方式官方建议控制在较小体积内，超过该阈值自动切片处理。
-# 可通过构造函数的 max_chunk_seconds 自行调整分片粒度。
-_DEFAULT_MAX_CHUNK_SECONDS = 20 * 60  # 20 分钟一片，规避单次上传体积/时长过大问题
+# CreateRecTask（SourceType=1，本地音频 base64 直传）中 Data 字段的硬性上限：
+# 腾讯云校验的是「Data 解码后的原始字节数」，与 base64 膨胀、外层 JSON 请求体大小无关。
+# 实测报错 `Data: length should in range [0, 5242880]`，即精确的 5MB。
+_TENCENT_DATA_RAW_SIZE_LIMIT_BYTES = 5 * 1024 * 1024  # 5MB，按解码后原始字节数计
+
+# _plan_chunks 会先把音频统一转成 16kHz/单声道/16bit PCM WAV 再 base64 直传，
+# 这里按该编码参数反推：多长的音频转码后仍能落在 Data 原始字节数上限内，
+# 而不是像之前那样直接拍一个固定值。
+_WAV_SAMPLE_RATE = 16000
+_WAV_CHANNELS = 1
+_WAV_BYTES_PER_SAMPLE = 2  # 16-bit PCM
+_REQUEST_SIZE_SAFETY_MARGIN = 0.9  # 给 wav 头开销及分片时长取整误差留余量
+
+
+def _max_chunk_seconds_by_size_limit() -> int:
+    """按 16kHz/单声道/16bit PCM WAV 编码后的原始字节数，反推单片最大时长（秒）。"""
+    bytes_per_second = _WAV_SAMPLE_RATE * _WAV_CHANNELS * _WAV_BYTES_PER_SAMPLE
+    max_raw_bytes = _TENCENT_DATA_RAW_SIZE_LIMIT_BYTES * _REQUEST_SIZE_SAFETY_MARGIN
+    return int(max_raw_bytes / bytes_per_second)
+
+
+# 单片最大时长：由 Data 字段原始字节数上限反推得出，而不是拍脑袋的固定分钟数。
+_DEFAULT_MAX_CHUNK_SECONDS = _max_chunk_seconds_by_size_limit()  # 约 2.4 分钟（16kHz/单声道/16bit 编码下）
 
 
 # 腾讯云「录音文件识别」转写实现。
@@ -125,7 +148,7 @@ class TencentCloudTranscriber(BaseTranscriber):
         create_payload = {
             "EngineModelType": self.engine_model_type,
             "ChannelNum": 1,
-            "ResTextFormat": 0,
+            "ResTextFormat": 3,  # 按标点分段（字幕场景），返回句级 ResultDetail（含 StartMs/EndMs/FinalSentence）
             "SourceType": 1,
             "Data": audio_b64,
         }
@@ -142,7 +165,7 @@ class TencentCloudTranscriber(BaseTranscriber):
             status_str = data.get("StatusStr")
 
             if status_str == "success":
-                return self._parse_result_detail(data.get("ResultDetail", []))
+                return self._parse_result_detail(data.get("ResultDetail") or [])
             if status_str == "failed":
                 raise RuntimeError(f"腾讯云识别任务失败: {data.get('ErrorMsg')}")
 

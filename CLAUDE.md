@@ -49,7 +49,7 @@ cd front && npm run build
 - `models/schemas.py` — Pydantic 请求/响应 schema。
 - `pipeline/` — 核心处理流水线，每个阶段一个子包：
   - `downloader/` — 目前只剩 `yt_dlp/` 一种实现（其余下载器已被移除，详见 git 历史）。`pipeline.py` 中 `get_downloader()` 按关键词匹配已配置的域名选择下载器，其余一律回退到 yt-dlp 下载器。
-  - `transcriber/` — 字幕提取、本地 Whisper、腾讯云 ASR、科大讯飞 ASR，以及新增的阿里云 ASR（`aliyun_asr/`）、Azure ASR（`azure_asr/`）、火山引擎/字节跳动 ASR（`bytedance_asr/`）、OpenAI ASR（`openai_asr/`）。`pipeline.py` 的 `transcribe()` 已按 `const.TASK_CONFIG_ASR_FROM_*`（5=阿里云、6=Azure、7=火山引擎、8=OpenAI）接入这四个新 provider；本地 Whisper 分支的 `model_size` 默认值已从 `None` 改为 `"large-v3"`。前端 `AsrConfig.vue` 已经补上这四个服务商的配置表单（阿里云：API Key/Model；Azure：Subscription Key/Region 纯文本框；OpenAI：API Key/Model/Base URL；火山引擎：App ID/Access Token），字段直接对应 `ASRConfigItem` 新增的 9 个字段；根目录 `i18n.json` 也已把这四种新 ASR 加进"添加任务"页的下拉选项。
+  - `transcriber/` — 字幕提取、本地 Whisper、腾讯云 ASR、科大讯飞 ASR，以及新增的 Azure ASR（`azure_asr/`）、火山引擎/字节跳动 ASR（`bytedance_asr/`）、OpenAI ASR（`openai_asr/`）。`pipeline.py` 的 `transcribe()` 已按 `const.TASK_CONFIG_ASR_FROM_*`（6=Azure、7=火山引擎、8=OpenAI）接入这三个新 provider；本地 Whisper 分支的 `model_size` 默认值已从 `None` 改为 `"large-v3"`。前端 `AsrConfig.vue` 已经补上这三个服务商的配置表单（Azure：Subscription Key/Region 纯文本框；OpenAI：API Key/Model/Base URL；火山引擎：App ID/Access Token），字段直接对应 `ASRConfigItem` 新增的 7 个字段；根目录 `i18n.json` 也已把这三种新 ASR 加进"添加任务"页的下拉选项。阿里云 ASR（原 `aliyun_asr/`，`TASK_CONFIG_ASR_FROM_ALIYUN=5`）支持已下线并从前后端移除。
   - `llm/` — OpenAI 兼容的改写 provider。
   - `tts/` — Azure TTS v1/v2、SiliconFlow、Google Gemini、小米 MiMo 的 provider 类。
   - `material/` — Pexels / Pixabay 素材搜索器。
@@ -97,7 +97,7 @@ Base URL `http://localhost:8080`；前端开发服务器会把 `/api/*` 代理�
 | `GET` | `/tts_config/tts_list` | 真实数据；返回 5 个 TTS 服务商的裸数组（没有 `{code,msg,data}` 外壳） |
 | `GET` | `/tts_config/tts_config_detail?engine=` | 指定引擎的声音列表 + 已保存配置 |
 | `POST` | `/tts_config/update` | 保存 TTS 配置 |
-| `GET` / `POST` | `/asr_config/`、`/asr_config/update` | ASR 配置（Whisper/腾讯云/科大讯飞/阿里云/Azure/OpenAI/火山引擎）。`VptAsrConfig`/`ASRConfigItem` 已扩展出阿里云（`aliyun_cloud_api_key`/`aliyun_cloud_model`）、Azure（`azure_subscription_key`/`azure_region`）、OpenAI（`openai_api_key`/`openai_model`/`openai_base_url`）、火山引擎（`volcengine_appid`/`volcengine_access_token`）字段，前端 `AsrConfig.vue` 已接入对应表单 |
+| `GET` / `POST` | `/asr_config/`、`/asr_config/update` | ASR 配置（Whisper/腾讯云/科大讯飞/Azure/OpenAI/火山引擎）。`VptAsrConfig`/`ASRConfigItem` 已扩展出 Azure（`azure_subscription_key`/`azure_region`）、OpenAI（`openai_api_key`/`openai_model`/`openai_base_url`）、火山引擎（`volcengine_appid`/`volcengine_access_token`）字段，前端 `AsrConfig.vue` 已接入对应表单。阿里云 ASR 字段（`aliyun_cloud_api_key`/`aliyun_cloud_model`）已从前后端移除 |
 | `GET` | `/asr_config/local_whisper_list` | 3 个本地 Whisper 后端 |
 | `GET` | `/material_config/pexels_list`、`/pixabay_list` | 分页查询已保存的 API Key 配置 |
 | `POST` | `/material_config/add_pexels_config`、`/add_pixabay_config` | 新增一条 API Key 配置 |

@@ -1,12 +1,15 @@
+import asyncio
 import logging
 from typing import Optional
 
-from pipeline.transcriber.utils.asr_utils import segments_to_srt
+from config.config import init_config
+from pipeline.transcriber.utils.asr_utils import segments_to_srt, save_to_srt
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.whisper_asr.engine.faster_engine import FasterWhisperEngine
 from pipeline.transcriber.whisper_asr.engine.mlx_engine import MLXWhisperEngine
 from pipeline.transcriber.whisper_asr.engine.openai_engine import OpenAIWhisperEngine
 from utils.const import TASK_CONFIG_ASR_OPENAI_WHISPER, TASK_CONFIG_ASR_MLX_WHISPER, TASK_CONFIG_ASR_FASTER_WHISPER
+from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +71,21 @@ class WhisperTranscriber(BaseTranscriber):
             if not segments:
                 logger.warning(f"[WhisperTranscriber] 未识别到任何内容: {audio_path}")
                 return None
-            return segments_to_srt(segments)
+            asr_text = segments_to_srt(segments)
+            return save_to_srt(asr_text, audio_path)
         except Exception as e:
             logger.error(f"[WhisperTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
             return None
+
+
+if __name__ == "__main__":
+    init_config()
+    path = asyncio.run(get_video_to_text_path())
+    transcriber = WhisperTranscriber(
+        local_whisper_type=TASK_CONFIG_ASR_MLX_WHISPER
+    )
+    transcriber.config(proxy="http://127.0.0.1:7890")
+    result = transcriber.transcribe(
+        "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp3")
+
+    print(result)

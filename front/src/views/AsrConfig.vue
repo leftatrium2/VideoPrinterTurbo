@@ -50,19 +50,6 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="t('asrConfig.aliyunTab')" name="aliyun">
-          <div class="tab-body">
-            <div class="field">
-              <div class="field-label">API Key</div>
-              <el-input v-model="aliyunForm.apiKey" class="field-input" type="password" show-password :placeholder="t('asrConfig.placeholder')" />
-            </div>
-            <div class="field">
-              <div class="field-label">Model</div>
-              <el-input v-model="aliyunForm.model" class="field-input" :placeholder="t('asrConfig.placeholder')" />
-            </div>
-          </div>
-        </el-tab-pane>
-
         <el-tab-pane :label="t('asrConfig.openaiTab')" name="openai">
           <div class="tab-body">
             <div class="field">
@@ -135,7 +122,6 @@ const loadingWhisperList = ref(false)
 function defaultWhisperForm() { return { model: 0 } }
 function defaultTencentForm() { return { secretId: '', secretKey: '' } }
 function defaultXunfeiForm()  { return { appId: '', secretKey: '', webApi: '' } }
-function defaultAliyunForm() { return { apiKey: '', model: 'paraformer-v2' } }
 function defaultOpenaiForm() { return { apiKey: '', model: 'whisper-1', baseUrl: '' } }
 function defaultAzureForm() { return { subscriptionKey: '', region: '' } }
 function defaultVolcengineForm() { return { appId: '', accessToken: '' } }
@@ -143,7 +129,6 @@ function defaultVolcengineForm() { return { appId: '', accessToken: '' } }
 const whisperForm = reactive(defaultWhisperForm())
 const tencentForm = reactive(defaultTencentForm())
 const xunfeiForm  = reactive(defaultXunfeiForm())
-const aliyunForm = reactive(defaultAliyunForm())
 const openaiForm = reactive(defaultOpenaiForm())
 const azureForm = reactive(defaultAzureForm())
 const volcengineForm = reactive(defaultVolcengineForm())
@@ -175,8 +160,6 @@ async function loadInitialData() {
     xunfeiForm.appId      = d.xfyun_appid              || ''
     xunfeiForm.secretKey  = d.xfyun_secret_key         || ''
     xunfeiForm.webApi     = d.xfyun_web_api            || ''
-    aliyunForm.apiKey     = d.aliyun_cloud_api_key     || ''
-    aliyunForm.model      = d.aliyun_cloud_model       || defaultAliyunForm().model
     openaiForm.apiKey     = d.openai_api_key           || ''
     openaiForm.model      = d.openai_model             || defaultOpenaiForm().model
     openaiForm.baseUrl    = d.openai_base_url          || ''
@@ -197,8 +180,6 @@ function handleReset() {
     Object.assign(tencentForm, defaultTencentForm())
   } else if (activeTab.value === 'xunfei') {
     Object.assign(xunfeiForm, defaultXunfeiForm())
-  } else if (activeTab.value === 'aliyun') {
-    Object.assign(aliyunForm, defaultAliyunForm())
   } else if (activeTab.value === 'openai') {
     Object.assign(openaiForm, defaultOpenaiForm())
   } else if (activeTab.value === 'azure') {
@@ -218,8 +199,6 @@ async function handleSubmit() {
       xfyun_appid:               xunfeiForm.appId,
       xfyun_secret_key:          xunfeiForm.secretKey,
       xfyun_web_api:             xunfeiForm.webApi,
-      aliyun_cloud_api_key:      aliyunForm.apiKey,
-      aliyun_cloud_model:        aliyunForm.model,
       azure_subscription_key:    azureForm.subscriptionKey,
       azure_region:              azureForm.region,
       openai_api_key:            openaiForm.apiKey,

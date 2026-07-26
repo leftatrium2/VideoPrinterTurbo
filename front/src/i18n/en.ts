@@ -170,7 +170,6 @@ export default {
     whisperTab: 'Whisper (Local ASR)',
     tencentTab: 'Tencent Cloud ASR',
     xunfeiTab: 'Xunfei ASR',
-    aliyunTab: 'Aliyun ASR',
     openaiTab: 'OpenAI ASR',
     azureTab: 'Azure ASR',
     volcengineTab: 'Volcengine ASR',

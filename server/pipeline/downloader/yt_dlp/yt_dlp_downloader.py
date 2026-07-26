@@ -1,13 +1,16 @@
 """YtDlpDownloader — downloads videos via yt-dlp with subtitle extraction."""
+import asyncio
 import subprocess
 
 import yt_dlp
 from loguru import logger
 
+from config.config import init_config
 from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoPackage
 from utils import const
 from utils.const import DOWNLOADER_CODEC_VIDEO_TYPE, DOWNLOADER_CODEC_AUDIO_TYPE, DOWNLOADER_CODEC_MUXER_TYPE
 from utils.exception import VPTException
+from utils.file_utils import get_download_path
 
 
 def make_hook(context: DownloaderContext):
@@ -91,3 +94,31 @@ class YtDlpDownloader(BaseDownloader):
             if context:
                 context.on_error(url, e)
         return None
+
+
+class TestDownloaderContext(DownloaderContext):
+    def on_create(self, url: str):
+        print(f"on_create: url: {url}")
+
+    def on_start(self, url: str):
+        print(f"on_start: url: {url}")
+
+    def on_progress(self, url: str, codec_type: int, progress: float):
+        print(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}")
+
+    def on_error(self, url: str, error: Exception):
+        print(f"on_error: url : {url}")
+        print(error)
+
+    def on_complete(self, url: str):
+        print(f"on_complete: url: {url}")
+
+
+if __name__ == "__main__":
+    init_config()
+    path = asyncio.run(get_download_path())
+    downloader = YtDlpDownloader()
+    download_url = "https://www.youtube.com/watch?v=E7YiKBeOneo"
+    proxy = "http://127.0.0.1:7890"
+    if downloader.check(download_url):
+        downloader.download(download_url, output_dir=path, context=TestDownloaderContext(), proxy=proxy)

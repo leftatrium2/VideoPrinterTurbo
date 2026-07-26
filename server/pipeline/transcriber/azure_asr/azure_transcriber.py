@@ -1,13 +1,17 @@
+import asyncio
 import json
 import logging
+import os.path
 from typing import Optional, List
 
 import requests
 
+from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import build_proxies, get_duration_seconds, split_audio_by_duration, \
-    segments_to_srt, cleanup_dir
+    segments_to_srt, cleanup_dir, save_to_srt
+from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +27,7 @@ class AzureASR(BaseTranscriber):
             region: str,
             locales: Optional[List[str]] = None,
             enable_diarization: bool = False,
-            max_chunk_seconds: int = _DEFAULT_MAX_CHUNK_SECONDS,
-            proxy: Optional[str] = None,
+            max_chunk_seconds: int = _DEFAULT_MAX_CHUNK_SECONDS
     ):
         self.proxies = None
         self.subscription_key = subscription_key
@@ -33,7 +36,6 @@ class AzureASR(BaseTranscriber):
         self.locales = locales or ["zh-CN", "en-US"]
         self.enable_diarization = enable_diarization
         self.max_chunk_seconds = max_chunk_seconds
-        self.proxies = build_proxies(proxy)
 
     def config(self, proxy: Optional[str] = None):
         if proxy:
@@ -64,7 +66,8 @@ class AzureASR(BaseTranscriber):
             if not segments:
                 logger.warning(f"[AzureASRTranscriber] 未识别到任何内容: {audio_path}")
                 return None
-            return segments_to_srt(segments)
+            asr_text = segments_to_srt(segments)
+            return save_to_srt(asr_text, audio_path)
         except Exception as e:
             logger.error(f"[AzureASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
             return None

@@ -1,10 +1,15 @@
+import asyncio
 import logging
 from typing import Optional, List
 
+from openai.types.audio import TranscriptionSegment
+
+from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import get_file_size, get_duration_seconds, \
-    split_audio_by_duration, segments_to_srt, cleanup_dir
+    split_audio_by_duration, segments_to_srt, cleanup_dir, save_to_srt
+from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +87,8 @@ class OpenAIASR(BaseTranscriber):
             if not segments:
                 logger.warning(f"[OpenAIASRTranscriber] 未识别到任何内容: {audio_path}")
                 return None
-            return segments_to_srt(segments)
+            asr_text = segments_to_srt(segments)
+            return save_to_srt(asr_text, audio_path)
         except Exception as e:
             logger.error(f"[OpenAIASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
             return None

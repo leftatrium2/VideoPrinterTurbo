@@ -27,7 +27,14 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
         "xfyun_appid": "",
         "xfyun_secret_key": "",
         "xfyun_web_api": "",
-        "local_whisper_type": ""
+        "local_whisper_type": "",
+        "azure_subscription_key": "",
+        "azure_region": "",
+        "openai_api_key": "",
+        "openai_model": "",
+        "openai_base_url": "",
+        "volcengine_appid": "",
+        "volcengine_access_token": ""
     }
     if not item:
         return result_succ(ret_dict)
@@ -38,8 +45,6 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
         "xfyun_secret_key": item.xfyun_secret_key,
         "xfyun_web_api": item.xfyun_web_api,
         "local_whisper_type": item.local_whisper_type,
-        "aliyun_cloud_api_key": item.aliyun_cloud_api_key,
-        "aliyun_cloud_model": item.aliyun_cloud_model,
         "azure_subscription_key": item.azure_subscription_key,
         "azure_region": item.azure_region,
         "openai_api_key": item.openai_api_key,
@@ -76,8 +81,6 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
             xfyun_secret_key=data.xfyun_secret_key,
             xfyun_web_api=data.xfyun_web_api,
             local_whisper_type=data.local_whisper_type,
-            aliyun_cloud_api_key=data.aliyun_cloud_api_key,
-            aliyun_cloud_model=data.aliyun_cloud_model,
             azure_subscription_key=data.azure_subscription_key,
             azure_region=data.azure_region,
             openai_api_key=data.openai_api_key,
@@ -94,8 +97,6 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
         item.xfyun_secret_key = data.xfyun_secret_key
         item.xfyun_web_api = data.xfyun_web_api
         item.local_whisper_type = data.local_whisper_type
-        item.aliyun_cloud_api_key = data.aliyun_cloud_api_key
-        item.aliyun_cloud_model = data.aliyun_cloud_model
         item.azure_subscription_key = data.azure_subscription_key
         item.azure_region = data.azure_region
         item.openai_api_key = data.openai_api_key
