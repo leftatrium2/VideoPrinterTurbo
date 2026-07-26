@@ -1,6 +1,14 @@
-# CLAUDE.md
+# Claude Code 兼容入口
 
-本文件为 Claude Code（claude.ai/code）在本仓库中工作时提供指导。
+仓库的唯一权威协作说明位于 [`AGENTS.md`](AGENTS.md)。在本仓库工作前，请先阅读并
+遵循该文件。本兼容入口不会重复维护规则。
+
+<!--
+此前存放在这里的详细 Claude Code 说明已于 2026-07-26 迁移至 AGENTS.md。
+后续所有仓库协作规则均应维护在 AGENTS.md 中。
+-->
+
+<!-- 以下内容仅为历史参考，完整历史也可通过 Git 查看：
 
 ## 项目概览
 
@@ -123,3 +131,4 @@ subtitle_lang
 ## 前端测试
 
 `front/src/services/api.test.ts`（9 个用例）和 `front/src/stores/task.test.ts`（3 个用例）。运行方式：`cd front && npx vitest run`。
+-->
