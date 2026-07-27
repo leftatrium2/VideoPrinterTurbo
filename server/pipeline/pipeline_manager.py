@@ -1,10 +1,14 @@
+import asyncio
 import importlib
+import json
 import logging
 import os.path
+from typing import Optional
 
 from sqlalchemy import select
 
 import config.config as _config
+from config.config import init_config
 from models.model import VptTask
 from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
@@ -24,6 +28,7 @@ from pipeline.tts.base import TTSBase
 from pipeline.tts.google_gemini_tts import GoogleGeminiTTS
 from utils import const
 from utils.database import database
+from utils.file_utils import get_material_path
 
 downloaders = {}
 
@@ -52,7 +57,7 @@ def get_downloader(url: str) -> BaseDownloader or None:
     return downloaders['others']
 
 
-class Pipeline:
+class PipelineManager:
 
     def __init__(self):
         self.__proxy = None
@@ -277,10 +282,37 @@ class Pipeline:
         tts.rewrite(subtitle_path, lang, voice)
         return True
 
+    def __get_material_keyword_from_llm(self, text_file_path: str) -> Optional[str]:
+        if not os.path.exists(text_file_path):
+            logging.error(f"{text_file_path} is not exists")
+            return None
+
+        return None
+
     # 7. Video overlay
-    def video_overlay(self) -> bool:
+    def video_overlay(
+            self,
+            material_keyword: str = Optional[str],
+            material_splicing_mode: int = 0,
+            material_transition_mode: int = 0,
+            material_video_ratio: int = 0,
+            material_max_duration: int = 0,
+            material_generate_count: int = 0
+    ) -> bool:
         video_searcher: BaseMaterialSearcher = None
+        output_path = asyncio.run(get_material_path())
+        keyword = []
+        # 如果用户设置了搜索关键字，那么优先使用此关键字搜索
+        if material_keyword:
+            keyword = material_keyword.split(' ')
+        else:
+            # 如果没有找到搜索关键字，那么从当前的字幕（ASR导出的也算）
+            keyword = self.__get_material_keyword_from_llm()
+            if not keyword:
+                logging.error("No keyword found")
+                return False
         # 7.1 先搜索
+        video_searcher.search(keyword, )
         # 7.2 根据搜索拿到的素材，下载
         return True
 
@@ -289,11 +321,11 @@ class Pipeline:
         return True
 
 
-pipeline = Pipeline()
+pipeline = PipelineManager()
 
-
-def main():
-    task_id = "20260701212108501553"
+if __name__ == "__main__":
+    init_config()
+    task_id = "20260720215545133997"
     database.start()
     db = database.get_sync_session()
     result = db.execute(select(VptTask).where(
@@ -301,8 +333,7 @@ def main():
         VptTask.is_deleted == 0
     ).order_by(VptTask.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
-    print(item)
+    if item:
+        print(item.task_url)
 
-
-if __name__ == "__main__":
-    main()
+    print("============= Task Not Found =============")

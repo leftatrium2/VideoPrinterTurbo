@@ -63,6 +63,9 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
 - 任务 store 仅在存在 `status === 1` 的任务时每五秒轮询一次。
 - 修改 `AddTask.vue` 的 BGM/素材界面前，BGM 上传不要设置 `:limit="1"`；清空音频时
   使用 `removeAttribute('src')`，不要使用 `audio.src = ''`。
+- 视频覆盖比例字段为 `video_material_video_ratio`。
+- 视频覆盖的 `video_material_keyword` 可留空；非空时最多 5 个以空白分隔的词，只允许
+  英文字母、数字、连字符和撇号。该规则仅由前端校验。
 - 已知 Azure TTS V1 从 `GET /tasks/` 返回展示名作为 `value`，会破坏前端引擎映射；
   涉及此区域时请核实该行为。
 
@@ -71,7 +74,8 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
 基础地址：`http://localhost:8080`。Vite 开发代理会将 `/api/*` 映射到后端，
 并去除 `/api` 前缀。
 
-- `GET /tasks/`：任务表单配置；`POST /tasks/add`：创建任务。
+- `GET /tasks/`：任务表单配置；`POST /tasks/add`：创建任务；
+  `POST /tasks/update`：更新任务。
 - `GET /tasks/list`、`GET /tasks/get?task_id=`、`GET /tasks/check?url=`、
   `GET /tasks/del?task_id=`：分别用于列表、查询、校验与软删除任务。
 - `GET|POST /llm_config/` 与 `/llm_config/update`：LLM 配置。

@@ -2,7 +2,7 @@ from sqlalchemy import select, and_
 from tenacity import sleep
 
 from models.model import VptTask
-from pipeline.pipeline import pipeline
+from pipeline.pipeline_manager import pipeline
 from server.utils.logger import logger
 from service import task_const
 from utils.database import database

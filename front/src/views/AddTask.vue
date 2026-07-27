@@ -287,6 +287,15 @@
             <el-input v-model.number="form.video_count" type="number" :min="1" :max="5" class="full-width" />
           </div>
         </div>
+
+        <div class="mt-12">
+          <div class="field-label">{{ t('addTask.videoMaterialKeyword') }}</div>
+          <el-input
+            v-model="form.video_material_keyword"
+            :placeholder="t('addTask.videoMaterialKeywordPlaceholder')"
+            class="full-width"
+          />
+        </div>
       </div>
     </div>
 
@@ -335,6 +344,7 @@ import {
 } from '@element-plus/icons-vue'
 import { addTask, updateTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, getAsrLang } from '@/services/api'
 import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
+import { validateVideoMaterialKeyword } from '@/utils/videoMaterialKeyword'
 
 const router = useRouter()
 const route = useRoute()
@@ -401,6 +411,7 @@ const form = reactive({
   video_aspect: 0 as number,
   video_fragment_duration: 10,
   video_count: 1,
+  video_material_keyword: '',
 })
 
 const TTS_ENGINE_MAP: Record<string, number> = {
@@ -684,13 +695,19 @@ async function applyTaskDetail(detail: TaskDetail) {
   }
   form.video_concat_mode = detail.video_material_splicing_mode
   form.video_transition = detail.video_material_transition_mode
-  form.video_aspect = detail.video_material_Video_ratio
+  form.video_aspect = detail.video_material_video_ratio
   form.video_fragment_duration = detail.video_material_max_duration
   form.video_count = detail.video_material_generate_count
+  form.video_material_keyword = detail.video_material_keyword
 }
 
 async function handleSubmit() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrl')); return }
+  const keywordValidationError = validateVideoMaterialKeyword(form.video_material_keyword)
+  if (keywordValidationError) {
+    ElMessage.warning(t(`addTask.videoMaterialKeyword${keywordValidationError === 'wordLimit' ? 'WordLimit' : 'EnglishOnly'}`))
+    return
+  }
   try {
     submitting.value = true
     const payload = {
@@ -729,9 +746,10 @@ async function handleSubmit() {
         : [],
       video_material_splicing_mode: form.video_concat_mode,
       video_material_transition_mode: form.video_transition,
-      video_material_Video_ratio: form.video_aspect,
+      video_material_video_ratio: form.video_aspect,
       video_material_max_duration: form.video_fragment_duration,
       video_material_generate_count: form.video_count,
+      video_material_keyword: form.video_material_keyword.trim(),
       // 发布
       is_publish: false,
     }

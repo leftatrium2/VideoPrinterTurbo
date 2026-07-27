@@ -9,7 +9,7 @@ from config.config import init_config
 from middleware.cors_middleware import register_cors_middleware
 from middleware.i18n_middleware import register_i18n_middleware
 from models.model import Base
-from pipeline.pipeline import init_downloader
+from pipeline.pipeline_manager import init_downloader
 from routers.asr_config import router as asr_config_router
 from routers.index import router as index_router
 from routers.llm_config import router as llm_config_router

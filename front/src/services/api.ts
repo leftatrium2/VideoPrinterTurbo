@@ -57,9 +57,10 @@ export interface AddTaskParams {
   uploaded_video_material: string[]
   video_material_splicing_mode: number
   video_material_transition_mode: number
-  video_material_Video_ratio: number
+  video_material_video_ratio: number
   video_material_max_duration: number
   video_material_generate_count: number
+  video_material_keyword: string
   // 发布
   is_publish: boolean
 }
@@ -183,9 +184,10 @@ export interface TaskDetail {
   uploaded_video_material: string
   video_material_splicing_mode: number
   video_material_transition_mode: number
-  video_material_Video_ratio: number
+  video_material_video_ratio: number
   video_material_max_duration: number
   video_material_generate_count: number
+  video_material_keyword: string
   is_publish: number
 }
 

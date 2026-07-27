@@ -16,7 +16,7 @@ from middleware.i18n_middleware import get_current_lang
 from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig, \
     VptTask
 from models.schemas import TaskItem
-from pipeline.pipeline import pipeline
+from pipeline.pipeline_manager import pipeline
 from utils import const
 from utils.database import database
 from utils.file_utils import get_upload_path
@@ -115,10 +115,11 @@ async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_d
     item.uploaded_video_material = json.dumps(task.uploaded_video_material)
     item.video_material_splicing_mode = task.video_material_splicing_mode
     item.video_material_transition_mode = task.video_material_transition_mode
-    item.video_material_Video_ratio = task.video_material_Video_ratio
+    item.video_material_video_ratio = task.video_material_video_ratio
     item.video_material_max_duration = task.video_material_max_duration
     item.video_material_generate_count = task.video_material_generate_count
     item.is_publish = task.is_publish
+    item.video_material_keyword = task.video_material_keyword
     await db.commit()
     await db.refresh(item)
     return result_succ()
@@ -155,10 +156,11 @@ async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db))
         uploaded_video_material=json.dumps(task.uploaded_video_material),
         video_material_splicing_mode=task.video_material_splicing_mode,
         video_material_transition_mode=task.video_material_transition_mode,
-        video_material_Video_ratio=task.video_material_Video_ratio,
+        video_material_video_ratio=task.video_material_video_ratio,
         video_material_max_duration=task.video_material_max_duration,
         video_material_generate_count=task.video_material_generate_count,
-        is_publish=task.is_publish
+        is_publish=task.is_publish,
+        video_material_keyword=task.video_material_keyword
     )
     db.add(item)
     await db.commit()
@@ -365,4 +367,3 @@ async def check_task_url(url: str = Query(default="", min_length=1, max_length=3
     if not result:
         return result_failure(const.TASK_ERR_CHECK_URL, f"Task URL check failed, {url}")
     return result_succ()
-

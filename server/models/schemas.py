@@ -108,10 +108,12 @@ class TaskItem(BaseModel):
     # Transition mode
     video_material_transition_mode: int = 0
     # Video aspect ratio
-    video_material_Video_ratio: int = 0
+    video_material_video_ratio: int = 0
     # Max duration per video clip (seconds)
     video_material_max_duration: int = 10
     # Number of videos to generate
     video_material_generate_count: int = 1
     ### 7. Publish
     is_publish: bool = False
+    # Video material keyword (English)
+    video_material_keyword: str = ""

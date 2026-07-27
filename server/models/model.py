@@ -73,7 +73,7 @@ class VptTask(Base):
     uploaded_video_material = Column(Text, nullable=False, server_default=text("''"))
     video_material_splicing_mode = Column(Integer, nullable=False, server_default=text("0"))
     video_material_transition_mode = Column(Integer, nullable=False, server_default=text("0"))
-    video_material_Video_ratio = Column(Integer, nullable=False, server_default=text("0"))
+    video_material_video_ratio = Column(Integer, nullable=False, server_default=text("0"))
     video_material_max_duration = Column(Integer, nullable=False, server_default=text("0"))
     video_material_generate_count = Column(Integer, nullable=False, server_default=text("0"))
     subtitle_font = Column(Text, nullable=False, server_default=text("''"))
@@ -86,6 +86,7 @@ class VptTask(Base):
     subtitle_position = Column(Text, nullable=False, server_default=text("''"))
     subtitle_lang = Column(Integer, nullable=False, server_default=text("0"))
     is_download_proxy = Column(Integer, nullable=False, server_default=text("0"))
+    video_material_keyword = Column(Text, nullable=False, server_default=text("''"))
 
 
 class VptTtsConfig(Base):
