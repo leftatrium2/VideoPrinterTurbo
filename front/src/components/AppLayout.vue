@@ -3,7 +3,9 @@
     <AppSidebar />
     <AppTopbar :breadcrumbs="breadcrumbs" />
     <main class="content">
-      <RouterView />
+      <RouterView v-slot="{ Component, route: matchedRoute }">
+        <component :is="Component" :key="matchedRoute.fullPath" />
+      </RouterView>
     </main>
   </div>
 </template>

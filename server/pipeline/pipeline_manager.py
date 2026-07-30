@@ -14,7 +14,7 @@ from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 from pipeline.llm.base import BaseLLMProvider
 from pipeline.llm.openai_provider import OpenAIProvider
-from pipeline.material.base import BaseMaterialSearcher
+from pipeline.material.base import BaseMaterialSearcher, VideoAspect
 from pipeline.transcriber.azure_asr.azure_transcriber import AzureASR
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.bytedance_asr.volcengine_transcriber import VolcengineASR
@@ -300,7 +300,7 @@ class PipelineManager:
             material_generate_count: int = 0
     ) -> bool:
         video_searcher: BaseMaterialSearcher = None
-        output_path = asyncio.run(get_material_path())
+        material_path = asyncio.run(get_material_path())
         keyword = []
         # 如果用户设置了搜索关键字，那么优先使用此关键字搜索
         if material_keyword:
@@ -312,8 +312,17 @@ class PipelineManager:
                 logging.error("No keyword found")
                 return False
         # 7.1 先搜索
-        video_searcher.search(keyword, )
+        video_aspect = VideoAspect.portrait
+        if material_video_ratio == 1:
+            video_aspect = VideoAspect.portrait
+        elif material_video_ratio == 2:
+            video_aspect = VideoAspect.landscape
+        material_info_list = video_searcher.search(keyword, video_aspect, material_max_duration)
         # 7.2 根据搜索拿到的素材，下载
+        if material_info_list:
+            for material_info in material_info_list:
+                output_path = os.path.join(material_path, material_info.url)
+                video_searcher.download(material_info, output_path)
         return True
 
     # 8. Publish (not yet implemented)

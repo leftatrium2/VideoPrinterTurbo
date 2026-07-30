@@ -1,85 +1,139 @@
-"""PixabaySearcher — searches and downloads video footage from Pixabay API."""
-
+"""Search and download video footage from the Pixabay API."""
+import asyncio
+import hashlib
 import os
-from urllib.parse import urlencode
+from pathlib import Path
+from urllib.parse import urlsplit
 
 import requests
 from loguru import logger
 from moviepy import VideoFileClip
 
-from pipeline.material.base import BaseMaterialSearcher, VideoAspect, MaterialInfo
+from config.config import init_config
+from pipeline.material.base import BaseMaterialSearcher, MaterialInfo, VideoAspect
+from utils.file_utils import get_material_path
 
 
 class PixabaySearcher(BaseMaterialSearcher):
+    _SEARCH_URL = "https://pixabay.com/api/videos/"
+
+    def __init__(self) -> None:
+        self._api_keys: list[str] = []
+        self._api_key_index = 0
+        self._proxies: dict[str, str] | None = None
+        self._tls_verify = True
+
+    def config(self, proxy=None, api_keys=None, tls_verify=True) -> None:
+        if isinstance(api_keys, str):
+            api_keys = [api_keys]
+        self._api_keys = [key.strip() for key in (api_keys or []) if key and key.strip()]
+        self._api_key_index = 0
+        self._proxies = {"http": proxy, "https": proxy} if proxy else None
+        self._tls_verify = bool(tls_verify)
 
     def validate_config(self) -> bool:
-        return bool("pixabay_api_keys")
+        return bool(self._api_keys)
 
-    def search(self, query: str, video_aspect=VideoAspect.portrait,
-               min_duration: int = 5, per_page: int = 50) -> list[MaterialInfo]:
-        aspect = VideoAspect(video_aspect) if isinstance(video_aspect, str) else video_aspect
-        video_width, _ = aspect.to_resolution()
+    def _next_api_key(self) -> str | None:
+        if not self._api_keys:
+            return None
+        key = self._api_keys[self._api_key_index % len(self._api_keys)]
+        self._api_key_index += 1
+        return key
 
-        api_key = _get_api_key("pixabay_api_keys")
-        params = {"q": query, "video_type": "all", "per_page": per_page, "key": api_key}
-        url = f"https://pixabay.com/api/videos/?{urlencode(params)}"
-
-        logger.info(f"searching pixabay: {query}")
+    def search(self, query, video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
+        if not query or not self.validate_config():
+            logger.warning("Pixabay search skipped: query or API key is missing")
+            return []
         try:
-            r = requests.get(url, proxies=config.proxies, verify=_get_tls_verify(), timeout=(30, 60))
-            response = r.json()
-        except Exception as e:
-            logger.error(f"pixabay search failed: {e}")
+            aspect = VideoAspect.coerce(video_aspect)
+        except (KeyError, ValueError):
+            logger.warning("Pixabay search skipped: unsupported video aspect {}", video_aspect)
+            return []
+
+        target_width, target_height = aspect.to_resolution()
+        params = {
+            "key": self._next_api_key(),
+            "q": query,
+            "video_type": "all",
+            "per_page": max(3, min(int(per_page), 200)),
+            "min_width": target_width,
+            "min_height": target_height,
+        }
+        try:
+            response = requests.get(
+                self._SEARCH_URL,
+                params=params,
+                proxies=self._proxies,
+                verify=self._tls_verify,
+                timeout=(30, 60),
+            )
+            response.raise_for_status()
+            videos = response.json().get("hits", [])
+        except (requests.RequestException, ValueError) as exc:
+            logger.error("Pixabay search failed for {!r}: {}", query, exc)
             return []
 
         items = []
-        for v in response.get("hits", []):
-            if v.get("duration", 0) < min_duration:
+        for video in videos:
+            if int(video.get("duration") or 0) < min_duration:
                 continue
-            for video_type, video in v.get("videos", {}).items():
-                w = int(video.get("width", 0))
-                if w >= video_width:
-                    items.append(MaterialInfo(
-                        provider="pixabay",
-                        url=video["url"],
-                        duration=v["duration"],
-                    ))
-                    break
+            file_info = self._select_file(video.get("videos") or {}, aspect)
+            if file_info:
+                items.append(MaterialInfo("pixabay", file_info["url"], int(video["duration"])))
         return items
 
-    def download(self, material: MaterialInfo, output_dir: str) -> str:
-        if not output_dir:
-            output_dir = utils.storage_dir("cache_videos", create=True)
-        os.makedirs(output_dir, exist_ok=True)
+    @staticmethod
+    def _select_file(files, aspect):
+        matching = [
+            item for item in files.values()
+            if item.get("url")
+               and ((item.get("height", 0) > item.get("width", 0)) == (aspect is VideoAspect.portrait))
+        ]
+        return max(matching, key=lambda item: item.get("width", 0) * item.get("height", 0), default=None)
 
-        url_hash = utils.md5(material.url.split("?")[0])
-        video_path = os.path.join(output_dir, f"vid-{url_hash}.mp4")
+    def download(self, material, output_dir):
+        if material.provider != "pixabay" or not material.url or not output_dir:
+            return ""
+        return self._download(material.url, output_dir)
 
-        if os.path.isfile(video_path) and os.path.getsize(video_path) > 0:
-            return video_path
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
+    def _download(self, url, output_dir):
+        filename = f"pixabay-{hashlib.sha256(urlsplit(url).path.encode()).hexdigest()}.mp4"
+        video_path = Path(output_dir) / filename
+        temporary_path = video_path.with_suffix(".part")
         try:
-            r = requests.get(material.url, headers=headers, proxies=config.proxies,
-                             verify=_get_tls_verify(), timeout=(60, 240))
-            with open(video_path, "wb") as f:
-                f.write(r.content)
-        except Exception as e:
-            logger.error(f"download failed: {material.url}, error: {e}")
+            video_path.parent.mkdir(parents=True, exist_ok=True)
+            if video_path.is_file() and video_path.stat().st_size > 0:
+                return str(video_path)
+            with requests.get(
+                    url,
+                    headers={"User-Agent": "VideoPrinterTurbo/1.0"},
+                    proxies=self._proxies,
+                    verify=self._tls_verify,
+                    timeout=(60, 240),
+                    stream=True,
+            ) as response:
+                response.raise_for_status()
+                with temporary_path.open("wb") as file:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            file.write(chunk)
+            if not self._is_valid_video(temporary_path):
+                temporary_path.unlink(missing_ok=True)
+                return ""
+            os.replace(temporary_path, video_path)
+            return str(video_path)
+        except (OSError, requests.RequestException) as exc:
+            logger.error("Pixabay download failed for {}: {}", url, exc)
+            temporary_path.unlink(missing_ok=True)
             return ""
 
-        if os.path.isfile(video_path) and os.path.getsize(video_path) > 0:
-            try:
-                clip = VideoFileClip(video_path)
-                duration = clip.duration
-                clip.close()
-                if duration > 0:
-                    return video_path
-            except Exception:
-                try:
-                    os.remove(video_path)
-                except OSError:
-                    pass
-        return ""
+    @staticmethod
+    def _is_valid_video(path):
+        try:
+            with VideoFileClip(str(path)) as clip:
+                return bool(clip.duration and clip.duration > 0)
+        except Exception as exc:
+            logger.warning("Downloaded Pixabay video is invalid: {}", exc)
+            return False
+

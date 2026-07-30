@@ -1,113 +1,138 @@
-"""PexelsSearcher — searches and downloads video footage from Pexels API."""
-
+"""Search and download video footage from the Pexels API."""
+import asyncio
+import hashlib
 import os
-import threading
-from urllib.parse import urlencode
+from pathlib import Path
+from urllib.parse import urlsplit
 
 import requests
 from loguru import logger
 from moviepy import VideoFileClip
 
-from config.config import config
-from pipeline.material.base import BaseMaterialSearcher, VideoAspect, MaterialInfo
-
-_api_key_counter = 0
-_api_key_lock = threading.Lock()
-
-
-def _get_tls_verify() -> bool:
-    verify = config.app.tls_verify
-    if isinstance(verify, str):
-        verify = verify.strip().lower() not in ("0", "false", "no", "off")
-    return bool(verify)
-
-
-def _get_api_key(cfg_key: str):
-    keys = config.app.get(cfg_key)
-    if not keys:
-        raise ValueError(f"{cfg_key} is not set in config.toml")
-    if isinstance(keys, str):
-        return keys
-    global _api_key_counter
-    with _api_key_lock:
-        _api_key_counter += 1
-        return keys[_api_key_counter % len(keys)]
+from config.config import init_config
+from pipeline.material.base import BaseMaterialSearcher, MaterialInfo, VideoAspect
+from utils.file_utils import get_material_path
 
 
 class PexelsSearcher(BaseMaterialSearcher):
+    _SEARCH_URL = "https://api.pexels.com/videos/search"
+
+    def __init__(self) -> None:
+        self._api_keys: list[str] = []
+        self._api_key_index = 0
+        self._proxies: dict[str, str] | None = None
+        self._tls_verify = True
+
+    def config(self, proxy=None, api_keys=None, tls_verify=True) -> None:
+        if isinstance(api_keys, str):
+            api_keys = [api_keys]
+        self._api_keys = [key.strip() for key in (api_keys or []) if key and key.strip()]
+        self._api_key_index = 0
+        self._proxies = {"http": proxy, "https": proxy} if proxy else None
+        self._tls_verify = bool(tls_verify)
 
     def validate_config(self) -> bool:
-        return bool("pexels_api_keys")
+        return bool(self._api_keys)
 
-    def search(self, query: str, video_aspect=VideoAspect.portrait,
-               min_duration: int = 5, per_page: int = 20) -> list[MaterialInfo]:
-        aspect = VideoAspect(video_aspect) if isinstance(video_aspect, str) else video_aspect
-        video_orientation = aspect.name
-        video_width, video_height = aspect.to_resolution()
+    def _next_api_key(self) -> str | None:
+        if not self._api_keys:
+            return None
+        key = self._api_keys[self._api_key_index % len(self._api_keys)]
+        self._api_key_index += 1
+        return key
 
-        api_key = _get_api_key("pexels_api_keys")
-        headers = {"Authorization": api_key}
-        params = {"query": query, "per_page": per_page, "orientation": video_orientation}
-        url = f"https://api.pexels.com/videos/search?{urlencode(params)}"
+    def search(self, query, video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
+        if not query or not self.validate_config():
+            logger.warning("Pexels search skipped: query or API key is missing")
+            return []
 
-        logger.info(f"searching pexels: {query}")
         try:
-            r = requests.get(url, headers=headers, proxies=config.proxy,
-                             verify=_get_tls_verify(), timeout=(30, 60))
-            response = r.json()
-        except Exception as e:
-            logger.error(f"pexels search failed: {e}")
+            aspect = VideoAspect.coerce(video_aspect)
+        except (KeyError, ValueError):
+            logger.warning("Pexels search skipped: unsupported video aspect {}", video_aspect)
+            return []
+
+        params = {
+            "query": query,
+            "orientation": aspect.name,
+            "per_page": max(1, min(int(per_page), 80)),
+        }
+        try:
+            response = requests.get(
+                self._SEARCH_URL,
+                params=params,
+                headers={"Authorization": self._next_api_key()},
+                proxies=self._proxies,
+                verify=self._tls_verify,
+                timeout=(30, 60),
+            )
+            response.raise_for_status()
+            videos = response.json().get("videos", [])
+        except (requests.RequestException, ValueError) as exc:
+            logger.error("Pexels search failed for {!r}: {}", query, exc)
             return []
 
         items = []
-        for v in response.get("videos", []):
-            if v.get("duration", 0) < min_duration:
+        for video in videos:
+            if int(video.get("duration") or 0) < min_duration:
                 continue
-            for vf in v.get("video_files", []):
-                if vf.get("width") == video_width and vf.get("height") == video_height:
-                    items.append(MaterialInfo(
-                        provider="pexels",
-                        url=vf["link"],
-                        duration=v["duration"],
-                    ))
-                    break
+            file_info = self._select_file(video.get("video_files") or [], aspect)
+            if file_info:
+                items.append(MaterialInfo("pexels", file_info["link"], int(video["duration"])))
         return items
 
-    def download(self, material: MaterialInfo, output_dir: str) -> str:
-        if not output_dir:
-            output_dir = utils.storage_dir("cache_videos", create=True)
-        os.makedirs(output_dir, exist_ok=True)
+    @staticmethod
+    def _select_file(files, aspect):
+        matching = [
+            item for item in files
+            if item.get("file_type") == "video/mp4"
+               and item.get("link")
+               and ((item.get("height", 0) > item.get("width", 0)) == (aspect is VideoAspect.portrait))
+        ]
+        return max(matching, key=lambda item: item.get("width", 0) * item.get("height", 0), default=None)
 
-        url_hash = utils.md5(material.url.split("?")[0])
-        video_path = os.path.join(output_dir, f"vid-{url_hash}.mp4")
+    def download(self, material, output_dir):
+        if material.provider != "pexels" or not material.url or not output_dir:
+            return ""
+        return self._download(material.url, output_dir)
 
-        if os.path.isfile(video_path) and os.path.getsize(video_path) > 0:
-            return video_path
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
+    def _download(self, url, output_dir):
+        filename = f"pexels-{hashlib.sha256(urlsplit(url).path.encode()).hexdigest()}.mp4"
+        video_path = Path(output_dir) / filename
+        temporary_path = video_path.with_suffix(".part")
         try:
-            r = requests.get(material.url, headers=headers, proxies=config.proxy,
-                             verify=_get_tls_verify(), timeout=(60, 240))
-            with open(video_path, "wb") as f:
-                f.write(r.content)
-        except Exception as e:
-            logger.error(f"download failed: {material.url}, error: {e}")
+            video_path.parent.mkdir(parents=True, exist_ok=True)
+            if video_path.is_file() and video_path.stat().st_size > 0:
+                return str(video_path)
+            with requests.get(
+                    url,
+                    headers={"User-Agent": "VideoPrinterTurbo/1.0"},
+                    proxies=self._proxies,
+                    verify=self._tls_verify,
+                    timeout=(60, 240),
+                    stream=True,
+            ) as response:
+                response.raise_for_status()
+                with temporary_path.open("wb") as file:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            file.write(chunk)
+            if not self._is_valid_video(temporary_path):
+                temporary_path.unlink(missing_ok=True)
+                return ""
+            os.replace(temporary_path, video_path)
+            return str(video_path)
+        except (OSError, requests.RequestException) as exc:
+            logger.error("Pexels download failed for {}: {}", url, exc)
+            temporary_path.unlink(missing_ok=True)
             return ""
 
-        # Validate the downloaded file
-        if os.path.isfile(video_path) and os.path.getsize(video_path) > 0:
-            try:
-                clip = VideoFileClip(video_path)
-                duration = clip.duration
-                clip.close()
-                if duration > 0:
-                    return video_path
-            except Exception as e:
-                logger.warning(f"invalid video: {video_path}, {e}")
-                try:
-                    os.remove(video_path)
-                except OSError:
-                    pass
-        return ""
+    @staticmethod
+    def _is_valid_video(path):
+        try:
+            with VideoFileClip(str(path)) as clip:
+                return bool(clip.duration and clip.duration > 0)
+        except Exception as exc:
+            logger.warning("Downloaded Pexels video is invalid: {}", exc)
+            return False
+
