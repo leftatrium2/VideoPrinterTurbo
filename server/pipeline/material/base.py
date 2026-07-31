@@ -9,6 +9,7 @@ class MaterialInfo:
 
     provider: str
     url: str
+    keyword: str
     duration: int
 
 
@@ -46,7 +47,7 @@ class BaseMaterialSearcher(ABC):
     @abstractmethod
     def search(
             self,
-            query: str,
+            query: list[str],
             video_aspect: VideoAspect = VideoAspect.portrait,
             min_duration: int = 5,
             per_page: int = 20,

@@ -3,13 +3,16 @@ import importlib
 import json
 import logging
 import os.path
+import re
+from pathlib import Path
 from typing import Optional
 
+from openai import OpenAI
 from sqlalchemy import select
 
 import config.config as _config
 from config.config import init_config
-from models.model import VptTask
+from models.model import VptTask, VptLlmConfig
 from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 from pipeline.llm.base import BaseLLMProvider
@@ -61,9 +64,16 @@ class PipelineManager:
 
     def __init__(self):
         self.__proxy = None
+        self.__data = {}
 
     def set_proxy(self, proxy: str):
         self.__proxy = proxy
+
+    def init(self):
+        self.__data = {}
+
+    def get_data(self) -> dict:
+        return self.__data
 
     # Check if the video URL is downloadable
     def check(
@@ -282,16 +292,111 @@ class PipelineManager:
         tts.rewrite(subtitle_path, lang, voice)
         return True
 
-    def __get_material_keyword_from_llm(self, text_file_path: str) -> Optional[str]:
+    TIMESTAMP_RE = re.compile(
+        r"^\d{1,2}:\d{2}:\d{2}[,.]\d{3}\s*-->\s*"
+        r"\d{1,2}:\d{2}:\d{2}[,.]\d{3}"
+    )
+
+    def read_subtitle_text(self, subtitle_file: str | Path) -> str:
+        """读取 SRT、VTT 或每行一句的纯文本字幕，去除序号和时间轴。"""
+        raw = Path(subtitle_file).read_text(encoding="utf-8-sig")
+
+        subtitle_lines = []
+        for line in raw.splitlines():
+            line = line.strip()
+
+            if (
+                    not line
+                    or line == "WEBVTT"
+                    or line.isdigit()
+                    or self.TIMESTAMP_RE.match(line)
+                    or line.startswith(("NOTE", "STYLE", "REGION"))
+            ):
+                continue
+
+            # 去掉 VTT/HTML 标签，如 <i>、<c.color>
+            line = re.sub(r"<[^>]+>", "", line)
+
+            # 去除相邻重复字幕
+            if not subtitle_lines or subtitle_lines[-1] != line:
+                subtitle_lines.append(line)
+
+        return " ".join(subtitle_lines)
+
+    def get_material_keyword_from_llm(self, text_file_path: str) -> Optional[list]:
         if not os.path.exists(text_file_path):
             logging.error(f"{text_file_path} is not exists")
             return None
+        subtitle_text = self.read_subtitle_text(text_file_path)
+        db = database.get_sync_session()
+        result = db.execute(select(VptLlmConfig).limit(1))
+        item = result.scalar_one_or_none()
+        if not item:
+            logging.error(
+                f"LLM is not configured to extract search keywords from the subtitles of the current video footage.")
+            return None
+        api_key = item.api_key
+        base_url = item.base_url
+        if not api_key or not base_url:
+            logging.error(
+                f"LLM configure is not correct. api key: {api_key} or base_url: {base_url} not set")
+            return None
+        client = OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+        )
+        amount = 5
+        model = "gpt-5.5"
+        if item.llm_model_name:
+            model = item.llm_model_name
+        system_prompt = """
+  你是一个视频素材搜索词生成器。
 
-        return None
+  任务：根据用户提供的视频字幕，生成适合 Pexels、Pixabay 等素材网站使用的英文搜索词。
+
+  规则：
+  1. 只返回 JSON 字符串数组，不要 Markdown，不要解释。
+  2. 每个搜索词包含 1 至 4 个英文单词。
+  3. 搜索词应对应可视觉化的内容：人物、动作、物品、场景、环境或情绪。
+  4. 覆盖字幕中的不同重点，避免语义重复。
+  5. 优先使用可在视频素材网站中实际搜索到的具体表达。
+  """.strip()
+        user_prompt = f"""
+  请基于以下字幕生成 {amount} 个英文视频素材搜索词：
+
+  <subtitle>
+  {subtitle_text}
+  </subtitle>
+  """.strip()
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ]
+        )
+        text = response.choices[0].message.content.strip()
+        # 即使模型意外附带说明，也尽量提取 JSON 数组
+        match = re.search(r"\[[\s\S]*\]", text)
+        if not match:
+            logging.error(f"模型未返回 JSON 数组：{text}")
+            return None
+        terms = json.loads(match.group())
+        if not isinstance(terms, list) or not all(isinstance(term, str) for term in terms):
+            logging.error(f"模型返回格式错误：{text}")
+            return None
+        return terms
 
     # 7. Video overlay
     def video_overlay(
             self,
+            subtitle_file_path: str,
             material_keyword: str = Optional[str],
             material_splicing_mode: int = 0,
             material_transition_mode: int = 0,
@@ -301,14 +406,14 @@ class PipelineManager:
     ) -> bool:
         video_searcher: BaseMaterialSearcher = None
         material_path = asyncio.run(get_material_path())
-        keyword = []
+        keyword_list = []
         # 如果用户设置了搜索关键字，那么优先使用此关键字搜索
         if material_keyword:
-            keyword = material_keyword.split(' ')
+            keyword_list = material_keyword.split(' ')
         else:
             # 如果没有找到搜索关键字，那么从当前的字幕（ASR导出的也算）
-            keyword = self.__get_material_keyword_from_llm()
-            if not keyword:
+            keyword_list = self.get_material_keyword_from_llm(subtitle_file_path)
+            if not keyword_list:
                 logging.error("No keyword found")
                 return False
         # 7.1 先搜索
@@ -317,12 +422,20 @@ class PipelineManager:
             video_aspect = VideoAspect.portrait
         elif material_video_ratio == 2:
             video_aspect = VideoAspect.landscape
-        material_info_list = video_searcher.search(keyword, video_aspect, material_max_duration)
+        material_info_list = video_searcher.search(keyword_list, video_aspect, material_max_duration)
         # 7.2 根据搜索拿到的素材，下载
         if material_info_list:
+            self.__data['material'] = []
             for material_info in material_info_list:
-                output_path = os.path.join(material_path, material_info.url)
-                video_searcher.download(material_info, output_path)
+                full_file_path = video_searcher.download(material_info, material_path)
+                material_dict = {
+                    "file_path": full_file_path,
+                    "duration": material_info.duration,
+                    "aspect": video_aspect.value,
+                    "provider": material_info.provider,
+                    "url": material_info.url
+                }
+                self.__data['material'].append(material_dict)
         return True
 
     # 8. Publish (not yet implemented)
@@ -334,7 +447,7 @@ pipeline = PipelineManager()
 
 if __name__ == "__main__":
     init_config()
-    task_id = "20260720215545133997"
+    task_id = "20260727215533153521"
     database.start()
     db = database.get_sync_session()
     result = db.execute(select(VptTask).where(
@@ -343,6 +456,6 @@ if __name__ == "__main__":
     ).order_by(VptTask.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
     if item:
-        print(item.task_url)
-
-    print("============= Task Not Found =============")
+        result = pipeline.get_material_keyword_from_llm(
+            "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/Give Me 9 Minutes, I'll Make You AI-Native.srt")
+        print(result)

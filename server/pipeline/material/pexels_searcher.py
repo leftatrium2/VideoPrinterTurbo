@@ -41,7 +41,7 @@ class PexelsSearcher(BaseMaterialSearcher):
         self._api_key_index += 1
         return key
 
-    def search(self, query, video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
+    def search(self, query: list[str], video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
         if not query or not self.validate_config():
             logger.warning("Pexels search skipped: query or API key is missing")
             return []
@@ -52,33 +52,36 @@ class PexelsSearcher(BaseMaterialSearcher):
             logger.warning("Pexels search skipped: unsupported video aspect {}", video_aspect)
             return []
 
-        params = {
-            "query": query,
-            "orientation": aspect.name,
-            "per_page": max(1, min(int(per_page), 80)),
-        }
-        try:
-            response = requests.get(
-                self._SEARCH_URL,
-                params=params,
-                headers={"Authorization": self._next_api_key()},
-                proxies=self._proxies,
-                verify=self._tls_verify,
-                timeout=(30, 60),
-            )
-            response.raise_for_status()
-            videos = response.json().get("videos", [])
-        except (requests.RequestException, ValueError) as exc:
-            logger.error("Pexels search failed for {!r}: {}", query, exc)
-            return []
-
         items = []
-        for video in videos:
-            if int(video.get("duration") or 0) < min_duration:
+        for keyword in query:
+            if not keyword:
                 continue
-            file_info = self._select_file(video.get("video_files") or [], aspect)
-            if file_info:
-                items.append(MaterialInfo("pexels", file_info["link"], int(video["duration"])))
+            params = {
+                "query": keyword,
+                "orientation": aspect.name,
+                "per_page": max(1, min(int(per_page), 80)),
+            }
+            try:
+                response = requests.get(
+                    self._SEARCH_URL,
+                    params=params,
+                    headers={"Authorization": self._next_api_key()},
+                    proxies=self._proxies,
+                    verify=self._tls_verify,
+                    timeout=(30, 60),
+                )
+                response.raise_for_status()
+                videos = response.json().get("videos", [])
+            except (requests.RequestException, ValueError) as exc:
+                logger.error("Pexels search failed for {!r}: {}", keyword, exc)
+                continue
+
+            for video in videos:
+                if int(video.get("duration") or 0) < min_duration:
+                    continue
+                file_info = self._select_file(video.get("video_files") or [], aspect)
+                if file_info:
+                    items.append(MaterialInfo("pexels", file_info["link"], keyword, int(video["duration"])))
         return items
 
     @staticmethod
@@ -135,4 +138,3 @@ class PexelsSearcher(BaseMaterialSearcher):
         except Exception as exc:
             logger.warning("Downloaded Pexels video is invalid: {}", exc)
             return False
-

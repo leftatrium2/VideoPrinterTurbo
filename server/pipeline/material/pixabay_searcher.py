@@ -41,7 +41,7 @@ class PixabaySearcher(BaseMaterialSearcher):
         self._api_key_index += 1
         return key
 
-    def search(self, query, video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
+    def search(self, query: list[str], video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
         if not query or not self.validate_config():
             logger.warning("Pixabay search skipped: query or API key is missing")
             return []
@@ -52,35 +52,38 @@ class PixabaySearcher(BaseMaterialSearcher):
             return []
 
         target_width, target_height = aspect.to_resolution()
-        params = {
-            "key": self._next_api_key(),
-            "q": query,
-            "video_type": "all",
-            "per_page": max(3, min(int(per_page), 200)),
-            "min_width": target_width,
-            "min_height": target_height,
-        }
-        try:
-            response = requests.get(
-                self._SEARCH_URL,
-                params=params,
-                proxies=self._proxies,
-                verify=self._tls_verify,
-                timeout=(30, 60),
-            )
-            response.raise_for_status()
-            videos = response.json().get("hits", [])
-        except (requests.RequestException, ValueError) as exc:
-            logger.error("Pixabay search failed for {!r}: {}", query, exc)
-            return []
-
         items = []
-        for video in videos:
-            if int(video.get("duration") or 0) < min_duration:
+        for keyword in query:
+            if not keyword:
                 continue
-            file_info = self._select_file(video.get("videos") or {}, aspect)
-            if file_info:
-                items.append(MaterialInfo("pixabay", file_info["url"], int(video["duration"])))
+            params = {
+                "key": self._next_api_key(),
+                "q": keyword,
+                "video_type": "all",
+                "per_page": max(3, min(int(per_page), 200)),
+                "min_width": target_width,
+                "min_height": target_height,
+            }
+            try:
+                response = requests.get(
+                    self._SEARCH_URL,
+                    params=params,
+                    proxies=self._proxies,
+                    verify=self._tls_verify,
+                    timeout=(30, 60),
+                )
+                response.raise_for_status()
+                videos = response.json().get("hits", [])
+            except (requests.RequestException, ValueError) as exc:
+                logger.error("Pixabay search failed for {!r}: {}", keyword, exc)
+                continue
+
+            for video in videos:
+                if int(video.get("duration") or 0) < min_duration:
+                    continue
+                file_info = self._select_file(video.get("videos") or {}, aspect)
+                if file_info:
+                    items.append(MaterialInfo("pixabay", file_info["url"], keyword, int(video["duration"])))
         return items
 
     @staticmethod
