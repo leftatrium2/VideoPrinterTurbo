@@ -41,7 +41,7 @@ class PexelsSearcher(BaseMaterialSearcher):
         self._api_key_index += 1
         return key
 
-    def search(self, query: list[str], video_aspect=VideoAspect.portrait, min_duration=5, per_page=20):
+    def search(self, query: list[str], video_aspect=VideoAspect.portrait, min_duration=5, per_page=30):
         if not query or not self.validate_config():
             logger.warning("Pexels search skipped: query or API key is missing")
             return []
@@ -112,7 +112,7 @@ class PexelsSearcher(BaseMaterialSearcher):
                     headers={"User-Agent": "VideoPrinterTurbo/1.0"},
                     proxies=self._proxies,
                     verify=self._tls_verify,
-                    timeout=(60, 240),
+                    timeout=(30, 30),
                     stream=True,
             ) as response:
                 response.raise_for_status()

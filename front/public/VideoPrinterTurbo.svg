@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 1600 1600" role="img" aria-labelledby="title desc">
+  <title id="title">VideoPrinterTurbo logo</title>
+  <desc id="desc">A fast AI video-processing logo: printer, video page, film strip, speed lines, and brand typography.</desc>
+  <defs>
+    <linearGradient id="navy" gradientUnits="userSpaceOnUse" x1="420" y1="200" x2="1240" y2="980">
+      <stop offset="0%" style="stop-color:#112542"/>
+      <stop offset="100%" style="stop-color:#071326"/>
+    </linearGradient>
+    <linearGradient id="cyanBlue" gradientUnits="userSpaceOnUse" x1="200" y1="250" x2="1000" y2="1000">
+      <stop offset="0%" style="stop-color:#12d4dc"/>
+      <stop offset="52%" style="stop-color:#248ee9"/>
+      <stop offset="100%" style="stop-color:#6551e9"/>
+    </linearGradient>
+    <linearGradient id="film" gradientUnits="userSpaceOnUse" x1="560" y1="730" x2="1060" y2="1060">
+      <stop offset="0%" style="stop-color:#17d2dc"/>
+      <stop offset="52%" style="stop-color:#278ce9"/>
+      <stop offset="100%" style="stop-color:#a83de5"/>
+    </linearGradient>
+    <linearGradient id="wordmark" gradientUnits="userSpaceOnUse" x1="520" y1="0" x2="1260" y2="0">
+      <stop offset="0%" style="stop-color:#0ccbd8"/>
+      <stop offset="48%" style="stop-color:#278ee9"/>
+      <stop offset="100%" style="stop-color:#c431dd"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#19243d" flood-opacity=".16"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1600" fill="#fff"/>
+
+  <!-- Printer speed trails -->
+  <g fill="url(#cyanBlue)">
+    <circle cx="300" cy="550" r="18"/>
+    <rect x="343" y="534" width="184" height="32" rx="16"/>
+    <rect x="267" y="622" width="267" height="32" rx="16"/>
+    <rect x="212" y="708" width="328" height="32" rx="16"/>
+    <rect x="264" y="792" width="282" height="32" rx="16"/>
+    <rect x="337" y="876" width="205" height="32" rx="16"/>
+    <rect x="264" y="793" width="52" height="32" rx="16"/>
+  </g>
+
+  <!-- Paper with folded corner -->
+  <g filter="url(#softShadow)">
+    <path d="M635 215h350l105 108v273H635z" fill="#fff"/>
+    <path d="M635 510V257c0-23 19-42 42-42h308v79c0 25 20 45 45 45h60v171" fill="none" stroke="url(#navy)" stroke-width="30" stroke-linejoin="round"/>
+    <path d="M985 215v79c0 25 20 45 45 45h60z" fill="#14cddd"/>
+    <path d="M985 215l105 108-60-16c-25-7-37-19-45-45z" fill="#0bb9d2"/>
+    <path d="M808 302c-12-8-28 1-28 16v112c0 15 16 24 28 16l93-56c12-7 12-25 0-32z" fill="url(#cyanBlue)"/>
+    <rect x="618" y="452" width="16" height="30" rx="3" fill="#36d9df"/>
+    <rect x="1090" y="452" width="16" height="30" rx="3" fill="#36d9df"/>
+  </g>
+
+  <!-- Printer -->
+  <g filter="url(#softShadow)">
+    <path d="M493 481h624c42 0 76 34 76 76v250c0 57-46 103-103 103H520c-57 0-103-46-103-103V557c0-42 34-76 76-76z" fill="url(#navy)"/>
+    <path d="M417 526c9-35 40-60 78-60h54v74zM1117 466h54c38 0 69 25 78 60l-132 14z" fill="url(#navy)"/>
+    <circle cx="1003" cy="626" r="26" fill="#17cbd9"/>
+    <circle cx="1088" cy="626" r="26" fill="#e63b9f"/>
+    <path d="M548 815V740c0-25 20-45 45-45h424c25 0 45 20 45 45v75" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round"/>
+  </g>
+
+  <!-- Printed film strip -->
+  <g filter="url(#softShadow)">
+    <path d="M605 733h398l33 157c12 59 39 117 77 165H493c38-48 65-106 77-165z" fill="url(#film)"/>
+    <path d="M605 733h398l33 157c12 59 39 117 77 165H493c38-48 65-106 77-165z" fill="none" stroke="#fff" stroke-width="12"/>
+    <g fill="#fff" opacity=".96">
+      <rect x="638" y="758" width="42" height="38" rx="5"/><rect x="947" y="758" width="42" height="38" rx="5"/>
+      <rect x="634" y="824" width="42" height="38" rx="5"/><rect x="951" y="824" width="42" height="38" rx="5"/>
+      <rect x="626" y="892" width="42" height="38" rx="5"/><rect x="959" y="892" width="42" height="38" rx="5"/>
+      <rect x="612" y="964" width="42" height="38" rx="5"/><rect x="973" y="964" width="42" height="38" rx="5"/>
+    </g>
+  </g>
+
+  <!-- Brand wordmark -->
+  <g font-family="Arial, Helvetica, sans-serif" font-style="italic" font-weight="800" letter-spacing="-5">
+    <text x="102" y="1252" font-size="132" fill="url(#navy)">Video</text>
+    <text x="524" y="1252" font-size="132" fill="url(#wordmark)">PrinterTurbo</text>
+  </g>
+
+  <!-- Tagline -->
+  <g font-family="Arial, Helvetica, sans-serif" fill="#303947">
+    <g fill="#12c8db" stroke-linecap="round">
+      <path d="M180 1344h153M208 1360h125M196 1376h137" stroke-width="4"/>
+      <path d="M1262 1344h153M1262 1360h125M1262 1376h137" stroke="#a23ce6" stroke-width="4"/>
+    </g>
+    <text x="380" y="1378" font-size="49" font-weight="600">AI Powered</text>
+    <circle cx="770" cy="1360" r="10" fill="#12c8db"/>
+    <text x="820" y="1378" font-size="49" font-weight="600">Fast</text>
+    <circle cx="987" cy="1360" r="10" fill="#12c8db"/>
+    <text x="1037" y="1378" font-size="49" font-weight="600">Smart</text>
+  </g>
+</svg>

@@ -1,3 +1,5 @@
+import threading
+
 from sqlalchemy import select, and_
 from tenacity import sleep
 
@@ -36,15 +38,19 @@ class TaskManager(object):
                 if not task:
                     sleep(5)
                     continue
-                pipeline.process(task.task_id)
+                result = pipeline.process_now(task)
+                if not result:
+                    logger.error(f"task failed: {task.id}")
+                    task.status = task_const.TASK_STATUS_ERROR_UNKNOWN
+                    continue
             except Exception as e:
                 logger.exception(f"job failed: {e}")
         pass
 
     async def start(self):
         logger.info("Starting TaskManager")
-        # self.processes_threading = threading.Thread(target=self.__processes_task, daemon=True)
-        # self.processes_threading.start()
+        self.processes_threading = threading.Thread(target=self.__processes_task, daemon=True)
+        self.processes_threading.start()
 
     async def stop(self):
         logger.info("Stopping TaskManager")

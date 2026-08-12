@@ -1,5 +1,6 @@
 """YtDlpDownloader — downloads videos via yt-dlp with subtitle extraction."""
 import asyncio
+import os.path
 import subprocess
 
 import yt_dlp
@@ -71,13 +72,13 @@ class YtDlpDownloader(BaseDownloader):
                 logger.error(e)
         return False
 
-    def download(self, url: str, output_dir: str, context: DownloaderContext or None,
+    def download(self, url: str, video_full_path: str, context: DownloaderContext or None,
                  proxy: str = None) -> VideoPackage or None:
         if context:
             context.on_create(url)
         yt_dlp_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            "outtmpl": f"{output_dir}/%(title)s.%(ext)s",
+            "outtmpl": f"{video_full_path}",
             "merge_output_format": "mp4",
             "quiet": True,
             'ignoreerrors': True,
@@ -116,9 +117,10 @@ class TestDownloaderContext(DownloaderContext):
 
 if __name__ == "__main__":
     init_config()
-    path = asyncio.run(get_download_path())
+    full_path = asyncio.run(get_download_path())
+    full_path = os.path.join(full_path, "20260720215545133997")
     downloader = YtDlpDownloader()
     download_url = "https://www.youtube.com/watch?v=E7YiKBeOneo"
     proxy = "http://127.0.0.1:7890"
     if downloader.check(download_url):
-        downloader.download(download_url, output_dir=path, context=TestDownloaderContext(), proxy=proxy)
+        downloader.download(download_url, video_full_path=full_path, context=TestDownloaderContext(), proxy=proxy)

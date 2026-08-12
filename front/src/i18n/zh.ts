@@ -2,7 +2,7 @@ export default {
   lang: { zh: '中文', en: 'English' },
 
   sidebar: {
-    managementSuite: 'Management Suite',
+    managementSuite: '管理界面',
     addTask: '添加任务',
     taskList: '任务列表',
     systemSettings: '系统设置',

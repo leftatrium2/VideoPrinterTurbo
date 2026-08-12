@@ -12,12 +12,14 @@ from sqlalchemy import select
 
 import config.config as _config
 from config.config import init_config
-from models.model import VptTask, VptLlmConfig
+from models.model import VptTask, VptLlmConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig
 from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 from pipeline.llm.base import BaseLLMProvider
 from pipeline.llm.openai_provider import OpenAIProvider
 from pipeline.material.base import BaseMaterialSearcher, VideoAspect
+from pipeline.material.pexels_searcher import PexelsSearcher
+from pipeline.material.pixabay_searcher import PixabaySearcher
 from pipeline.transcriber.azure_asr.azure_transcriber import AzureASR
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.bytedance_asr.volcengine_transcriber import VolcengineASR
@@ -31,7 +33,8 @@ from pipeline.tts.base import TTSBase
 from pipeline.tts.google_gemini_tts import GoogleGeminiTTS
 from utils import const
 from utils.database import database
-from utils.file_utils import get_material_path
+from utils.file_utils import get_material_path, get_download_path
+from utils.video_utils import get_video_duration
 
 downloaders = {}
 
@@ -74,6 +77,26 @@ class PipelineManager:
 
     def get_data(self) -> dict:
         return self.__data
+
+    def process_now(self, task: VptTask) -> bool:
+        result = self.check(task.task_url)
+        if not result:
+            return False
+        # download video
+        video_full_path = asyncio.run(get_download_path())
+        video_full_path = os.path.join(video_full_path, task.task_id)
+        self.download(task.task_url, video_full_path, DownloaderContext(), self.__proxy)
+        # asr or subtitle download
+        if task.is_from_asr_or_subtitle:
+            pass
+        # llm prompt rewrite
+        if task.is_llm:
+            pass
+        # rewrite to tts
+        # rewrite to subtitle
+        # bgm
+
+        return True
 
     # Check if the video URL is downloadable
     def check(
@@ -379,7 +402,8 @@ class PipelineManager:
                     "role": "user",
                     "content": user_prompt
                 }
-            ]
+            ],
+            extra_body={"enable_thinking": False}
         )
         text = response.choices[0].message.content.strip()
         # 即使模型意外附带说明，也尽量提取 JSON 数组
@@ -393,18 +417,63 @@ class PipelineManager:
             return None
         return terms
 
+    def __get_material_api_key(self, material_type: str) -> Optional[str]:
+        db = database.get_sync_session()
+        result = None
+        if material_type == "pexels":
+            result = db.execute(select(VptVideoMaterialPexelsConfig).limit(1))
+        elif material_type == "pixabay":
+            result = db.execute(select(VptVideoMaterialPixabayConfig).limit(1))
+        if not result:
+            logging.error(
+                f"{material_type} is not configured of the current video footage.")
+            return None
+        item = result.scalar_one_or_none()
+        if not item:
+            logging.error(
+                f"{material_type} is not configured of the current video footage in step2.")
+            return None
+        api_key = None
+        if material_type == "pexels":
+            api_key = item.pexels_api_key
+        elif material_type == "pixabay":
+            api_key = item.pixabay_api_key
+        if not api_key:
+            logging.error(
+                f"{material_type} is not configured of the current video footage in step3.")
+            return None
+        return api_key
+
     # 7. Video overlay
     def video_overlay(
             self,
+            video_file_path: str,
             subtitle_file_path: str,
+            material_type: str,
             material_keyword: str = Optional[str],
-            material_splicing_mode: int = 0,
-            material_transition_mode: int = 0,
             material_video_ratio: int = 0,
-            material_max_duration: int = 0,
-            material_generate_count: int = 0
+            material_max_duration: int = 0
     ) -> bool:
+        # 1. 通过下载的视频文件，获取视频时长
+        video_duration = get_video_duration(video_file_path)
+        if video_duration <= 0:
+            logging.error(f"{video_file_path} is not exists or not a video file")
+            return False
+        # 2. 搜索关键字
         video_searcher: BaseMaterialSearcher = None
+        api_key = self.__get_material_api_key(material_type)
+        if material_type == "pexels":
+            video_searcher = PexelsSearcher()
+        elif material_type == "pixabay":
+            video_searcher = PixabaySearcher()
+        if not video_searcher:
+            logging.error(
+                f"Must Pexels or pixabay will use the video_overlay function, otherwise use the local uploader!")
+            return False
+        if self.__proxy:
+            video_searcher.config(proxy=self.__proxy, api_keys=api_key)
+        else:
+            video_searcher.config(api_keys=[api_key])
         material_path = asyncio.run(get_material_path())
         keyword_list = []
         # 如果用户设置了搜索关键字，那么优先使用此关键字搜索
@@ -416,14 +485,15 @@ class PipelineManager:
             if not keyword_list:
                 logging.error("No keyword found")
                 return False
-        # 7.1 先搜索
+        # 4 开始搜索
         video_aspect = VideoAspect.portrait
         if material_video_ratio == 1:
             video_aspect = VideoAspect.portrait
         elif material_video_ratio == 2:
             video_aspect = VideoAspect.landscape
         material_info_list = video_searcher.search(keyword_list, video_aspect, material_max_duration)
-        # 7.2 根据搜索拿到的素材，下载
+        # 5. 下载
+        curr_video_duration = 0
         if material_info_list:
             self.__data['material'] = []
             for material_info in material_info_list:
@@ -436,6 +506,10 @@ class PipelineManager:
                     "url": material_info.url
                 }
                 self.__data['material'].append(material_dict)
+
+                curr_video_duration += material_info.duration
+                if curr_video_duration >= video_duration:
+                    break
         return True
 
     # 8. Publish (not yet implemented)
@@ -456,6 +530,15 @@ if __name__ == "__main__":
     ).order_by(VptTask.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
     if item:
-        result = pipeline.get_material_keyword_from_llm(
-            "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/Give Me 9 Minutes, I'll Make You AI-Native.srt")
-        print(result)
+        result = pipeline.video_overlay(
+            "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp4",
+            "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/Give Me 9 Minutes, I'll Make You AI-Native.srt",
+            material_type=item.video_material_type,
+            material_keyword=item.video_material_keyword,
+            material_video_ratio=item.video_material_video_ratio,
+            material_max_duration=item.video_material_max_duration
+        )
+        if not result:
+            print("video_overlay return False")
+        curr_data = pipeline.get_data()
+        print(curr_data)

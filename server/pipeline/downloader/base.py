@@ -48,8 +48,11 @@ class BaseDownloader(ABC):
     """
 
     @abstractmethod
-    def download(self, url: str, output_dir: str, context: DownloaderContext,
+    def download(self, url: str, video_full_path: str, context: DownloaderContext,
                  proxy: str = None) -> VideoPackage or None:
+        """
+        :param video_full_path: 不包含扩展名的视频存储地址
+        """
         pass
 
     @abstractmethod

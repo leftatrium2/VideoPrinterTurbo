@@ -50,7 +50,7 @@ class BaseMaterialSearcher(ABC):
             query: list[str],
             video_aspect: VideoAspect = VideoAspect.portrait,
             min_duration: int = 5,
-            per_page: int = 20,
+            per_page: int = 30,
     ) -> list[MaterialInfo]:
         """Search the provider and return directly downloadable videos."""
 
