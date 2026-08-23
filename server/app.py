@@ -18,7 +18,7 @@ from routers.proxy_config import router as proxy_config_router
 from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
 from routers.tts_config import router as tts_config_router
-from server.service.task_manager import task_manager
+from service.task_manager import task_manager
 from utils.database import database
 from utils.gen_config import gen_config
 

@@ -49,3 +49,5 @@ docs/
 .pytest_cache/
 
 app/.env
+
+advice.md
