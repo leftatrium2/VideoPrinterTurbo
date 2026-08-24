@@ -2,12 +2,13 @@
 import asyncio
 import os.path
 import subprocess
+from typing import Optional
 
 import yt_dlp
 from loguru import logger
 
 from config.config import init_config
-from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoPackage
+from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoBean
 from utils import const
 from utils.const import DOWNLOADER_CODEC_VIDEO_TYPE, DOWNLOADER_CODEC_AUDIO_TYPE, DOWNLOADER_CODEC_MUXER_TYPE
 from utils.exception import VPTException
@@ -72,8 +73,13 @@ class YtDlpDownloader(BaseDownloader):
                 logger.error(e)
         return False
 
-    def download(self, url: str, video_full_path: str, context: DownloaderContext or None,
-                 proxy: str = None) -> VideoPackage or None:
+    def download(
+            self,
+            url: str,
+            video_full_path: str,
+            context: Optional[DownloaderContext],
+            proxy: str = None
+    ) -> Optional[VideoBean]:
         if context:
             context.on_create(url)
         yt_dlp_opts = {

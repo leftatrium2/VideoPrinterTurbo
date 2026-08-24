@@ -13,7 +13,7 @@ from sqlalchemy import select
 import config.config as _config
 from config.config import init_config
 from models.model import VptTask, VptLlmConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig
-from pipeline.downloader.base import DownloaderContext, BaseDownloader
+from pipeline.downloader.base import DownloaderContext, BaseDownloader, PipeLineData, VideoBean
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 from pipeline.llm.base import BaseLLMProvider
 from pipeline.llm.openai_provider import OpenAIProvider
@@ -49,7 +49,7 @@ def init_downloader():
     downloaders['others'] = YtDlpDownloader()
 
 
-def get_downloader(url: str) -> BaseDownloader or None:
+def get_downloader(url: str) -> Optional[BaseDownloader]:
     if not url:
         return None
     for k, v in _config.downloader_config.items():
@@ -67,16 +67,39 @@ class PipelineManager:
 
     def __init__(self):
         self.__proxy = None
-        self.__data = {}
+        self._data: PipeLineData = None
+        self.inner_downloader_context = None
+
+    class InnerDownloaderContext(DownloaderContext):
+        def __init__(self, task: VptTask):
+            self.__task = task
+            pass
+
+        def on_create(self, url: str):
+            logging.info(f"on_create: url: {url}")
+            pass
+
+        def on_start(self, url: str):
+            pass
+
+        def on_progress(self, url: str, codec_type: int, progress: float):
+            pass
+
+        def on_complete(self, url: str):
+            pass
+
+        def on_error(self, url: str, error: Exception):
+            pass
 
     def set_proxy(self, proxy: str):
         self.__proxy = proxy
 
-    def init(self):
-        self.__data = {}
+    def get_data(self) -> Optional[PipeLineData]:
+        return self._data
 
-    def get_data(self) -> dict:
-        return self.__data
+    def init(self, task: VptTask):
+        self.inner_downloader_context = PipelineManager.InnerDownloaderContext(self, task)
+        self._data = PipeLineData()
 
     def process_now(self, task: VptTask) -> bool:
         result = self.check(task.task_url)
@@ -85,7 +108,15 @@ class PipelineManager:
         # download video
         video_full_path = asyncio.run(get_download_path())
         video_full_path = os.path.join(video_full_path, task.task_id)
-        self.download(task.task_url, video_full_path, DownloaderContext(), self.__proxy)
+        self._data.video_bean = VideoBean()
+        result = self.download(task.task_url, video_full_path, self.inner_downloader_context,
+                               self.__proxy)
+        if not result:
+            # todo 写日志以及错误
+            return False
+        self._data.video_bean = result
+        if not video_full_path:
+            logging.error(f"{task.task_url} cant download")
         # asr or subtitle download
         if task.is_from_asr_or_subtitle:
             pass
@@ -119,7 +150,7 @@ class PipelineManager:
             output_dir: str,
             ctx: DownloaderContext,
             is_download_proxy: bool = True
-    ) -> str or None:
+    ) -> Optional[VideoBean]:
         if not url.strip():
             logging.error("Url is empty")
             return None
@@ -495,7 +526,7 @@ class PipelineManager:
         # 5. 下载
         curr_video_duration = 0
         if material_info_list:
-            self.__data['material'] = []
+            self._data['material'] = []
             for material_info in material_info_list:
                 full_file_path = video_searcher.download(material_info, material_path)
                 material_dict = {
@@ -505,7 +536,7 @@ class PipelineManager:
                     "provider": material_info.provider,
                     "url": material_info.url
                 }
-                self.__data['material'].append(material_dict)
+                self._data['material'].append(material_dict)
 
                 curr_video_duration += material_info.duration
                 if curr_video_duration >= video_duration:
@@ -521,6 +552,7 @@ pipeline = PipelineManager()
 
 if __name__ == "__main__":
     init_config()
+    init_downloader()
     task_id = "20260727215533153521"
     database.start()
     db = database.get_sync_session()
@@ -530,15 +562,18 @@ if __name__ == "__main__":
     ).order_by(VptTask.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
     if item:
-        result = pipeline.video_overlay(
-            "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp4",
-            "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/Give Me 9 Minutes, I'll Make You AI-Native.srt",
-            material_type=item.video_material_type,
-            material_keyword=item.video_material_keyword,
-            material_video_ratio=item.video_material_video_ratio,
-            material_max_duration=item.video_material_max_duration
-        )
-        if not result:
-            print("video_overlay return False")
-        curr_data = pipeline.get_data()
-        print(curr_data)
+        result = pipeline.check("https://www.bilibili.com/video/BV1B38b6pE2w/?spm_id_from=333.1007.tianma.1-1-1.click")
+        print(result)
+    # if item:
+    #     result = pipeline.video_overlay(
+    #         "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp4",
+    #         "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/Give Me 9 Minutes, I'll Make You AI-Native.srt",
+    #         material_type=item.video_material_type,
+    #         material_keyword=item.video_material_keyword,
+    #         material_video_ratio=item.video_material_video_ratio,
+    #         material_max_duration=item.video_material_max_duration
+    #     )
+    #     if not result:
+    #         print("video_overlay return False")
+    #     curr_data = pipeline.get_data()
+    #     print(curr_data)

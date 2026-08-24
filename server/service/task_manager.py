@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import threading
 
 from sqlalchemy import select, and_
@@ -6,6 +7,7 @@ from tenacity import sleep
 
 from config.config import init_config
 from models.model import VptTask
+from pipeline.downloader.base import PipeLineContext
 from pipeline.pipeline_manager import pipeline, init_downloader
 from utils.logger import logger
 from service import task_const
@@ -23,9 +25,6 @@ from utils.database import database
 class TaskManager(object):
     processes_threading = None
 
-    def __init__(self):
-        pass
-
     def process(self):
         session = database.get_sync_session()
         while True:
@@ -40,6 +39,7 @@ class TaskManager(object):
                 if not task:
                     sleep(5)
                     continue
+                pipeline.init(task)
                 result = pipeline.process_now(task)
                 if not result:
                     logger.error(f"task failed: {task.id}")
