@@ -7,10 +7,9 @@ from utils.const import PIPELINE_STATUS_INIT
 
 @dataclass
 class VideoBean:
+    url: str = ""
     """Standardised output from a downloader."""
     video_path: str = ""
-    audio_path: str = ""
-    subtitle_path: str = ""
     metadata: dict = field(default_factory=dict)
     title: str = ""
     duration: float = 0.0

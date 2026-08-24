@@ -106,16 +106,14 @@ class PipelineManager:
         if not result:
             return False
         # download video
-        video_full_path = asyncio.run(get_download_path())
-        video_full_path = os.path.join(video_full_path, task.task_id)
         self._data.video_bean = VideoBean()
-        result = self.download(task.task_url, video_full_path, self.inner_downloader_context,
+        result = self.download(task.task_url, self.inner_downloader_context,
                                self.__proxy)
         if not result:
             # todo 写日志以及错误
             return False
         self._data.video_bean = result
-        if not video_full_path:
+        if not self._data.video_bean.video_path:
             logging.error(f"{task.task_url} cant download")
         # asr or subtitle download
         if task.is_from_asr_or_subtitle:
@@ -147,7 +145,7 @@ class PipelineManager:
     def download(
             self,
             url: str,
-            output_dir: str,
+            task_id: str,
             ctx: DownloaderContext,
             is_download_proxy: bool = True
     ) -> Optional[VideoBean]:
@@ -158,9 +156,11 @@ class PipelineManager:
         if not downloader:
             logging.error("Downloader is None")
             return None
+        video_full_path = asyncio.run(get_download_path())
+        video_full_path = os.path.join(video_full_path, task_id)
         if is_download_proxy:
-            return downloader.download(url, output_dir, ctx, self.__proxy)
-        return downloader.download(url, output_dir, ctx)
+            return downloader.download(url, video_full_path, ctx, self.__proxy)
+        return downloader.download(url, video_full_path, ctx)
 
     # 2. Audio to text (subtitle)
     def subtitle(
@@ -551,6 +551,23 @@ class PipelineManager:
 pipeline = PipelineManager()
 
 if __name__ == "__main__":
+    class TestDownloaderContext(DownloaderContext):
+        def on_create(self, url: str):
+            print(f"on_create: {url}")
+
+        def on_start(self, url: str):
+            print(f"on_start: {url}")
+
+        def on_progress(self, url: str, codec_type: int, progress: float):
+            print(f"on_progress: codec={codec_type}, progress={progress:.1%}")
+
+        def on_error(self, url: str, error: Exception):
+            print(f"on_error: {url}: {error}")
+
+        def on_complete(self, url: str):
+            print(f"on_complete: {url}")
+
+
     init_config()
     init_downloader()
     task_id = "20260727215533153521"
@@ -562,7 +579,11 @@ if __name__ == "__main__":
     ).order_by(VptTask.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
     if item:
-        result = pipeline.check("https://www.bilibili.com/video/BV1B38b6pE2w/?spm_id_from=333.1007.tianma.1-1-1.click")
+        url = "https://www.youtube.com/watch?v=IlbPO9Vmuuo"
+        result = pipeline.check(url)
+        if not result:
+            logging.error(f"task check failed: {task_id}")
+        result = pipeline.download(url=url, task_id=task_id, ctx=TestDownloaderContext(), is_download_proxy=True)
         print(result)
     # if item:
     #     result = pipeline.video_overlay(

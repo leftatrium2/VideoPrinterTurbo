@@ -2,6 +2,7 @@
 import asyncio
 import os.path
 import subprocess
+from logging import info
 from typing import Optional
 
 import yt_dlp
@@ -94,13 +95,32 @@ class YtDlpDownloader(BaseDownloader):
         }
         if proxy:
             yt_dlp_opts['proxy'] = proxy
+        video_bean = VideoBean()
+        video_bean.url = url
+        video_bean.video_path = f"{video_full_path}.mp4"
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
-                ydl.download([url])
+                # ydl.download([url])
+                info = ydl.extract_info(
+                    url=url,
+                    download=True
+                )
+                video_bean.title = info.get("title", "")
+                video_bean.duration = info.get("duration", 0.0)
+                video_bean.width = info.get("width", 0)
+                video_bean.height = info.get("height", 0)
+                video_bean.metadata = {
+                    'uploader': info.get('uploader', ''),
+                    'description': info.get('description', ''),
+                    'thumbnail': info.get('thumbnail', ''),
+                    'tags': info.get('tags', []),
+                }
         except Exception as e:
+            video_bean = VideoBean()
+            video_bean.url = url
             if context:
                 context.on_error(url, e)
-        return None
+        return video_bean
 
 
 class TestDownloaderContext(DownloaderContext):
