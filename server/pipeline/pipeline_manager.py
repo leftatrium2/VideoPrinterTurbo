@@ -319,8 +319,8 @@ class PipelineManager:
         return transcriber.transcribe(download_path)
 
     # 3. LLM rewrite
-    def rewrite(self, text: str, src_path: str, dst_path: str,
-                config: dict) -> bool:
+    def llm_rewrite(self, text: str, src_path: str, dst_path: str,
+                    config: dict) -> bool:
         if 'api_key' not in config or 'base_url' not in config or 'model' not in config:
             return False
         llm: BaseLLMProvider = OpenAIProvider()
@@ -333,8 +333,8 @@ class PipelineManager:
 
     # 4. Output to speech
     # If the original video has an audio track, selecting this option will remove the original audio and use the new TTS voice instead
-    def text_to_speech(self, tts_engine: str, subtitle_path: str, lang: str, voice: str, api_key: str = None,
-                       region: str = None, proxy: str = None) -> bool:
+    def tts(self, tts_engine: str, subtitle_path: str, lang: str, voice: str, api_key: str = None,
+            region: str = None, proxy: str = None) -> bool:
         tts: TTSBase = None
         if tts_engine == "Azure TTS V1":
             tts = AzureTTSV1()
@@ -476,7 +476,7 @@ class PipelineManager:
         return api_key
 
     # 7. Video overlay
-    def video_overlay(
+    def video_rewrite(
             self,
             video_file_path: str,
             subtitle_file_path: str,

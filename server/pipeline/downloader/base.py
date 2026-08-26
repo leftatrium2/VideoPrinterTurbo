@@ -19,12 +19,15 @@ class VideoBean:
 
 @dataclass
 class AsrBean:
-    pass
+    url: str = ""
+    """ 生成的字幕文件，绝对地址 """
+    subtitle_path: str = ""
 
 
 @dataclass
 class LLMBean:
-    pass
+    url: str = ""
+    llm_text: str = ""
 
 
 @dataclass
