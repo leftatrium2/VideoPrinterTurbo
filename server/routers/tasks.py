@@ -14,7 +14,7 @@ from sqlalchemy import and_
 import config.config as _config
 from middleware.i18n_middleware import get_current_lang
 from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig, \
-    VptTask
+    VptTasks
 from models.schemas import TaskItem
 from pipeline.pipeline_manager import pipeline
 from utils import const
@@ -34,12 +34,12 @@ MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 
 
 @router.get("/list")
-async def get_tasks(page: int = Query(default=1, min=1), page_size: int = Query(default=10, min=10, max=50),
-                    db: AsyncSession = Depends(database.get_db)):
-    result = await db.execute(select(func.count()).select_from(VptTask).where(VptTask.is_deleted == 0))
+async def list_tasks(page: int = Query(default=1, min=1), page_size: int = Query(default=10, min=10, max=50),
+                     db: AsyncSession = Depends(database.get_db)):
+    result = await db.execute(select(func.count()).select_from(VptTasks).where(VptTasks.is_deleted == 0))
     total = result.scalar_one()
     offset = (page - 1) * page_size
-    result = await db.execute(select(VptTask).where(VptTask.is_deleted == 0).offset(offset).limit(page_size))
+    result = await db.execute(select(VptTasks).where(VptTasks.is_deleted == 0).offset(offset).limit(page_size))
     data = result.scalars().all()
     for item in data:
         del item.id
@@ -55,9 +55,9 @@ async def get_tasks(page: int = Query(default=1, min=1), page_size: int = Query(
 async def get_tasks(task_id: str = Query(default=None), db: AsyncSession = Depends(database.get_db)):
     if not task_id:
         return result_failure(const.TASK_ERR_TASK_ID_EMPTY, "Task ID cannot be empty")
-    result = await db.execute(select(VptTask).where(and_(
-        VptTask.is_deleted == 0,
-        VptTask.task_id == task_id
+    result = await db.execute(select(VptTasks).where(and_(
+        VptTasks.is_deleted == 0,
+        VptTasks.task_id == task_id
     )))
     item = result.scalar_one_or_none()
     if not item:
@@ -70,9 +70,9 @@ async def get_tasks(task_id: str = Query(default=None), db: AsyncSession = Depen
 async def del_tasks(task_id: str = Query(default=None), db: AsyncSession = Depends(database.get_db)):
     if not task_id:
         return result_failure(const.TASK_ERR_TASK_ID_EMPTY, "Task ID cannot be empty")
-    result = await db.execute(select(VptTask).where(and_(
-        VptTask.is_deleted == 0,
-        VptTask.task_id == task_id
+    result = await db.execute(select(VptTasks).where(and_(
+        VptTasks.is_deleted == 0,
+        VptTasks.task_id == task_id
     )))
     item = result.scalar_one_or_none()
     if not item:
@@ -85,11 +85,13 @@ async def del_tasks(task_id: str = Query(default=None), db: AsyncSession = Depen
 
 @router.post("/update")
 async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
-    result = await db.execute(select(VptTask).where(VptTask.task_id == task.task_id))
+    result = await db.execute(select(VptTasks).where(VptTasks.task_id == task.task_id))
     item = result.scalar_one_or_none()
     if not item:
         return result_failure(const.TASK_ERR_TASK_NOT_FOUND, "Task not found")
     item.task_url = task.task_url
+    item.task_upload_video_path = task.task_upload_video_path
+    item.task_original_video_path = task.task_original_video_path
     item.is_download_proxy = task.is_download_proxy
     item.is_from_asr_or_subtitle = task.is_from_asr_or_subtitle
     item.is_llm = task.is_llm
@@ -128,9 +130,11 @@ async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_d
 @router.post("/add")
 async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db)):
     task_id = gen_task_id()
-    item = VptTask(
+    item = VptTasks(
         task_id=task_id,
         task_url=task.task_url,
+        task_upload_video_path=task.task_upload_video_path,
+        task_original_video_path=task.task_original_video_path,
         is_download_proxy=task.is_download_proxy,
         is_from_asr_or_subtitle=task.is_from_asr_or_subtitle,
         is_llm=task.is_llm,
@@ -179,7 +183,7 @@ async def upload_material(files: list[UploadFile] = File(...)):
         content = await file.read()
         if len(content) > MAX_FILE_SIZE:
             return result_failure(const.TASK_CONFIG_ERR_FILE_SIZE_LIMIT_EXCEEDED,
-                                  "Uploaded file size cannot exceed 50MB, filename: " + file.filename)
+                                  "Uploaded file size cannot exceed 100MB, filename: " + file.filename)
         content = await file.read()
         suffix = Path(file.filename).suffix
         saved_name = f"{uuid.uuid4().hex}{suffix}"
@@ -205,7 +209,7 @@ async def upload_bgm(file: UploadFile = File(...)):
     # Read content to check size
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        return result_failure(const.TASK_CONFIG_ERR_FILE_SIZE_LIMIT_EXCEEDED, "Uploaded file size cannot exceed 50MB")
+        return result_failure(const.TASK_CONFIG_ERR_FILE_SIZE_LIMIT_EXCEEDED, "Uploaded file size cannot exceed 100MB")
     # Generate unique filename, preserving original extension
     suffix = Path(file.filename).suffix
     saved_name = f"{uuid.uuid4().hex}{suffix}"

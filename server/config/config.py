@@ -4,12 +4,14 @@ from pathlib import Path
 
 import yaml
 
-from utils.file_utils import get_current_path
-
 # Module-level global variables, effective after calling init_config()
 config: dict = {}
 downloader_config: dict | None = None
 i18n_config: dict | None = None
+
+
+def get_current_path() -> str:
+    return f"{Path.cwd().parent}"
 
 
 # Load yaml configuration

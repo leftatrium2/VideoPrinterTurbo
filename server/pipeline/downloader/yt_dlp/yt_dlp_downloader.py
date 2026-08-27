@@ -2,14 +2,13 @@
 import asyncio
 import os.path
 import subprocess
-from logging import info
 from typing import Optional
 
 import yt_dlp
 from loguru import logger
 
 from config.config import init_config
-from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoBean
+from pipeline.downloader.base import BaseDownloader, DownloaderContext
 from utils import const
 from utils.const import DOWNLOADER_CODEC_VIDEO_TYPE, DOWNLOADER_CODEC_AUDIO_TYPE, DOWNLOADER_CODEC_MUXER_TYPE
 from utils.exception import VPTException
@@ -17,11 +16,15 @@ from utils.file_utils import get_download_path
 
 
 def make_hook(context: DownloaderContext):
-    def hook(dict):
-        match dict['status']:
+    def hook(progress):
+        status = progress.get('status')
+        info = progress.get('info_dict') or {}
+        original_url = info.get('original_url', '')
+        match status:
             case 'downloading':
-                progress = dict['downloaded_bytes'] / dict['total_bytes']
-                info = dict.get('info_dict', {})
+                downloaded = progress.get('downloaded_bytes', 0) or 0
+                total = progress.get('total_bytes') or progress.get('total_bytes_estimate') or 0
+                progress_ratio = downloaded / total if total > 0 else 0.0
                 vcodec = info.get("vcodec", "none")
                 acodec = info.get("acodec", "none")
                 if vcodec != "none" and acodec == "none":
@@ -30,14 +33,11 @@ def make_hook(context: DownloaderContext):
                     stream_type = DOWNLOADER_CODEC_AUDIO_TYPE
                 else:
                     stream_type = DOWNLOADER_CODEC_MUXER_TYPE
-                context.on_progress(dict['info_dict']['original_url'], stream_type, progress)
-                pass
+                context.on_progress(original_url, stream_type, progress_ratio)
             case 'finished':
-                context.on_complete(dict['info_dict']['original_url'])
-                pass
+                context.on_complete(original_url)
             case 'error':
-                context.on_error(dict['info_dict']['original_url'], Exception(dict['err']))
-                pass
+                context.on_error(original_url, Exception(progress.get('err', 'yt-dlp error')))
 
     return hook
 
@@ -91,20 +91,21 @@ class YtDlpDownloader(BaseDownloader):
             'ignoreerrors': True,
             'no_warnings': True,
             "noprogress": True,
-            "progress_hooks": [make_hook(context)],
         }
+        if context:
+            yt_dlp_opts["progress_hooks"] = [make_hook(context)]
         if proxy:
             yt_dlp_opts['proxy'] = proxy
         ret_dict = {}
         ret_dict['url'] = url
-        ret_dict['video_path'] = f"{video_full_path}.mp4"
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
                 # ydl.download([url])
                 info = ydl.extract_info(
                     url=url,
                     download=True
-                )
+                ) or {}
+                ret_dict['video_path'] = f"{video_full_path}.mp4"
                 ret_dict['title'] = info.get("title", "")
                 ret_dict['duration'] = info.get("duration", 0.0)
                 ret_dict['width'] = info.get("width", 0)
@@ -115,7 +116,12 @@ class YtDlpDownloader(BaseDownloader):
                     'thumbnail': info.get('thumbnail', ''),
                     'tags': info.get('tags', []),
                 }
+                ret_dict['status'] = 0
+                ret_dict['message'] = ""
         except Exception as e:
+            logger.error(e)
+            ret_dict['status'] = -1
+            ret_dict['message'] = e
             if context:
                 context.on_error(url, e)
         return ret_dict

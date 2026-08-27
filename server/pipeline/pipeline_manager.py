@@ -4,11 +4,12 @@ from typing import Optional
 from sqlalchemy import select
 
 from config.config import init_config
-from models.model import VptTask
+from models.model import VptTasks
 from pipeline.bean.pipeline_data import PipeLineData
 from pipeline.bean.video_bean import VideoBean
 from pipeline.downloader.base import DownloaderContext
-from pipeline.utils.pipeline_video_utils import check_video, init_downloader, download_video
+from pipeline.utils.pipeline_video_downloader_utils import check_video, download_video, init_downloader
+from service import task_const
 from utils.database import database
 
 
@@ -16,13 +17,10 @@ class PipelineManager:
 
     def __init__(self):
         self.__proxy = None
-        self._data: PipeLineData = None
-        self.inner_downloader_context = None
+        self._data: PipeLineData = PipeLineData()
+        self.inner_downloader_context = PipelineManager.InnerDownloaderContext()
 
     class InnerDownloaderContext(DownloaderContext):
-        def __init__(self, task: VptTask):
-            self.__task = task
-            pass
 
         def on_create(self, url: str):
             logging.info(f"on_create: url: {url}")
@@ -46,27 +44,30 @@ class PipelineManager:
     def get_data(self) -> Optional[PipeLineData]:
         return self._data
 
-    def init(self, task: VptTask):
-        self.inner_downloader_context = PipelineManager.InnerDownloaderContext(self, task)
+    def init(self):
         self._data = PipeLineData()
 
-    def process_now(self, task: VptTask) -> bool:
+    def process_now(self, task: VptTasks) -> int:
         res = check_video(url=task.task_url,
                           proxy_url=self.__proxy)
         if not res:
-            return False
+            return task_const.TASK_STATUS_ERROR_DOWNLOAD_CHECK
         # download video
         self._data.video_bean = VideoBean()
         res = download_video(url=task.task_url,
                              task_id=task.task_id,
                              ctx=self.inner_downloader_context,
                              proxy_url=self.__proxy)
-        if not res:
-            # todo 写日志以及错误
-            return False
-        self._data.video_bean = res
-        if not self._data.video_bean.video_path:
-            logging.error(f"{task.task_url} cant download")
+        if not res or res['status'] != 0:
+            logging.error(f"{task.task_url} download error, message:{res['message']}")
+            return task_const.TASK_STATUS_ERROR_DOWNLOAD
+        self._data.video_bean.url = res['url'] or ""
+        self._data.video_bean.video_path = res['video_path'] or ""
+        self._data.video_bean.title = res['title'] or ""
+        self._data.video_bean.duration = int(res['duration'] or 0)
+        self._data.video_bean.width = int(res['width'] or 0)
+        self._data.video_bean.height = int(res['height'] or 0)
+        self._data.video_bean.metadata = res['metadata'] or {}
         # asr or subtitle download
         if task.is_from_asr_or_subtitle:
             pass
@@ -77,7 +78,7 @@ class PipelineManager:
         # rewrite to subtitle
         # bgm
 
-        return True
+        return task_const.TASK_STATUS_SUCCESS
 
 
 pipeline = PipelineManager()
@@ -105,10 +106,10 @@ if __name__ == "__main__":
     task_id = "20260727215533153521"
     database.start()
     db = database.get_sync_session()
-    result = db.execute(select(VptTask).where(
-        VptTask.task_id == task_id,
-        VptTask.is_deleted == 0
-    ).order_by(VptTask.create_time.asc()).limit(1))
+    result = db.execute(select(VptTasks).where(
+        VptTasks.task_id == task_id,
+        VptTasks.is_deleted == 0
+    ).order_by(VptTasks.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
     if item:
         url = "https://www.youtube.com/watch?v=IlbPO9Vmuuo"

@@ -9,7 +9,7 @@ from loguru import logger
 import requests
 
 from config.config import init_config
-from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoBean
+from pipeline.downloader.base import BaseDownloader, DownloaderContext
 from utils.const import DOWNLOADER_CODEC_MUXER_TYPE
 from utils.file_utils import get_download_path
 

@@ -1,17 +1,14 @@
-import asyncio
-import logging
 import threading
 
 from sqlalchemy import select, and_
 from tenacity import sleep
 
 from config.config import init_config
-from models.model import VptTask
-from pipeline.downloader.base import PipeLineContext
+from models.model import VptTasks
 from pipeline.pipeline_manager import pipeline, init_downloader
-from utils.logger import logger
 from service import task_const
 from utils.database import database
+from utils.logger import logger
 
 
 # Task Manager
@@ -30,31 +27,32 @@ class TaskManager(object):
         while True:
             try:
                 result = session.execute(
-                    select(VptTask).where(and_(
-                        VptTask.status == task_const.TASK_STATUS_QUEUE,
-                        VptTask.is_deleted == 0
-                    )).order_by(VptTask.create_time.asc()).limit(1)
+                    select(VptTasks).where(and_(
+                        VptTasks.status == task_const.TASK_STATUS_QUEUE,
+                        VptTasks.is_deleted == 0
+                    )).order_by(VptTasks.create_time.asc()).limit(1)
                 )
                 task = result.scalar_one_or_none()
                 if not task:
                     sleep(5)
                     continue
-                pipeline.init(task)
+                pipeline.init()
                 result = pipeline.process_now(task)
                 if not result:
                     logger.error(f"task failed: {task.id}")
-                    task.status = task_const.TASK_STATUS_ERROR_UNKNOWN
+                    task.status = int(result or task_const.TASK_STATUS_ERROR_UNKNOWN)
+                    session.commit()
+                    session.refresh()
                     continue
                 print(f"task success: {task.id}")
-                sleep(5)
             except Exception as e:
                 logger.exception(f"job failed: {e}")
         pass
 
     async def start(self):
         logger.info("Starting TaskManager")
-        self.processes_threading = threading.Thread(target=self.process, daemon=True)
-        self.processes_threading.start()
+        # self.processes_threading = threading.Thread(target=self.process, daemon=True)
+        # self.processes_threading.start()
 
     async def stop(self):
         logger.info("Stopping TaskManager")

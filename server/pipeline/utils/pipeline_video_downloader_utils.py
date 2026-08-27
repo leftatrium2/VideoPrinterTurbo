@@ -1,12 +1,13 @@
 import asyncio
 import importlib
+import json
 import logging
 import os
 from typing import Optional
 
+from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from utils.file_utils import get_download_path
 import config.config as _config
-from pipeline.downloader.base import BaseDownloader, DownloaderContext, VideoBean
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
 
 
@@ -77,3 +78,14 @@ def _get_downloader(url: str) -> Optional[BaseDownloader]:
 
 
 downloaders = {}
+
+if __name__ == "__main__":
+    _config.init_config()
+    init_downloader()
+    result = download_video(
+        url="https://www.youtube.com/watch?v=1UufaK3pQMg",
+        task_id="20260720215545133997",
+        ctx=None,
+        proxy_url="http://127.0.0.1:7890"
+    )
+    print(f"{json.dumps(result)}")

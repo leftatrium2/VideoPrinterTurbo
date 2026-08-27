@@ -57,6 +57,8 @@ class MaterialPixabayItem(BaseModel):
 class TaskItem(BaseModel):
     task_id: str = ""
     task_url: str = ""
+    task_upload_video_path: str = ""
+    task_original_video_path: str = ""
     # Is a proxy used for the downloader?
     is_download_proxy: bool = False
     ### 1. Audio to Text

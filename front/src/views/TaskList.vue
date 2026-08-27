@@ -26,9 +26,10 @@
                 <component :is="statusIcon(row.status)" />
               </el-icon>
               <div class="address-info">
-                <a :href="row.task_url" target="_blank" class="task-url" :title="row.task_url">
+                <a v-if="row.task_url" :href="row.task_url" target="_blank" class="task-url" :title="row.task_url">
                   {{ truncateUrl(row.task_url) }}
                 </a>
+                <span v-else class="local-path" :title="getTaskAddress(row)">{{ getTaskAddress(row) }}</span>
                 <span class="added-time">Added: {{ formatTime(row.create_time) }}</span>
               </div>
             </div>
@@ -38,7 +39,16 @@
         <!-- Local path -->
         <el-table-column :label="t('taskList.localPath')" width="280">
           <template #default="{ row }">
-            <span v-if="row.local_path" class="local-path">{{ row.local_path }}</span>
+            <span v-if="getTaskLocalPath(row)" class="local-path">{{ getTaskLocalPath(row) }}</span>
+            <span v-else class="no-path">{{ t('taskList.noPath') }}</span>
+          </template>
+        </el-table-column>
+
+        <!-- Video category -->
+        <el-table-column :label="t('taskList.videoCategory')" width="110">
+          <template #default="{ row }">
+            <span v-if="getTaskVideoCategory(row) === 'network'">{{ t('taskList.networkVideo') }}</span>
+            <span v-else-if="getTaskVideoCategory(row) === 'local'">{{ t('taskList.localVideo') }}</span>
             <span v-else class="no-path">{{ t('taskList.noPath') }}</span>
           </template>
         </el-table-column>
@@ -149,6 +159,7 @@ import { Plus, VideoPlay, Refresh, Edit, Delete, CircleCheckFilled, CircleCloseF
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTaskStore } from '@/stores/task'
 import { addTask, deleteTask, streamUrl, type Task } from '@/services/api'
+import { getTaskAddress, getTaskLocalPath, getTaskVideoCategory } from '@/utils/taskDisplay'
 
 const router = useRouter()
 const store = useTaskStore()

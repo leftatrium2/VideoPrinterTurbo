@@ -97,6 +97,27 @@ describe('api service', () => {
     expect(result).toEqual({ message: '任务添加成功' })
   })
 
+  it('uploadTaskVideo 以 files 字段上传本地任务视频', async () => {
+    mockHttp.post.mockResolvedValue({
+      data: {
+        code: 0,
+        msg: 'success',
+        data: [{ filename: 'source.mp4', saved_as: 'storage/downloads/source.mp4', size: 1, content_type: 'video/mp4' }],
+      },
+    })
+
+    const result = await api.uploadTaskVideo(new File(['x'], 'source.mp4', { type: 'video/mp4' }))
+
+    expect(mockHttp.post).toHaveBeenCalledWith(
+      '/downloader/upload_video',
+      expect.any(FormData),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    )
+    const uploadedForm = mockHttp.post.mock.calls[0][1] as FormData
+    expect(uploadedForm.get('files')).toBeInstanceOf(File)
+    expect(result.saved_as).toBe('storage/downloads/source.mp4')
+  })
+
   it('请求失败时抛出错误', async () => {
     mockHttp.get.mockRejectedValue(new Error('Network Error'))
     await expect(api.getTasks(1, 10)).rejects.toThrow('Network Error')

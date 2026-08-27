@@ -12,6 +12,7 @@ from models.model import Base
 from pipeline.pipeline_manager import init_downloader
 from routers.asr_config import router as asr_config_router
 from routers.index import router as index_router
+from routers.downloader_config import router as downloader_router
 from routers.llm_config import router as llm_config_router
 from routers.material_config import router as material_config_router
 from routers.proxy_config import router as proxy_config_router
@@ -58,6 +59,7 @@ register_i18n_middleware(app)
 
 # Register routers
 app.include_router(index_router)
+app.include_router(downloader_router)
 app.include_router(tasks_router)
 app.include_router(tts_config_router)
 app.include_router(asr_config_router)

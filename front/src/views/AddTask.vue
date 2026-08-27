@@ -11,13 +11,41 @@
         <HelpPopover :content="t('addTask.helpDownload')" />
       </div>
       <div class="section-body">
-        <div class="field-label">{{ t('addTask.videoUrl') }}</div>
-        <el-input v-model="form.task_url" :placeholder="t('addTask.videoUrlPlaceholder')" size="large">
-          <template #append>
-            <el-button :icon="Link" :loading="checkingLink" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
-          </template>
-        </el-input>
-        <el-checkbox v-model="form.is_download_proxy" class="mt-12">{{ t('addTask.downloadUseProxy') }}</el-checkbox>
+        <div class="field-label">{{ t('addTask.videoInputMode') }}</div>
+        <el-select v-model="form.video_input_mode" class="full-width">
+          <el-option :label="t('addTask.downloadVideo')" value="download" />
+          <el-option :label="t('addTask.localUpload')" value="upload" />
+        </el-select>
+
+        <template v-if="form.video_input_mode === 'download'">
+          <div class="field-label mt-12">{{ t('addTask.videoUrl') }}</div>
+          <el-input v-model="form.task_url" :placeholder="t('addTask.videoUrlPlaceholder')" size="large">
+            <template #append>
+              <el-button :icon="Link" :loading="checkingLink" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
+            </template>
+          </el-input>
+          <el-checkbox v-model="form.is_download_proxy" class="mt-12">{{ t('addTask.downloadUseProxy') }}</el-checkbox>
+        </template>
+
+        <div v-else class="upload-zone mt-12">
+          <el-upload
+            drag
+            :auto-upload="false"
+            accept="video/*"
+            :on-change="handleTaskVideoFileChange"
+            :file-list="taskVideoFileList"
+            :show-file-list="false"
+          >
+            <el-icon class="upload-icon"><Upload /></el-icon>
+            <div class="upload-text">{{ t('addTask.uploadTaskVideo') }}</div>
+            <div class="upload-hint">{{ t('addTask.uploadTaskVideoHint') }}</div>
+          </el-upload>
+          <div v-if="taskVideoFileList.length > 0" class="bgm-file-item mt-4">
+            <el-icon class="bgm-file-icon"><Film /></el-icon>
+            <span class="bgm-file-name">{{ taskVideoFileList[0].name }}</span>
+            <el-icon class="bgm-file-remove" @click="handleTaskVideoFileRemove"><Close /></el-icon>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -342,7 +370,7 @@ import {
   Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
-import { addTask, updateTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, getAsrLang } from '@/services/api'
+import { addTask, updateTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, uploadTaskVideo, getAsrLang } from '@/services/api'
 import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
 import { validateVideoMaterialKeyword } from '@/utils/videoMaterialKeyword'
 
@@ -389,6 +417,7 @@ const enabled = reactive({
 /* -------- form state -------- */
 const form = reactive({
   task_url: '',
+  video_input_mode: 'download' as 'download' | 'upload',
   is_download_proxy: false,
   transcription_mode: 0 as number,
   subtitle_lang: 0 as number,
@@ -520,6 +549,9 @@ const bgmPreviewLoading = ref(false)
 const bgmIsPlaying = ref(false)
 const videoFileList = ref<UploadFile[]>([])
 const materialUploadedPaths = ref<string[]>([])
+const taskVideoFileList = ref<UploadFile[]>([])
+const taskUploadVideoPath = ref('')
+const taskOriginalVideoPath = ref('')
 
 const publishPlaceholder = `{ 'platform': 'douyin', 'auto_publish': true, ... }`
 
@@ -579,6 +611,29 @@ async function handleBgmFileChange(file: UploadFile) {
     bgmFileList.value = []
     bgmUploadedData.value = null
   }
+}
+
+async function handleTaskVideoFileChange(file: UploadFile) {
+  const rawFile = file.raw
+  if (!rawFile) return
+  taskVideoFileList.value = [file]
+  taskUploadVideoPath.value = ''
+  taskOriginalVideoPath.value = ''
+  try {
+    const result = await uploadTaskVideo(rawFile)
+    taskUploadVideoPath.value = result.saved_as
+    taskOriginalVideoPath.value = result.filename
+    ElMessage.success(t('addTask.taskVideoUploadSuccess'))
+  } catch {
+    taskVideoFileList.value = []
+    ElMessage.error(t('addTask.taskVideoUploadFailed'))
+  }
+}
+
+function handleTaskVideoFileRemove() {
+  taskVideoFileList.value = []
+  taskUploadVideoPath.value = ''
+  taskOriginalVideoPath.value = ''
 }
 
 async function handleBgmPreview() {
@@ -644,6 +699,17 @@ const SUBTITLE_POSITION_OPTIONS = ['bottom-center', 'top-center', 'center', 'cus
 async function applyTaskDetail(detail: TaskDetail) {
   form.task_url = detail.task_url
   form.is_download_proxy = !!detail.is_download_proxy
+  if (detail.task_upload_video_path) {
+    form.video_input_mode = 'upload'
+    taskUploadVideoPath.value = detail.task_upload_video_path
+    taskOriginalVideoPath.value = detail.task_original_video_path
+    taskVideoFileList.value = [{
+      name: detail.task_original_video_path || detail.task_upload_video_path.split('/').pop() || detail.task_upload_video_path,
+      uid: 0,
+    } as UploadFile]
+  } else {
+    form.video_input_mode = 'download'
+  }
 
   enabled.transcription = !!detail.is_from_asr_or_subtitle
   form.transcription_mode = detail.audio_rewrite_type
@@ -702,7 +768,14 @@ async function applyTaskDetail(detail: TaskDetail) {
 }
 
 async function handleSubmit() {
-  if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrl')); return }
+  if (form.video_input_mode === 'download' && !form.task_url.trim()) {
+    ElMessage.warning(t('addTask.enterUrl'))
+    return
+  }
+  if (form.video_input_mode === 'upload' && !taskUploadVideoPath.value) {
+    ElMessage.warning(t('addTask.uploadTaskVideoRequired'))
+    return
+  }
   const keywordValidationError = validateVideoMaterialKeyword(form.video_material_keyword)
   if (keywordValidationError) {
     ElMessage.warning(t(`addTask.videoMaterialKeyword${keywordValidationError === 'wordLimit' ? 'WordLimit' : 'EnglishOnly'}`))
@@ -711,8 +784,10 @@ async function handleSubmit() {
   try {
     submitting.value = true
     const payload = {
-      task_url: form.task_url,
-      is_download_proxy: form.is_download_proxy,
+      task_url: form.video_input_mode === 'download' ? form.task_url.trim() : '',
+      task_upload_video_path: form.video_input_mode === 'upload' ? taskUploadVideoPath.value : '',
+      task_original_video_path: form.video_input_mode === 'upload' ? taskOriginalVideoPath.value : '',
+      is_download_proxy: form.video_input_mode === 'download' && form.is_download_proxy,
       // 音频转文字
       is_from_asr_or_subtitle: enabled.transcription,
       audio_rewrite_type: form.transcription_mode,

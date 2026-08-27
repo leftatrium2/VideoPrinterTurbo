@@ -1,14 +1,13 @@
 import asyncio
 import os
-from pathlib import Path
 
 import anyio
 
 import config.config as _config
 
 
-def get_current_path():
-    return f"{Path.cwd().parent}"
+def get_current_path() -> str:
+    return _config.get_current_path()
 
 
 async def get_storage_path() -> str or None:

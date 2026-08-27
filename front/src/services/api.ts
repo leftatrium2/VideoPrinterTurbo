@@ -4,6 +4,8 @@ import { i18n } from '@/i18n'
 export interface Task {
   id: number
   task_url: string
+  task_upload_video_path?: string
+  task_original_video_path?: string
   create_time: string
   is_deleted: number
   status: number  // 0=pending, 1=running, 2=done, -1=failed
@@ -27,6 +29,8 @@ interface TaskListApiData {
 
 export interface AddTaskParams {
   task_url: string
+  task_upload_video_path: string
+  task_original_video_path: string
   is_download_proxy: boolean
   // 音频转文字
   is_from_asr_or_subtitle: boolean
@@ -153,6 +157,8 @@ export async function getTasks(page: number, pageSize: number): Promise<TaskList
 
 export interface TaskDetail {
   task_url: string
+  task_upload_video_path: string
+  task_original_video_path: string
   is_download_proxy: number
   create_time: string
   is_deleted: number
@@ -471,6 +477,23 @@ export interface MaterialUploadItem {
   saved_as: string
   size: number
   content_type: string
+}
+
+export interface TaskVideoUploadItem {
+  filename: string
+  saved_as: string
+  size: number
+  content_type: string
+}
+
+export async function uploadTaskVideo(file: File): Promise<TaskVideoUploadItem> {
+  const form = new FormData()
+  form.append('files', file)
+  const res = await request<ApiResult<TaskVideoUploadItem[]>>(
+    http.post('/downloader/upload_video', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  )
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data[0]
 }
 
 export async function uploadMaterial(files: File[]): Promise<MaterialUploadItem[]> {
