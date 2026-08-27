@@ -191,8 +191,8 @@ class BiliBiliDownloader(BaseDownloader):
             url: str,
             video_full_path: str,
             context: Optional[DownloaderContext],
-            proxy: str = None,
-    ) -> Optional[VideoBean]:
+            proxy: Optional[str]
+    ) -> Optional[dict]:
         if not _is_bilibili_video_url(url):
             error = ValueError("Only Bilibili playback-detail URLs are supported")
             if context:
@@ -219,22 +219,22 @@ class BiliBiliDownloader(BaseDownloader):
                 raise FileNotFoundError(f"Bilibili download did not create the expected MP4: {video_path}")
 
             dimension = info.get("dimension") or {}
-            video = VideoBean(
-                video_path=video_path,
-                metadata={
+            if context:
+                context.on_complete(url)
+            return {
+                'url': url,
+                'video_path': video_path,
+                "title": info.get("title") or "",
+                "duration": float(info.get("duration") or 0),
+                "width": int(dimension.get("width") or 0),
+                "height": int(dimension.get("height") or 0),
+                "metadata": {
                     "id": info.get("aid"),
                     "bvid": bvid,
                     "cid": cid,
                     "webpage_url": url,
-                },
-                title=info.get("title") or "",
-                duration=float(info.get("duration") or 0),
-                width=int(dimension.get("width") or 0),
-                height=int(dimension.get("height") or 0),
-            )
-            if context:
-                context.on_complete(url)
-            return video
+                }
+            }
         except Exception as error:
             logger.exception("Failed to download Bilibili video {}", url)
             if context:

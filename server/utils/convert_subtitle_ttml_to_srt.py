@@ -109,9 +109,9 @@ def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> bool:
             count = count + 1
             if item.begin < last_end:
                 if subtitle.strip() == "":
-                    subtitle = f"{item.subtitle}"
+                    subtitle = f"{item.subtitle_convert}"
                 else:
-                    subtitle = f"{subtitle} {item.subtitle}"
+                    subtitle = f"{subtitle} {item.subtitle_convert}"
                 if count == bean.get_item_count():
                     if subtitle.strip() != '':
                         fp.write(f"{seq_num}\n")
@@ -125,7 +125,7 @@ def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> bool:
                     f"{convert_subtitle_timestamp_to_str(last_begin)} --> {convert_subtitle_timestamp_to_str(last_end)}\n")
                 fp.write(f"{subtitle}\n\n")
                 seq_num = seq_num + 1
-            subtitle = item.subtitle
+            subtitle = item.subtitle_convert
             last_begin = item.begin
             last_end = item.end
             if count == bean.get_item_count():
@@ -144,11 +144,11 @@ def convert_subtitle_order(bean: SubtitleBean, output_file: str):
     count = 1
     with open(output_file, 'w+') as fp:
         for item in bean.get_item_list():
-            if item.subtitle.strip() != '':
+            if item.subtitle_convert.strip() != '':
                 fp.write(f"{count}\n")
                 fp.write(
                     f"{convert_subtitle_timestamp_to_str(item.begin)} --> {convert_subtitle_timestamp_to_str(item.end)}\n")
-                fp.write(f"{item.subtitle}\n\n")
+                fp.write(f"{item.subtitle_convert}\n\n")
                 count = count + 1
     return True
 

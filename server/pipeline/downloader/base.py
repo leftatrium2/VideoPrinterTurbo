@@ -1,61 +1,5 @@
 from abc import abstractmethod, ABC
-from dataclasses import dataclass, field
 from typing import Optional
-
-from utils.const import PIPELINE_STATUS_INIT
-
-
-@dataclass
-class VideoBean:
-    url: str = ""
-    """Standardised output from a downloader."""
-    video_path: str = ""
-    metadata: dict = field(default_factory=dict)
-    title: str = ""
-    duration: float = 0.0
-    width: int = 0
-    height: int = 0
-
-
-@dataclass
-class AsrBean:
-    url: str = ""
-    """ 生成的字幕文件，绝对地址 """
-    subtitle_path: str = ""
-
-
-@dataclass
-class LLMBean:
-    url: str = ""
-    llm_text: str = ""
-
-
-@dataclass
-class TTSBean:
-    pass
-
-
-@dataclass
-class SubtitleBean:
-    pass
-
-
-@dataclass
-class BGMBean:
-    pass
-
-
-@dataclass
-class PipeLineData:
-    task_id: str = ""
-    url: str = ""
-    status: int = PIPELINE_STATUS_INIT
-    video_bean: VideoBean = None
-    asr_bean: AsrBean = None
-    llm_bean: LLMBean = None
-    tts_bean: TTSBean = None
-    subtitle_bean: SubtitleBean = None
-    bgm_bean: BGMBean = None
 
 
 class DownloaderContext(ABC):
@@ -96,10 +40,10 @@ class BaseDownloader(ABC):
             url: str,
             video_full_path: str,
             context: Optional[DownloaderContext],
-            proxy: str = None
-    ) -> Optional[VideoBean]:
+            proxy: Optional[str]
+    ) -> Optional[dict]:
         """
-        :param video_full_path: 不包含扩展名的视频存储地址
+        Download video from given url.
         """
         pass
 
@@ -107,6 +51,9 @@ class BaseDownloader(ABC):
     def check(
             self,
             url: str,
-            proxy: str = None
+            proxy: Optional[str]
     ) -> bool:
+        """
+        check video url is valid.
+        """
         pass

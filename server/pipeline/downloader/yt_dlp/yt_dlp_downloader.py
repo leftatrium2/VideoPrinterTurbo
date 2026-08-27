@@ -79,8 +79,8 @@ class YtDlpDownloader(BaseDownloader):
             url: str,
             video_full_path: str,
             context: Optional[DownloaderContext],
-            proxy: str = None
-    ) -> Optional[VideoBean]:
+            proxy: Optional[str]
+    ) -> Optional[dict]:
         if context:
             context.on_create(url)
         yt_dlp_opts = {
@@ -95,9 +95,9 @@ class YtDlpDownloader(BaseDownloader):
         }
         if proxy:
             yt_dlp_opts['proxy'] = proxy
-        video_bean = VideoBean()
-        video_bean.url = url
-        video_bean.video_path = f"{video_full_path}.mp4"
+        ret_dict = {}
+        ret_dict['url'] = url
+        ret_dict['video_path'] = f"{video_full_path}.mp4"
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
                 # ydl.download([url])
@@ -105,22 +105,20 @@ class YtDlpDownloader(BaseDownloader):
                     url=url,
                     download=True
                 )
-                video_bean.title = info.get("title", "")
-                video_bean.duration = info.get("duration", 0.0)
-                video_bean.width = info.get("width", 0)
-                video_bean.height = info.get("height", 0)
-                video_bean.metadata = {
+                ret_dict['title'] = info.get("title", "")
+                ret_dict['duration'] = info.get("duration", 0.0)
+                ret_dict['width'] = info.get("width", 0)
+                ret_dict['height'] = info.get("height", 0)
+                ret_dict['metadata'] = {
                     'uploader': info.get('uploader', ''),
                     'description': info.get('description', ''),
                     'thumbnail': info.get('thumbnail', ''),
                     'tags': info.get('tags', []),
                 }
         except Exception as e:
-            video_bean = VideoBean()
-            video_bean.url = url
             if context:
                 context.on_error(url, e)
-        return video_bean
+        return ret_dict
 
 
 class TestDownloaderContext(DownloaderContext):
