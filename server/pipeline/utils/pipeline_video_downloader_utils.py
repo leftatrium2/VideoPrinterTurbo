@@ -83,7 +83,7 @@ if __name__ == "__main__":
     _config.init_config()
     init_downloader()
     result = download_video(
-        url="https://www.youtube.com/watch?v=1UufaK3pQMg",
+        url="https://www.youtube.com/watch?v=FwOTs4UxQS4",
         task_id="20260720215545133997",
         ctx=None,
         proxy_url="http://127.0.0.1:7890"

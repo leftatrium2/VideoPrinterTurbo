@@ -29,6 +29,10 @@ class ASRConfigItem(BaseModel):
     openai_base_url: str = ""
     volcengine_appid: str = ""
     volcengine_access_token: str = ""
+    remote_whisper_type: int = 0
+    remote_vllm_url: str = ""
+    remote_vllm_model: str = ""
+    remote_whisper_cpp_url: str = ""
 
 
 class LLMConfigItem(BaseModel):

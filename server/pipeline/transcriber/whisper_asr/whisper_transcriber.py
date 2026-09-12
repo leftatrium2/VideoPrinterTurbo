@@ -61,7 +61,7 @@ class WhisperTranscriber(BaseTranscriber):
             )
         return self._engine
 
-    def config(self, proxy: str = None):
+    def config(self, proxy: str = None, **args):
         self.__proxy = proxy
 
     def transcribe(self, audio_path: str) -> Optional[str]:

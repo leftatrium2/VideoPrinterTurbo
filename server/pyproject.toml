@@ -42,6 +42,7 @@ dependencies = [
     "srt>=3.5.3",
     "litellm>=1.53.3",
     "langgraph>=1.2.11",
+    "sqlacodegen>=4.0.4",
 ]
 
 [project.optional-dependencies]

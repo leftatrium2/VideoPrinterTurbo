@@ -184,7 +184,6 @@ async def upload_material(files: list[UploadFile] = File(...)):
         if len(content) > MAX_FILE_SIZE:
             return result_failure(const.TASK_CONFIG_ERR_FILE_SIZE_LIMIT_EXCEEDED,
                                   "Uploaded file size cannot exceed 100MB, filename: " + file.filename)
-        content = await file.read()
         suffix = Path(file.filename).suffix
         saved_name = f"{uuid.uuid4().hex}{suffix}"
         upload_path = await get_upload_path()

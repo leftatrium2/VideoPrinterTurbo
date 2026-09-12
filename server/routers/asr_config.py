@@ -34,7 +34,11 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
         "openai_model": "",
         "openai_base_url": "",
         "volcengine_appid": "",
-        "volcengine_access_token": ""
+        "volcengine_access_token": "",
+        "remote_whisper_type": 0,
+        "remote_vllm_url": "",
+        "remote_vllm_model": "",
+        "remote_whisper_cpp_url": ""
     }
     if not item:
         return result_succ(ret_dict)
@@ -51,7 +55,11 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
         "openai_model": item.openai_model,
         "openai_base_url": item.openai_base_url,
         "volcengine_appid": item.volcengine_appid,
-        "volcengine_access_token": item.volcengine_access_token
+        "volcengine_access_token": item.volcengine_access_token,
+        "remote_whisper_type": item.remote_whisper_type,
+        "remote_vllm_url": item.remote_vllm_url,
+        "remote_vllm_model": item.remote_vllm_model,
+        "remote_whisper_cpp_url": item.remote_whisper_cpp_url
     }
     return result_succ(ret_dict)
 
@@ -87,7 +95,11 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
             openai_model=data.openai_model,
             openai_base_url=data.openai_base_url,
             volcengine_appid=data.volcengine_appid,
-            volcengine_access_token=data.volcengine_access_token
+            volcengine_access_token=data.volcengine_access_token,
+            remote_whisper_type=data.remote_whisper_type,
+            remote_vllm_url=data.remote_vllm_url,
+            remote_vllm_model=data.remote_vllm_model,
+            remote_whisper_cpp_url=data.remote_whisper_cpp_url
         )
         db.add(item)
     else:
@@ -104,6 +116,10 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
         item.openai_base_url = data.openai_base_url
         item.volcengine_appid = data.volcengine_appid
         item.volcengine_access_token = data.volcengine_access_token
+        item.remote_whisper_type = data.remote_whisper_type
+        item.remote_vllm_url = data.remote_vllm_url
+        item.remote_vllm_model = data.remote_vllm_model
+        item.remote_whisper_cpp_url = data.remote_whisper_cpp_url
     await db.commit()
     await db.refresh(item)
     return result_succ({})

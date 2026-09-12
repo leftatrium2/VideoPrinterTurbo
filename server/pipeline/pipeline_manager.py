@@ -116,7 +116,8 @@ if __name__ == "__main__":
         result = check_video(url, None)
         if not result:
             logging.error(f"task check failed: {task_id}")
-        result = pipeline.download(url=url, task_id=task_id, ctx=TestDownloaderContext(), is_download_proxy=True)
+        result = download_video(url=url, task_id=task_id, ctx=TestDownloaderContext(),
+                                proxy_url="http://127.0.0.1:7890")
         print(result)
     # if item:
     #     result = pipeline.video_overlay(

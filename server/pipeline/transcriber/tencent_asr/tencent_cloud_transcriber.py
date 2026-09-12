@@ -76,7 +76,7 @@ class TencentCloudTranscriber(BaseTranscriber):
         self.poll_interval_seconds = poll_interval_seconds
         self.poll_timeout_seconds = poll_timeout_seconds
 
-    def config(self, proxy: Optional[str] = None):
+    def config(self, proxy: Optional[str] = None, **args):
         if proxy:
             self.proxies = build_proxies(proxy)
 

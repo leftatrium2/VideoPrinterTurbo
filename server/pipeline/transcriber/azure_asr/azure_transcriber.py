@@ -37,7 +37,7 @@ class AzureASR(BaseTranscriber):
         self.enable_diarization = enable_diarization
         self.max_chunk_seconds = max_chunk_seconds
 
-    def config(self, proxy: Optional[str] = None):
+    def config(self, proxy: Optional[str] = None, **args):
         if proxy:
             self.proxies = build_proxies(proxy)
 

@@ -22,6 +22,10 @@ class VptAsrConfig(Base):
     openai_base_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     volcengine_appid: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     volcengine_access_token: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    remote_whisper_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    remote_vllm_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    remote_vllm_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    remote_whisper_cpp_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
 
 
 class VptLlmConfig(Base):
@@ -43,15 +47,6 @@ class VptProxyConfig(Base):
     proxy_server_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     proxy_server_username: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     proxy_server_password: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-
-
-class VptTaskLogs(Base):
-    __tablename__ = 'vpt_task_logs'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    task_id: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    task_logs: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
 
 
 class VptTasks(Base):

@@ -31,14 +31,13 @@ async def upload_video(files: list[UploadFile] = File(...)):
         if len(content) > MAX_FILE_SIZE:
             return result_failure(const.TASK_CONFIG_ERR_FILE_SIZE_LIMIT_EXCEEDED,
                                   "Uploaded file size cannot exceed 500MB, filename: " + file.filename)
-        content = await file.read()
         suffix = Path(file.filename).suffix
         saved_name = f"{uuid.uuid4().hex}{suffix}"
         upload_path = await get_download_path()
         dest = Path(upload_path) / saved_name
         async with aiofiles.open(dest, "wb") as f:
             await f.write(content)
-        abs_saved_name = os.path.join(_config.config['storage']['upload'], saved_name)
+        abs_saved_name = os.path.join(_config.config['storage']['download'], saved_name)
         ret_dict = {
             "filename": file.filename,
             "saved_as": abs_saved_name,

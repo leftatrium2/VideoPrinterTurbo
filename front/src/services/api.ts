@@ -318,6 +318,10 @@ export interface AsrConfigData {
   openai_base_url: string
   volcengine_appid: string
   volcengine_access_token: string
+  remote_whisper_type: number
+  remote_vllm_url: string
+  remote_vllm_model: string
+  remote_whisper_cpp_url: string
 }
 
 export async function getAsrConfig(): Promise<AsrConfigData> {

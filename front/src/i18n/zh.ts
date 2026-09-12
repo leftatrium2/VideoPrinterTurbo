@@ -182,6 +182,13 @@ export default {
   asrConfig: {
     title: 'ASR 配置',
     whisperTab: 'Whisper（本地 ASR）',
+    remoteWhisperTab: 'Whisper（远程 ASR）',
+    remoteDeploymentType: '部署类型',
+    vllmDeployment: 'vllm部署的Whisper',
+    whisperCppDeployment: 'Whisper.cpp部署的Whisper',
+    vllmUrl: 'Vllm Url地址',
+    vllmModel: 'Vllm Model',
+    whisperCppUrl: 'whisper.cpp Url地址',
     tencentTab: '腾讯云 ASR',
     xunfeiTab: '科大讯飞 ASR',
     openaiTab: 'OpenAI ASR',

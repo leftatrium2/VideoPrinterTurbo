@@ -20,6 +20,32 @@
           </div>
         </el-tab-pane>
 
+        <el-tab-pane :label="t('asrConfig.remoteWhisperTab')" name="remoteWhisper">
+          <div class="tab-body">
+            <div class="field">
+              <div class="field-label">{{ t('asrConfig.remoteDeploymentType') }}</div>
+              <el-select v-model="remoteWhisperForm.type" class="field-input">
+                <el-option :label="t('asrConfig.vllmDeployment')" :value="1" />
+                <el-option :label="t('asrConfig.whisperCppDeployment')" :value="2" />
+              </el-select>
+            </div>
+            <template v-if="remoteWhisperForm.type === 1">
+              <div class="field">
+                <div class="field-label">{{ t('asrConfig.vllmUrl') }}</div>
+                <el-input v-model="remoteWhisperForm.vllmUrl" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+              </div>
+              <div class="field">
+                <div class="field-label">{{ t('asrConfig.vllmModel') }}</div>
+                <el-input v-model="remoteWhisperForm.vllmModel" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+              </div>
+            </template>
+            <div v-else class="field">
+              <div class="field-label">{{ t('asrConfig.whisperCppUrl') }}</div>
+              <el-input v-model="remoteWhisperForm.whisperCppUrl" class="field-input" :placeholder="t('asrConfig.placeholder')" />
+            </div>
+          </div>
+        </el-tab-pane>
+
         <el-tab-pane :label="t('asrConfig.tencentTab')" name="tencent">
           <div class="tab-body">
             <div class="field">
@@ -120,6 +146,7 @@ const whisperModelList = ref<AsrWhisperModel[]>([])
 const loadingWhisperList = ref(false)
 
 function defaultWhisperForm() { return { model: 0 } }
+function defaultRemoteWhisperForm() { return { type: 1, vllmUrl: '', vllmModel: '', whisperCppUrl: '' } }
 function defaultTencentForm() { return { secretId: '', secretKey: '' } }
 function defaultXunfeiForm()  { return { appId: '', secretKey: '', webApi: '' } }
 function defaultOpenaiForm() { return { apiKey: '', model: 'whisper-1', baseUrl: '' } }
@@ -127,6 +154,7 @@ function defaultAzureForm() { return { subscriptionKey: '', region: '' } }
 function defaultVolcengineForm() { return { appId: '', accessToken: '' } }
 
 const whisperForm = reactive(defaultWhisperForm())
+const remoteWhisperForm = reactive(defaultRemoteWhisperForm())
 const tencentForm = reactive(defaultTencentForm())
 const xunfeiForm  = reactive(defaultXunfeiForm())
 const openaiForm = reactive(defaultOpenaiForm())
@@ -155,6 +183,10 @@ async function loadInitialData() {
     whisperForm.model =
       d.local_whisper_type ||
       (whisperModelList.value.length > 0 ? whisperModelList.value[0].value : 0)
+    remoteWhisperForm.type = d.remote_whisper_type || defaultRemoteWhisperForm().type
+    remoteWhisperForm.vllmUrl = d.remote_vllm_url || ''
+    remoteWhisperForm.vllmModel = d.remote_vllm_model || ''
+    remoteWhisperForm.whisperCppUrl = d.remote_whisper_cpp_url || ''
     tencentForm.secretId  = d.tencent_cloud_secret_id  || ''
     tencentForm.secretKey = d.tencent_cloud_secret_key || ''
     xunfeiForm.appId      = d.xfyun_appid              || ''
@@ -176,6 +208,8 @@ async function loadInitialData() {
 function handleReset() {
   if (activeTab.value === 'whisper') {
     Object.assign(whisperForm, defaultWhisperForm())
+  } else if (activeTab.value === 'remoteWhisper') {
+    Object.assign(remoteWhisperForm, defaultRemoteWhisperForm())
   } else if (activeTab.value === 'tencent') {
     Object.assign(tencentForm, defaultTencentForm())
   } else if (activeTab.value === 'xunfei') {
@@ -194,6 +228,10 @@ async function handleSubmit() {
   try {
     await updateAsrConfig({
       local_whisper_type:        whisperForm.model,
+      remote_whisper_type:       remoteWhisperForm.type,
+      remote_vllm_url:           remoteWhisperForm.vllmUrl,
+      remote_vllm_model:         remoteWhisperForm.vllmModel,
+      remote_whisper_cpp_url:    remoteWhisperForm.whisperCppUrl,
       tencent_cloud_secret_id:   tencentForm.secretId,
       tencent_cloud_secret_key:  tencentForm.secretKey,
       xfyun_appid:               xunfeiForm.appId,

@@ -10,7 +10,9 @@ from pipeline.transcriber.subtitle.subtitle_transcriber import SubTitleTranscrib
 from pipeline.transcriber.tencent_asr.tencent_cloud_transcriber import TencentCloudTranscriber
 from pipeline.transcriber.whisper_asr.whisper_transcriber import WhisperTranscriber
 from pipeline.transcriber.xunfei_asr.xf_cloud_asr import XFCloudASR
+from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 from utils import const
+import config.config as _config
 
 
 def subtitle_convert(
@@ -168,3 +170,9 @@ def asr_convert(
     if not transcriber:
         return None
     return transcriber.transcribe(download_path)
+
+
+if __name__ == "__main__":
+    _config.init_config()
+    init_downloader()
+    result = asr_convert("/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260720215545133997.mp4")
