@@ -35,7 +35,7 @@ class OpenAIASR(BaseTranscriber):
         self.proxy = None
         self._client = None
 
-    def config(self, proxy: Optional[str] = None, **args):
+    def config(self, proxy: Optional[str] = None):
         if proxy:
             self.proxy = proxy
 

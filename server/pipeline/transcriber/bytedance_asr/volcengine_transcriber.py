@@ -49,7 +49,7 @@ class VolcengineASR(BaseTranscriber):
         self.poll_timeout_seconds = poll_timeout_seconds
         self.proxies = None
 
-    def config(self, proxy: Optional[str] = None, **args):
+    def config(self, proxy: Optional[str] = None):
         if proxy:
             self.proxies = build_proxies(proxy)
 

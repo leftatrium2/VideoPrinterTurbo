@@ -89,6 +89,7 @@ class WhisperCppTranscriber(object):
 
         write_srt(srt_path, all_segments)
         logger.info(f"已生成：{srt_path}")
+        return str(srt_path)
 
 
 if __name__ == "__main__":
