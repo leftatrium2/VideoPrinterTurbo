@@ -2,21 +2,22 @@ import asyncio
 import logging
 import os
 import tempfile
+from typing import Optional
 
 from config.config import init_config
 from pipeline.tts.base import TTSBase
+from utils import const
 from utils.file_utils import get_tts_rewrite_path, get_llm_rewrite_path
 from utils.tts_utils import TTSUtils
 
 
 class AzureTTSV1(TTSBase):
-    __bitrate = "128k"
-    __proxy = None
-
-    def config(self, api_key: str = None, region: str = None, proxy: str = None):
-        # edge-tts 不需要设置
-        if proxy:
-            self.__proxy = proxy
+    def __init__(self,
+                 proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+                 proxy_url: Optional[str] = None):
+        self.__proxy_type = proxy_type
+        self.__proxy_url = proxy_url
+        self.__bitrate = "128k"
 
     @staticmethod
     def synthesize(text, voice, out_path, proxy=None, **_):
@@ -32,7 +33,7 @@ class AzureTTSV1(TTSBase):
 
         asyncio.run(_run())
 
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> str or None:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             logging.error(f"File {subtitle_path} does not exist")
             return None
@@ -58,7 +59,9 @@ class AzureTTSV1(TTSBase):
 if __name__ == "__main__":
     init_config()
     lang = asyncio.run(get_llm_rewrite_path())
-    llm_rewrite_path = os.path.join(lang, "gSNFJbgoaHI.cn.srt")
-    tts: TTSBase = AzureTTSV1()
-    tts.config()
+    llm_rewrite_path = os.path.join(lang, "20260720215545133997.srt")
+    tts: TTSBase = AzureTTSV1(
+        proxy_type=const.PROXY_CONFIG_TYPE_HTTPS,
+        proxy_url="http://127.0.0.1:7890"
+    )
     tts.rewrite(llm_rewrite_path, "zh-CN", "zh-CN-XiaoxiaoNeural")

@@ -3,9 +3,11 @@ import logging
 import os
 import tempfile
 import wave
+from typing import Optional
 
 from config.config import init_config
 from pipeline.tts.base import TTSBase
+from utils import const
 from utils.file_utils import get_tts_rewrite_path, get_llm_rewrite_path
 from utils.tts_utils import TTSUtils
 
@@ -61,17 +63,16 @@ class GoogleGeminiTTS(TTSBase):
             wf.setframerate(24000)
             wf.writeframes(pcm_data)
 
-    __api_key = None
-    __proxy = None
-    __bitrate = "128k"
+    def __init__(self,
+                 api_key: str,
+                 proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+                 proxy_url: Optional[str] = None):
+        self.__api_key = api_key
+        self.__bitrate = "128k"
+        self.__proxy_type = proxy_type
+        self.__proxy_url = proxy_url
 
-    def config(self, api_key: str = None, region: str = None, proxy: str = None):
-        if api_key:
-            self.__api_key = api_key
-        if proxy:
-            self.__proxy = proxy
-
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> str or None:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             logging.error(f"File {subtitle_path} does not exist")
             return None
@@ -85,7 +86,7 @@ class GoogleGeminiTTS(TTSBase):
 
         synth_kwargs = {
             "voice": voice, "api_key": self.__api_key,
-            "proxy": self.__proxy,
+            "proxy": self.__proxy_url,
             "model": "gemini-2.5-flash-preview-tts",
         }
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -98,10 +99,10 @@ class GoogleGeminiTTS(TTSBase):
 if __name__ == "__main__":
     init_config()
     lang = asyncio.run(get_llm_rewrite_path())
-    llm_rewrite_path = os.path.join(lang, "gSNFJbgoaHI.cn.srt")
-    tts: TTSBase = GoogleGeminiTTS()
-    tts.config(
+    llm_rewrite_path = os.path.join(lang, "20260720215545133997.srt")
+    tts: TTSBase = GoogleGeminiTTS(
         api_key="",
-        proxy="http://127.0.0.1:7890"
+        proxy_type=const.PROXY_CONFIG_TYPE_HTTPS,
+        proxy_url="http://127.0.0.1:7890"
     )
     tts.rewrite(llm_rewrite_path, "zh-CN", "Kore")

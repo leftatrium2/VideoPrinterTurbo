@@ -2,11 +2,14 @@ import asyncio
 import logging
 import os
 import tempfile
+from typing import Optional
 
 import requests
 
-from config.config import init_config
+import config.config as _config
 from pipeline.tts.base import TTSBase
+from pipeline.utils.pipeline_video_downloader_utils import init_downloader
+from utils import const
 from utils.file_utils import get_tts_rewrite_path, get_llm_rewrite_path
 from utils.tts_utils import TTSUtils
 
@@ -63,18 +66,15 @@ class SiliconFlowTTS(TTSBase):
         with open(out_path, "wb") as f:
             f.write(resp.content)
 
-    __api_key = None
-    __proxy = None
-    __bitrate = "128k"
+    def __init__(self,
+                 api_key: str,
+                 proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+                 proxy_url: Optional[str] = None):
+        self.__api_key = api_key
+        self.__proxy_type = proxy_type
+        self.__proxy_url = proxy_url
 
-    def config(self, api_key: str = None, region: str = None, proxy: str = None):
-        if api_key:
-            self.__api_key = api_key
-        if proxy:
-            self.__proxy = proxy
-        pass
-
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> str or None:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             logging.error(f"File {subtitle_path} does not exist")
             return None
@@ -97,11 +97,9 @@ class SiliconFlowTTS(TTSBase):
 
 
 if __name__ == "__main__":
-    tts: TTSBase = SiliconFlowTTS()
-    init_config()
+    _config.init_config()
+    init_downloader()
     lang = asyncio.run(get_llm_rewrite_path())
+    tts: TTSBase = SiliconFlowTTS(api_key="", proxy_url="http://127.0.0.1:7890")
     llm_rewrite_path = os.path.join(lang, "gSNFJbgoaHI.cn.srt")
-    tts.config(
-        api_key=""
-    )
     tts.rewrite(llm_rewrite_path, "", "FunAudioLLM/CosyVoice2-0.5B:alex")

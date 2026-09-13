@@ -1,17 +1,16 @@
 import asyncio
-import logging
 import os
 import tempfile
 from typing import Optional
 from urllib.parse import urlparse
 
-import config.config as _config
 from pipeline.tts.base import TTSBase
 from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 from utils import const
 from utils.exception import VPTException
 from utils.file_utils import get_tts_rewrite_path, get_llm_rewrite_path
 from utils.tts_utils import TTSUtils
+import config.config as _config
 
 
 class AzureTTSV2(TTSBase):
@@ -86,7 +85,7 @@ class AzureTTSV2(TTSBase):
         self.__proxy_type = proxy_type
         self.__proxy_url = proxy_url
 
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> str or None:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"File {subtitle_path} does not exist")
         name, ext = os.path.splitext(os.path.basename(subtitle_path))
@@ -109,3 +108,17 @@ class AzureTTSV2(TTSBase):
         except Exception as ex:
             raise VPTException(const.PIPELINE_ERR_TTS_CONVERT, str(ex), ex) from ex
 
+
+if __name__ == "__main__":
+    _config.init_config()
+    init_downloader()
+
+    azure_tts_v2 = AzureTTSV2(
+        api_key="",
+        region="koreacentral",
+        proxy_type=const.PROXY_CONFIG_TYPE_HTTPS,
+        proxy_url="http://127.0.0.1:7890"
+    )
+    lang = asyncio.run(get_llm_rewrite_path())
+    llm_rewrite_path = os.path.join(lang, "20260720215545133997.srt")
+    azure_tts_v2.rewrite(llm_rewrite_path, lang="zh-CN", voice="zh-CN-XiaoxiaoNeural")
