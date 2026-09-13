@@ -14,6 +14,8 @@ from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import get_duration_seconds, segments_to_srt, cleanup_dir, build_proxies, \
     convert_audio, split_audio_by_duration
+from utils import const
+from utils.exception import VPTException
 from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
@@ -95,12 +97,12 @@ class TencentCloudTranscriber(BaseTranscriber):
                 offset += chunk_duration
 
             if not all_segments:
-                logger.warning(f"[TencentASRTranscriber] 未识别到任何内容: {audio_path}")
-                return None
+                raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS,
+                                   f"[TencentASRTranscriber] 未识别到任何内容: {audio_path}")
             return segments_to_srt(all_segments)
         except Exception as e:
-            logger.error(f"[TencentASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
-            return None
+            raise VPTException(const.PIPELINE_ERR_ASR_TRANSCRIBER,
+                               f"[TencentASRTranscriber] 转写失败: {audio_path}, 错误: {e}", tr=e) from e
         finally:
             if tmp_dir:
                 cleanup_dir(tmp_dir)
@@ -167,11 +169,12 @@ class TencentCloudTranscriber(BaseTranscriber):
             if status_str == "success":
                 return self._parse_result_detail(data.get("ResultDetail") or [])
             if status_str == "failed":
-                raise RuntimeError(f"腾讯云识别任务失败: {data.get('ErrorMsg')}")
+                raise VPTException(const.PIPELINE_ERR_ASR_RECOGNITION_TASK,
+                                   f"腾讯云识别任务失败: {data.get('ErrorMsg')}")
 
             time.sleep(self.poll_interval_seconds)
 
-        raise TimeoutError(f"腾讯云识别任务轮询超时: TaskId={task_id}")
+        raise VPTException(const.PIPELINE_ERR_TIMEOUT_EXPIRED, f"腾讯云识别任务轮询超时: TaskId={task_id}")
 
     @staticmethod
     def _parse_result_detail(result_detail: list) -> List[Segment]:
@@ -201,7 +204,7 @@ class TencentCloudTranscriber(BaseTranscriber):
         data = resp.json()
         if "Error" in data.get("Response", {}):
             err = data["Response"]["Error"]
-            raise RuntimeError(f"腾讯云 API 错误 [{err.get('Code')}]: {err.get('Message')}")
+            raise VPTException(const.PIPELINE_ERR_ASR_API, f"腾讯云 API 错误 [{err.get('Code')}]: {err.get('Message')}")
         return data
 
     def _build_signed_headers(self, action: str, timestamp: int, payload_str: str) -> dict:

@@ -8,7 +8,9 @@ from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.whisper_asr.engine.faster_engine import FasterWhisperEngine
 from pipeline.transcriber.whisper_asr.engine.mlx_engine import MLXWhisperEngine
 from pipeline.transcriber.whisper_asr.engine.openai_engine import OpenAIWhisperEngine
+from utils import const
 from utils.const import TASK_CONFIG_ASR_OPENAI_WHISPER, TASK_CONFIG_ASR_MLX_WHISPER, TASK_CONFIG_ASR_FASTER_WHISPER
+from utils.exception import VPTException
 from utils.file_utils import get_video_to_text_path
 
 logger = logging.getLogger(__name__)
@@ -44,7 +46,7 @@ class WhisperTranscriber(BaseTranscriber):
     def set_local_whisper_type(self, local_whisper_type: int):
         """切换底层 Whisper 实现类型，下次 transcribe() 时会重新创建对应引擎"""
         if local_whisper_type not in _ENGINE_MAP:
-            raise ValueError(f"未知的 local_whisper_type: {local_whisper_type}")
+            raise VPTException(const.PIPELINE_ERR_VALUE, f"未知的 local_whisper_type: {local_whisper_type}")
         if local_whisper_type != self._local_whisper_type:
             self._engine = None
         self._local_whisper_type = local_whisper_type

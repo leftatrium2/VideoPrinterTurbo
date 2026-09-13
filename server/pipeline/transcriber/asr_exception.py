@@ -1,2 +1,0 @@
-class ASRException(Exception):
-    pass

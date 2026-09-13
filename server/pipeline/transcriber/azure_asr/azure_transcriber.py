@@ -1,17 +1,15 @@
-import asyncio
 import json
 import logging
-import os.path
 from typing import Optional, List
 
 import requests
 
-from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import build_proxies, get_duration_seconds, split_audio_by_duration, \
     segments_to_srt, cleanup_dir, save_to_srt
-from utils.file_utils import get_video_to_text_path
+from utils import const
+from utils.exception import VPTException
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +62,13 @@ class AzureASR(BaseTranscriber):
                     remaining -= this_duration
 
             if not segments:
-                logger.warning(f"[AzureASRTranscriber] 未识别到任何内容: {audio_path}")
-                return None
+                raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS,
+                                   f"[AzureASRTranscriber] 未识别到任何内容: {audio_path}")
             asr_text = segments_to_srt(segments)
             return save_to_srt(asr_text, audio_path)
         except Exception as e:
-            logger.error(f"[AzureASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
-            return None
+            raise VPTException(const.PIPELINE_ERR_ASR_TRANSCRIBER,
+                               f"[AzureASRTranscriber] 转写失败: {audio_path}, 错误: {str(e)}", tr=e) from e
         finally:
             if tmp_dir:
                 cleanup_dir(tmp_dir)
@@ -93,7 +91,8 @@ class AzureASR(BaseTranscriber):
             resp = requests.post(url, headers=headers, files=files, timeout=600, proxies=self.proxies)
 
         if resp.status_code != 200:
-            raise RuntimeError(f"Azure fast transcription 请求失败 [{resp.status_code}]: {resp.text}")
+            raise VPTException(const.PIPELINE_ERR_ASR_NETWORK,
+                               f"Azure fast transcription 请求失败 [{resp.status_code}]: {resp.text}")
 
         data = resp.json()
         segments = []

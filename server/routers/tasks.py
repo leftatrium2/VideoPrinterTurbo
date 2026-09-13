@@ -365,25 +365,29 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
     data = result.scalars().all()
     if len(data) != 0:
         for item in data:
-            if item.tts_server_name.strip() == "TTS_LIST_AZURE_TTS_V1":
+            if item.tts_server_name.strip() == const.TTS_LIST_AZURE_TTS_V1_VAL:
                 # Output to Speech -- Azure TTS V1
-                ret_dict['tts'].append({"name": _config.i18n_config['task']['tts'][0][lang],
-                                        "value": "TTS_LIST_AZURE_TTS_V1",
-                                        "voices": json.loads(item.tts_voice_content)})
-            if item.tts_server_name.strip() == "TTS_LIST_AZURE_TTS_V2":
+                ret_dict['tts'].append(
+                    {"name": _config.i18n_config['task']['tts'][0][lang],
+                     "value": const.TTS_LIST_AZURE_TTS_V1_VAL,
+                     "voices": json.loads(item.tts_voice_content)})
+            if item.tts_server_name.strip() == const.TTS_LIST_AZURE_TTS_V2_VAL:
                 # Output to Speech -- Azure TTS V2
                 ret_dict['tts'].append(
-                    {"name": _config.i18n_config['task']['tts'][1][lang], "value": "TTS_LIST_AZURE_TTS_V2",
+                    {"name": _config.i18n_config['task']['tts'][1][lang],
+                     "value": const.TTS_LIST_AZURE_TTS_V2_VAL,
                      "voices": json.loads(item.tts_voice_content)})
-            if item.tts_server_name.strip() == "TTS_LIST_SILICON_FLOW_TTS":
+            if item.tts_server_name.strip() == const.TTS_LIST_SILICON_FLOW_TTS_VAL:
                 # Output to Speech -- SiliconFlow TTS
                 ret_dict['tts'].append(
-                    {"name": _config.i18n_config['task']['tts'][2][lang], "value": "TTS_LIST_SILICON_FLOW_TTS",
+                    {"name": _config.i18n_config['task']['tts'][2][lang],
+                     "value": const.TTS_LIST_SILICON_FLOW_TTS_VAL,
                      "voices": json.loads(item.tts_voice_content)})
-            if item.tts_server_name.strip() == "TTS_LIST_GOOGLE_GEMINI_TTS":
+            if item.tts_server_name.strip() == const.TTS_LIST_GOOGLE_GEMINI_TTS_VAL:
                 # Output to Speech -- Google Gemini TTS
                 ret_dict['tts'].append(
-                    {"name": _config.i18n_config['task']['tts'][3][lang], "value": "TTS_LIST_GOOGLE_GEMINI_TTS",
+                    {"name": _config.i18n_config['task']['tts'][3][lang],
+                     "value": const.TTS_LIST_GOOGLE_GEMINI_TTS_VAL,
                      "voices": json.loads(item.tts_voice_content)})
 
     return result_succ(ret_dict)

@@ -20,7 +20,7 @@ dependencies = [
     "loguru==0.7.3",
     "toml==0.10.2",
     "python-multipart==0.0.19",
-    "requests==2.33.1",
+    "requests[socks]==2.33.1",
     "pydub==0.25.1",
     "yt-dlp>=2026.7.4",
     "pydantic>=2.0.0",

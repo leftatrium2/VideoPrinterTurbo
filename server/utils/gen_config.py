@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.config import init_config
 from models.model import VptTtsVoiceConfig
+from utils import const
 from utils.database import database
 from utils.tts_voice import get_edge_tts_voices, get_azure_tts_v2_voices, get_silicon_flow_tts_voices, \
     get_google_gemini_tts_voices
@@ -18,12 +19,12 @@ async def gen_config(db: AsyncSession):
     DATETIME_FORMAT_STR = "%Y-%m-%d %H:%M:%S"
     # TTS_LIST_AZURE_TTS_V1
     result = await db.execute(
-        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == "TTS_LIST_AZURE_TTS_V1"))
+        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == const.TTS_LIST_AZURE_TTS_V1_VAL))
     item = result.scalar_one_or_none()
     if not item:
         voices = await get_edge_tts_voices()
         item = VptTtsVoiceConfig(
-            tts_server_name="TTS_LIST_AZURE_TTS_V1",
+            tts_server_name=const.TTS_LIST_AZURE_TTS_V1_VAL,
             tts_voice_content=json.dumps(voices),
             tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
         )
@@ -41,12 +42,12 @@ async def gen_config(db: AsyncSession):
     await db.refresh(item)
     # TTS_LIST_AZURE_TTS_V2
     result = await db.execute(
-        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == "TTS_LIST_AZURE_TTS_V2"))
+        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == const.TTS_LIST_AZURE_TTS_V2_VAL))
     item = result.scalar_one_or_none()
     if not item:
         voices = await get_azure_tts_v2_voices(db)
         item = VptTtsVoiceConfig(
-            tts_server_name="TTS_LIST_AZURE_TTS_V2",
+            tts_server_name=const.TTS_LIST_AZURE_TTS_V2_VAL,
             tts_voice_content=json.dumps(voices),
             tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
         )
@@ -64,12 +65,12 @@ async def gen_config(db: AsyncSession):
     await db.refresh(item)
     # TTS_LIST_SILICON_FLOW_TTS
     result = await db.execute(
-        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == "TTS_LIST_SILICON_FLOW_TTS"))
+        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == const.TTS_LIST_SILICON_FLOW_TTS_VAL))
     item = result.scalar_one_or_none()
     if not item:
         voices = await get_silicon_flow_tts_voices()
         item = VptTtsVoiceConfig(
-            tts_server_name="TTS_LIST_SILICON_FLOW_TTS",
+            tts_server_name=const.TTS_LIST_SILICON_FLOW_TTS_VAL,
             tts_voice_content=json.dumps(voices),
             tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
         )
@@ -87,12 +88,12 @@ async def gen_config(db: AsyncSession):
     await db.refresh(item)
     # TTS_LIST_GOOGLE_GEMINI_TTS
     result = await db.execute(
-        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == "TTS_LIST_GOOGLE_GEMINI_TTS"))
+        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == const.TTS_LIST_GOOGLE_GEMINI_TTS_VAL))
     item = result.scalar_one_or_none()
     if not item:
         voices = await get_google_gemini_tts_voices()
         item = VptTtsVoiceConfig(
-            tts_server_name="TTS_LIST_GOOGLE_GEMINI_TTS",
+            tts_server_name=const.TTS_LIST_GOOGLE_GEMINI_TTS_VAL,
             tts_voice_content=json.dumps(voices),
             tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
         )

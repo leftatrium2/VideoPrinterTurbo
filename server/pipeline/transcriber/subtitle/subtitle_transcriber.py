@@ -5,12 +5,17 @@ import json
 import logging
 import os
 import shutil
+from typing import Optional
 
 import yt_dlp
 
 from config.config import init_config
+from utils import const
 from utils.convert_subtitle_ttml_to_srt import convert_subtitle_ttml_to_srt
+from utils.exception import VPTException
 from utils.file_utils import get_subtitle_path
+
+logger = logging.getLogger(__name__)
 
 
 class SubTitleTranscriber(object):
@@ -89,10 +94,10 @@ class SubTitleTranscriber(object):
     def __init__(self):
         pass
 
-    def subtitle(self, url: str, index: int, proxy: str = None) -> str or None:
+    def subtitle(self, url: str, index: int, proxy_url: Optional[str] = None) -> Optional[str]:
         lang = self._yt_dlp_subtitle[index]
-        path = asyncio.run(get_subtitle_path())
-        if not path:
+        subtitle_path = asyncio.run(get_subtitle_path())
+        if not subtitle_path:
             logging.error("Subtitle path is empty")
             return None
         ydl_opts = {
@@ -105,8 +110,11 @@ class SubTitleTranscriber(object):
             'quiet': True,
             'no_warnings': True,
         }
-        if proxy:
-            ydl_opts['proxy'] = proxy
+        if proxy_url:
+            # socks5h:// — DNS 交给代理服务器解析，对于翻墙场景更可靠
+            if proxy_url.startswith("socks5://"):
+                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
+            ydl_opts['proxy'] = proxy_url
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             video_id = info['id']
@@ -114,9 +122,9 @@ class SubTitleTranscriber(object):
         pattern = f"{video_id}.{lang}.ttml"
         matches = glob.glob(pattern)
         if not matches:
-            raise FileNotFoundError(f"未找到字幕文件，匹配模式: {pattern}")
+            raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"未找到字幕文件，匹配模式: {pattern}")
         src_path = matches[0]
-        ttml_path = os.path.join(path, os.path.basename(src_path))
+        ttml_path = os.path.join(subtitle_path, os.path.basename(src_path))
         shutil.move(src_path, ttml_path)
         srt_path = ttml_path.replace("ttml", "srt")
         convert_subtitle_ttml_to_srt(ttml_path, srt_path, False)
@@ -144,7 +152,7 @@ class SubTitleTranscriber(object):
                     {'ext': e['ext'], 'url': e['url']}
                     for e in entries
                 ]
-        print(json.dumps(result))
+        logger.info(json.dumps(result))
         return None
 
 
@@ -154,4 +162,4 @@ if __name__ == "__main__":
     url = "https://www.youtube.com/watch?v=gSNFJbgoaHI"
     # subscriber.info(url, 1)
     path = subscriber.subtitle(url, 13, "http://localhost:7890")
-    print(path)
+    logger.info(path)

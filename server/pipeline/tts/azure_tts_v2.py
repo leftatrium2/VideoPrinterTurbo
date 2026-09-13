@@ -2,10 +2,14 @@ import asyncio
 import logging
 import os
 import tempfile
+from typing import Optional
 from urllib.parse import urlparse
 
-from config.config import init_config
+import config.config as _config
 from pipeline.tts.base import TTSBase
+from pipeline.utils.pipeline_video_downloader_utils import init_downloader
+from utils import const
+from utils.exception import VPTException
 from utils.file_utils import get_tts_rewrite_path, get_llm_rewrite_path
 from utils.tts_utils import TTSUtils
 
@@ -69,44 +73,39 @@ class AzureTTSV2(TTSBase):
                 f"{details.error_details if details else ''}"
             )
 
-    __api_key = None
-    __region = None
-    __proxy = None
-    __bitrate = "128k"
-
-    def config(self, api_key: str = None, region: str = None, proxy: str = None):
+    def __init__(
+            self,
+            api_key: str,
+            region: str,
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
+    ):
         self.__api_key = api_key
         self.__region = region
-        self.__proxy = proxy
+        self.__bitrate = "128k"
+        self.__proxy_type = proxy_type
+        self.__proxy_url = proxy_url
 
     def rewrite(self, subtitle_path: str, lang: str, voice: str) -> str or None:
         if not os.path.exists(subtitle_path):
-            logging.error(f"File {subtitle_path} does not exist")
-            return None
+            raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"File {subtitle_path} does not exist")
         name, ext = os.path.splitext(os.path.basename(subtitle_path))
         path = asyncio.run(get_tts_rewrite_path())
         subs = TTSUtils.parse_srt(subtitle_path)
         if not subs:
-            logging.error(f"No subtitle in {subtitle_path}")
-            return None
+            raise VPTException(const.PIPELINE_ERR_TTS_SRT_PARSE, f"No subtitle in {subtitle_path}")
         tts_file_path = os.path.join(path, f"{name}.m4a")
         synth_kwargs = {
             "voice": voice, "key": self.__api_key,
-            "proxy": self.__proxy,
-            "region": self.__region, "lang": lang,
+            "proxy": self.__proxy_url,
+            "region": self.__region,
+            "lang": lang,
         }
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            timeline = TTSUtils.build_timeline(subs, AzureTTSV2.synthesize, synth_kwargs, tmp_dir)
-            TTSUtils.export_timeline(timeline, tts_file_path, bitrate=self.__bitrate)
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                timeline = TTSUtils.build_timeline(subs, AzureTTSV2.synthesize, synth_kwargs, tmp_dir)
+                TTSUtils.export_timeline(timeline, tts_file_path, bitrate=self.__bitrate)
+                return tts_file_path
+        except Exception as ex:
+            raise VPTException(const.PIPELINE_ERR_TTS_CONVERT, str(ex), ex) from ex
 
-
-if __name__ == "__main__":
-    tts: TTSBase = AzureTTSV2()
-    init_config()
-    lang = asyncio.run(get_llm_rewrite_path())
-    llm_rewrite_path = os.path.join(lang, "gSNFJbgoaHI.cn.srt")
-    tts.config(
-        api_key="",
-        region="koreacentral",
-    )
-    tts.rewrite(llm_rewrite_path, "zh-CN", "zh-CN-XiaoxiaoNeural")

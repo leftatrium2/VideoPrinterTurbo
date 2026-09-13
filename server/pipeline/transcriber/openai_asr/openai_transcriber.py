@@ -1,15 +1,12 @@
-import asyncio
 import logging
 from typing import Optional, List
 
-from openai.types.audio import TranscriptionSegment
-
-from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import get_file_size, get_duration_seconds, \
     split_audio_by_duration, segments_to_srt, cleanup_dir, save_to_srt
-from utils.file_utils import get_video_to_text_path
+from utils import const
+from utils.exception import VPTException
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +41,9 @@ class OpenAIASR(BaseTranscriber):
             try:
                 from openai import OpenAI
             except ImportError as e:
-                raise ImportError("未安装 openai，请先执行 `pip install openai`。") from e
+                raise VPTException(const.PIPELINE_ERR_IMPORT,
+                                   "未安装 openai，请先执行 `pip install openai`。",
+                                   tr=e) from e
             kwargs = {"api_key": self.api_key}
             if self.base_url:
                 kwargs["base_url"] = self.base_url
@@ -52,10 +51,9 @@ class OpenAIASR(BaseTranscriber):
                 try:
                     import httpx
                 except ImportError as e:
-                    raise ImportError(
-                        "使用 proxy 参数需要 httpx（openai 包的依赖之一，通常已随其一起安装），"
-                        "如缺失请执行 `pip install httpx`。"
-                    ) from e
+                    raise VPTException(const.PIPELINE_ERR_IMPORT,
+                                       "使用 proxy 参数需要 httpx（openai 包的依赖之一，通常已随其一起安装），如缺失请执行 `pip install httpx`。",
+                                       tr=e) from e
                 kwargs["http_client"] = httpx.Client(proxy=self.proxy)
             self._client = OpenAI(**kwargs)
         return self._client
@@ -85,13 +83,13 @@ class OpenAIASR(BaseTranscriber):
                     remaining -= this_duration
 
             if not segments:
-                logger.warning(f"[OpenAIASRTranscriber] 未识别到任何内容: {audio_path}")
-                return None
+                raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS,
+                                   f"[OpenAIASRTranscriber] 未识别到任何内容: {audio_path}")
             asr_text = segments_to_srt(segments)
             return save_to_srt(asr_text, audio_path)
         except Exception as e:
-            logger.error(f"[OpenAIASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
-            return None
+            raise VPTException(const.PIPELINE_ERR_ASR_TRANSCRIBER,
+                               f"[OpenAIASRTranscriber] 转写失败: {audio_path}, 错误: {str(e)}", tr=e) from e
         finally:
             if tmp_dir:
                 cleanup_dir(tmp_dir)
