@@ -1,11 +1,11 @@
 import asyncio
+import logging
 import os
 import re
 import subprocess
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
-from loguru import logger
 import requests
 
 from config.config import init_config
@@ -24,7 +24,12 @@ _HEADERS = {
     "Origin": "https://www.bilibili.com",
 }
 
+logger = logging.getLogger(__name__)
 
+
+# bilibili等等属于外部接入的downloader
+# 当前的 Downloader 只是一个例子
+# 使用自己的 Error，不要污染内核代码
 class BiliBiliAPIError(RuntimeError):
     """The Bilibili API rejected or could not provide a playable video."""
 
@@ -176,7 +181,7 @@ def _merge_segments(segment_paths: list[str], output_path: str) -> None:
 
 
 class BiliBiliDownloader(BaseDownloader):
-    def check(self, url: str, proxy: str = None) -> bool:
+    def check(self, url: str, proxy: Optional[str]) -> bool:
         if not _is_bilibili_video_url(url):
             return False
         try:

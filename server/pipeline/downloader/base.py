@@ -1,6 +1,8 @@
 from abc import abstractmethod, ABC
 from typing import Optional
 
+from utils import const
+
 
 class DownloaderContext(ABC):
     """
@@ -39,8 +41,9 @@ class BaseDownloader(ABC):
             self,
             url: str,
             video_full_path: str,
-            context: Optional[DownloaderContext],
-            proxy: Optional[str]
+            context: Optional[DownloaderContext] = None,
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
     ) -> Optional[dict]:
         """
         Download video from given url.
@@ -51,9 +54,11 @@ class BaseDownloader(ABC):
     def check(
             self,
             url: str,
-            proxy: Optional[str]
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
     ) -> bool:
         """
         check video url is valid.
         """
-        pass
+
+    pass

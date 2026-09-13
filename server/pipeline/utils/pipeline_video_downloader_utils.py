@@ -5,10 +5,12 @@ import logging
 import os
 from typing import Optional
 
-from pipeline.downloader.base import DownloaderContext, BaseDownloader
-from utils.file_utils import get_download_path
 import config.config as _config
+from pipeline.downloader.base import DownloaderContext, BaseDownloader
 from pipeline.downloader.yt_dlp.yt_dlp_downloader import YtDlpDownloader
+from utils import const
+from utils.exception import VPTException
+from utils.file_utils import get_download_path
 
 
 def init_downloader():
@@ -27,26 +29,26 @@ def init_downloader():
 
 def check_video(
         url: str,
-        proxy_url: Optional[str]
+        proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+        proxy_url: Optional[str] = None
 ) -> bool:
     """
     检查视频是否可用
     """
     if not url.strip():
-        logging.error("Url is empty")
-        return False
+        raise VPTException(const.PIPELINE_ERR_VALUE, "Url is empty")
     downloader = _get_downloader(url)
     if not downloader:
-        logging.error("Downloader is None")
-        return False
-    return downloader.check(url, proxy_url)
+        raise VPTException(const.PIPELINE_ERR_DOWNLOADER_NONE, "Downloader is None")
+    return downloader.check(url, proxy_type=proxy_type, proxy_url=proxy_url)
 
 
 def download_video(
         url: str,
         task_id: str,
-        ctx: Optional[DownloaderContext],
-        proxy_url: Optional[str]
+        ctx: Optional[DownloaderContext] = None,
+        proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+        proxy_url: Optional[str] = None
 ) -> Optional[dict]:
     if not url.strip():
         logging.error("Url is empty")
@@ -57,7 +59,7 @@ def download_video(
         return None
     video_full_path = asyncio.run(get_download_path())
     video_full_path = os.path.join(video_full_path, task_id)
-    return downloader.download(url, video_full_path, ctx, proxy_url)
+    return downloader.download(url, video_full_path, context=ctx, proxy_type=proxy_type, proxy_url=proxy_url)
 
 
 def _get_downloader(url: str) -> Optional[BaseDownloader]:

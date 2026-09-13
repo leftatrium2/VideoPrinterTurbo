@@ -55,7 +55,12 @@ class YtDlpDownloader(BaseDownloader):
             raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
                                message="yt-dlp not found. Install with: pip install yt-dlp")
 
-    def check(self, url: str, proxy: str = None) -> bool:
+    def check(
+            self,
+            url: str,
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
+    ) -> bool:
         yt_dlp_opts = {
             'quiet': True,
             'ignoreerrors': True,
@@ -63,23 +68,27 @@ class YtDlpDownloader(BaseDownloader):
             'extract_flat': True,
             'skip_download': True
         }
-        if proxy:
-            yt_dlp_opts['proxy'] = proxy
-        with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
+        if proxy_url:
+            # socks5h:// — DNS 交给代理服务器解析，对于翻墙场景更可靠
+            if proxy_url.startswith("socks5://"):
+                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
+            yt_dlp_opts['proxy'] = proxy_url
+        with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]
             try:
                 result = ydl.extract_info(url, download=False)
-                if result['duration'] > 0:
+                if result and result.get('duration', 0) > 0:
                     return True
             except Exception as e:
-                logger.error(e)
+                raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), tr=e) from e
         return False
 
     def download(
             self,
             url: str,
             video_full_path: str,
-            context: Optional[DownloaderContext],
-            proxy: Optional[str]
+            context: Optional[DownloaderContext] = None,
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
     ) -> Optional[dict]:
         if context:
             context.on_create(url)
@@ -94,12 +103,14 @@ class YtDlpDownloader(BaseDownloader):
         }
         if context:
             yt_dlp_opts["progress_hooks"] = [make_hook(context)]
-        if proxy:
-            yt_dlp_opts['proxy'] = proxy
+        if proxy_url:
+            if proxy_url.startswith("socks5://"):
+                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
+            yt_dlp_opts['proxy'] = proxy_url
         ret_dict = {}
         ret_dict['url'] = url
         try:
-            with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:
+            with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]
                 # ydl.download([url])
                 info = ydl.extract_info(
                     url=url,
@@ -119,11 +130,9 @@ class YtDlpDownloader(BaseDownloader):
                 ret_dict['status'] = 0
                 ret_dict['message'] = ""
         except Exception as e:
-            logger.error(e)
-            ret_dict['status'] = -1
-            ret_dict['message'] = e
             if context:
                 context.on_error(url, e)
+            raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), tr=e) from e
         return ret_dict
 
 
@@ -152,5 +161,6 @@ if __name__ == "__main__":
     downloader = YtDlpDownloader()
     download_url = "https://www.youtube.com/watch?v=E7YiKBeOneo"
     proxy = "http://127.0.0.1:7890"
-    if downloader.check(download_url):
-        downloader.download(download_url, video_full_path=full_path, context=TestDownloaderContext(), proxy=proxy)
+    if downloader.check(download_url, proxy_type=const.PROXY_CONFIG_TYPE_HTTPS, proxy_url=proxy):
+        downloader.download(download_url, video_full_path=full_path, context=TestDownloaderContext(),
+                            proxy_type=const.PROXY_CONFIG_TYPE_HTTPS, proxy_url=proxy)

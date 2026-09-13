@@ -7,18 +7,19 @@ from pathlib import Path
 
 import aiofiles
 from fastapi import APIRouter, Query, Depends, UploadFile, File
+from sqlalchemy import and_
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_
 
 import config.config as _config
 from middleware.i18n_middleware import get_current_lang
 from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig, \
-    VptTasks
+    VptTasks, VptProxyConfig
 from models.schemas import TaskItem
-from pipeline.pipeline_manager import pipeline
+from pipeline.utils.pipeline_video_downloader_utils import check_video
 from utils import const
 from utils.database import database
+from utils.exception import VPTException
 from utils.file_utils import get_upload_path
 from utils.result import result_succ, result_failure
 from utils.task_utils import gen_task_id
@@ -251,31 +252,55 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
     # vpt_asr_config: only show local whisper options when configured in the table
     if item:
         if item.local_whisper_type != 0:
-            ret_dict['asr'].append({"name": _config.i18n_config['task']['asr'][1][lang],
-                                    "value": const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER})
+            ret_dict['asr'].append(
+                {"name": _config.i18n_config['task']['asr'][1][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER})
+        if item.remote_whisper_type != 0:
+            ret_dict['asr'].append(
+                {"name": _config.i18n_config['task']['asr'][2][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER})
         if item.tencent_cloud_secret_id.strip() != "" and item.tencent_cloud_secret_key.strip() != "":
-            ret_dict['asr'].append({"name": _config.i18n_config['task']['asr'][2][lang],
-                                    "value": const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD})
+            ret_dict['asr'].append(
+                {"name": _config.i18n_config['task']['asr'][3][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD})
         if item.xfyun_appid.strip() != "" and item.xfyun_secret_key.strip() != "":
             ret_dict['asr'].append(
-                {"name": _config.i18n_config['task']['asr'][3][lang], "value": const.TASK_CONFIG_ASR_FROM_XF_YUN})
+                {"name": _config.i18n_config['task']['asr'][4][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_XF_YUN})
+        if item.openai_api_key.strip() != '' and item.openai_model.strip() != '':
+            ret_dict['asr'].append(
+                {"name": _config.i18n_config['task']['asr'][5][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_OPENAI})
+        if item.azure_subscription_key.strip() != '' and item.azure_region.strip() != '':
+            ret_dict['asr'].append(
+                {"name": _config.i18n_config['task']['asr'][6][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_AZURE})
+        if item.volcengine_access_token.strip() != "" and item.volcengine_appid.strip() != '':
+            ret_dict['asr'].append(
+                {"name": _config.i18n_config['task']['asr'][7][lang],
+                 "value": const.TASK_CONFIG_ASR_FROM_BYTEDANCE})
     # Output to subtitle
     ret_dict['subtitle'] = []
-    ret_dict['subtitle'].append({"name": _config.i18n_config['task']['subtitle'][0][lang], "value": "Charm-Bold.ttf"})
+    ret_dict['subtitle'].append(
+        {"name": _config.i18n_config['task']['subtitle'][0][lang], "value": "Charm-Bold.ttf"})
     ret_dict['subtitle'].append(
         {"name": _config.i18n_config['task']['subtitle'][1][lang], "value": "Charm-Regular.ttf"})
     ret_dict['subtitle'].append(
         {"name": _config.i18n_config['task']['subtitle'][2][lang], "value": "MicrosoftYaHeiBold.ttf"})
     ret_dict['subtitle'].append(
         {"name": _config.i18n_config['task']['subtitle'][3][lang], "value": "MicrosoftYaHeiNormal.ttf"})
-    ret_dict['subtitle'].append({"name": _config.i18n_config['task']['subtitle'][4][lang], "value": "STHeitiLight.ttf"})
+    ret_dict['subtitle'].append(
+        {"name": _config.i18n_config['task']['subtitle'][4][lang], "value": "STHeitiLight.ttf"})
     ret_dict['subtitle'].append(
         {"name": _config.i18n_config['task']['subtitle'][5][lang], "value": "STHeitiMedium.ttf"})
-    ret_dict['subtitle'].append({"name": _config.i18n_config['task']['subtitle'][6][lang], "value": "UTM Kabel KT.ttf"})
+    ret_dict['subtitle'].append(
+        {"name": _config.i18n_config['task']['subtitle'][6][lang], "value": "UTM Kabel KT.ttf"})
     # Background music
     ret_dict['bgm'] = []
-    ret_dict['bgm'].append({"name": _config.i18n_config['task']['bgm'][0][lang], "value": "random"})
-    ret_dict['bgm'].append({"name": _config.i18n_config['task']['bgm'][1][lang], "value": "custom"})
+    ret_dict['bgm'].append(
+        {"name": _config.i18n_config['task']['bgm'][0][lang], "value": "random"})
+    ret_dict['bgm'].append(
+        {"name": _config.i18n_config['task']['bgm'][1][lang], "value": "custom"})
     # Video overlay
     ret_dict['material'] = {}
     # Video overlay - Video source
@@ -285,13 +310,15 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(select(func.count()).select_from(VptVideoMaterialPexelsConfig))
     count = result.scalar_one()
     if count > 0:
-        ret_dict['material']['source'].append({"name": _config.i18n_config['task']['material']['source'][1][lang],
-                                               "value": const.VIDEO_MATERIAL_FROM_PEXELS})
+        ret_dict['material']['source'].append(
+            {"name": _config.i18n_config['task']['material']['source'][1][lang],
+             "value": const.VIDEO_MATERIAL_FROM_PEXELS})
     result = await db.execute(select(func.count()).select_from(VptVideoMaterialPixabayConfig))
     count = result.scalar_one()
     if count > 0:
-        ret_dict['material']['source'].append({"name": _config.i18n_config['task']['material']['source'][2][lang],
-                                               "value": const.VIDEO_MATERIAL_FROM_PIXABAY})
+        ret_dict['material']['source'].append(
+            {"name": _config.i18n_config['task']['material']['source'][2][lang],
+             "value": const.VIDEO_MATERIAL_FROM_PIXABAY})
     # Video overlay - Splicing mode
     ret_dict['material']['splicing'] = []
     ret_dict['material']['splicing'].append(
@@ -302,8 +329,9 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
          "value": const.VIDEO_MATERIAL_SEQUENTIAL_SPLICING})
     # Video overlay - Transition mode
     ret_dict['material']['transition'] = []
-    ret_dict['material']['transition'].append({"name": _config.i18n_config['task']['material']['transition'][0][lang],
-                                               "value": const.VIDEO_MATERIAL_TRANSITION_NO})
+    ret_dict['material']['transition'].append(
+        {"name": _config.i18n_config['task']['material']['transition'][0][lang],
+         "value": const.VIDEO_MATERIAL_TRANSITION_NO})
     ret_dict['material']['transition'].append(
         {"name": _config.i18n_config['task']['material']['transition'][1][lang],
          "value": const.VIDEO_MATERIAL_TRANSITION_RANDOM})
@@ -316,10 +344,12 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
     ret_dict['material']['transition'].append(
         {"name": _config.i18n_config['task']['material']['transition'][4][lang],
          "value": const.VIDEO_MATERIAL_TRANSITION_FADE_IN_OR_FADE_OUT})
-    ret_dict['material']['transition'].append({"name": _config.i18n_config['task']['material']['transition'][5][lang],
-                                               "value": const.VIDEO_MATERIAL_TRANSITION_SLIDE_IN})
-    ret_dict['material']['transition'].append({"name": _config.i18n_config['task']['material']['transition'][6][lang],
-                                               "value": const.VIDEO_MATERIAL_TRANSITION_SLIDE_OUT})
+    ret_dict['material']['transition'].append(
+        {"name": _config.i18n_config['task']['material']['transition'][5][lang],
+         "value": const.VIDEO_MATERIAL_TRANSITION_SLIDE_IN})
+    ret_dict['material']['transition'].append(
+        {"name": _config.i18n_config['task']['material']['transition'][6][lang],
+         "value": const.VIDEO_MATERIAL_TRANSITION_SLIDE_OUT})
     # Video overlay - Video aspect ratio
     ret_dict['material']['ratio'] = []
     ret_dict['material']['ratio'].append(
@@ -364,9 +394,22 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
 
 
 @router.get("/check")
-async def check_task_url(url: str = Query(default="", min_length=1, max_length=300)):
+async def check_task_url(
+        url: str = Query(default="", min_length=1, max_length=300),
+        use_proxy: bool = Query(default=False),
+        db: AsyncSession = Depends(database.get_db)
+):
     logging.info(f"Checking task url: {url}")
-    result = await asyncio.to_thread(pipeline.check, url)
+    if use_proxy:
+        result = await db.execute(select(VptProxyConfig).limit(1))
+        item = result.scalar_one_or_none()
+        if not item:
+            raise VPTException("Proxy not found")
+        proxy_type = item.proxy_server_type
+        proxy_url = item.proxy_server_url
+        result = await asyncio.to_thread(check_video, url, proxy_type=proxy_type, proxy_url=proxy_url)
+    else:
+        result = await asyncio.to_thread(check_video, url)
     if not result:
         return result_failure(const.TASK_ERR_CHECK_URL, f"Task URL check failed, {url}")
     return result_succ()
