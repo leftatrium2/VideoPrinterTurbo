@@ -50,7 +50,7 @@ class WhisperCppTranscriber(object):
     def __init__(
             self,
             whisper_cpp_url: str,
-            language: str
+            language: Optional[str] = None
     ):
         self.__whisper_cpp_url = whisper_cpp_url
         self.__language = language
@@ -74,14 +74,16 @@ class WhisperCppTranscriber(object):
             for number, part in enumerate(parts, start=1):
                 logger.info(f"whisper.cpp 正在转写第 {number}/{len(parts)} 段：{part.path.name}")
                 with part.path.open("rb") as audio_file:
+                    params_data = {
+                        "temperature": "0.0",
+                        "response_format": "srt",
+                    }
+                    if self.__language:
+                        params_data['language'] = self.__language
                     response = requests.post(
                         self.__whisper_cpp_url,
                         files={"file": (part.path.name, audio_file, "audio/mpeg")},
-                        data={
-                            "language": self.__language,
-                            "temperature": "0.0",
-                            "response_format": "srt",
-                        },
+                        data=params_data,
                         timeout=(10, 3600),
                     )
                     response.raise_for_status()
@@ -96,7 +98,6 @@ if __name__ == "__main__":
     _config.init_config()
     init_downloader()
     whisper_transcriber = WhisperCppTranscriber(
-        "http://192.168.0.105:8004/inference",
-        "zh"
+        "http://192.168.0.105:8004/inference"
     )
     whisper_transcriber.transcribe_mp3_to_srt("/Users/sunxiao5/1-asr.mp3", "/Users/sunxiao5")

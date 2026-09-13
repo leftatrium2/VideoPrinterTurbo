@@ -252,7 +252,7 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
     if item:
         if item.local_whisper_type != 0:
             ret_dict['asr'].append({"name": _config.i18n_config['task']['asr'][1][lang],
-                                    "value": const.TASK_CONFIG_ASR_FROM_FASTER_WHISPER})
+                                    "value": const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER})
         if item.tencent_cloud_secret_id.strip() != "" and item.tencent_cloud_secret_key.strip() != "":
             ret_dict['asr'].append({"name": _config.i18n_config['task']['asr'][2][lang],
                                     "value": const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD})

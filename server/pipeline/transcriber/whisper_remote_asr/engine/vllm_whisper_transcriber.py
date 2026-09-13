@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 class VLLMWhisperTranscriber(object):
     def __init__(
             self,
-            vllm_url,
-            model,
-            language
+            vllm_url: str,
+            model: str,
+            language: Optional[str] = None
     ):
         self.__vllm_url = vllm_url
         self.__model = model
@@ -40,17 +40,20 @@ class VLLMWhisperTranscriber(object):
             for number, part in enumerate(parts, start=1):
                 logger.info(f"vLLM 正在转写第 {number}/{len(parts)} 段：{part.path.name}")
                 with part.path.open("rb") as audio_file:
+                    params_data = {
+                        "model": self.__model,
+                        "response_format": "verbose_json",
+                        "temperature": "0",
+                    }
+                    if self.__language:
+                        params_data['language'] = self.__language
                     response = requests.post(
                         self.__vllm_url,
                         files={"file": (part.path.name, audio_file, "audio/mpeg")},
-                        data={
-                            "model": self.__model,
-                            "language": self.__language,
-                            "response_format": "verbose_json",
-                            "temperature": "0",
-                        },
+                        data=params_data,
                         timeout=(10, 3600),
                     )
+
                     response.raise_for_status()
                     result = response.json()
 
@@ -71,8 +74,7 @@ if __name__ == "__main__":
     init_downloader()
     whisper_transcriber = VLLMWhisperTranscriber(
         vllm_url="http://192.168.0.105:8003/v1/audio/transcriptions",
-        model="whisper-large-v3-turbo",
-        language="zh"
+        model="whisper-large-v3-turbo"
     )
     whisper_transcriber.transcribe_mp3_to_srt(
         mp3_path="/Users/sunxiao5/1-asr.mp3",
