@@ -10,40 +10,6 @@ from models.model import VptTtsConfig
 from utils import const
 
 
-async def get_xiaomi_mimo_tts_voices() -> list:
-    ret_list = []
-    lang = get_current_lang()
-    # MiMo V2.5-TTS 预置音色列表（来源：官方文档截图）
-    if lang == "en":
-        MIMO_VOICES = [
-            {"name": "mimo_default", "lang": "-", "gender": "-", "desc": "Default (Domestic=BingTang, Overseas=Mia)"},
-            {"name": "BingTang", "lang": "Chinese", "gender": "Female"},
-            {"name": "MoLi", "lang": "Chinese", "gender": "Female"},
-            {"name": "SuDa", "lang": "Chinese", "gender": "Male"},
-            {"name": "BaiHua", "lang": "Chinese", "gender": "Male"},
-            {"name": "Mia", "lang": "English", "gender": "Female"},
-            {"name": "Chloe", "lang": "English", "gender": "Female"},
-            {"name": "Milo", "lang": "English", "gender": "Male"},
-            {"name": "Dean", "lang": "English", "gender": "Male"},
-        ]
-    elif lang == "cn":
-        MIMO_VOICES = [
-            {"name": "mimo_default", "lang": "-", "gender": "-", "desc": "默认（国内集群=冰糖，海外=Mia）"},
-            {"name": "冰糖", "lang": "Chinese", "gender": "女"},
-            {"name": "茉莉", "lang": "Chinese", "gender": "女"},
-            {"name": "苏打", "lang": "Chinese", "gender": "男"},
-            {"name": "白桦", "lang": "Chinese", "gender": "男"},
-            {"name": "Mia", "lang": "English", "gender": "女"},
-            {"name": "Chloe", "lang": "English", "gender": "女"},
-            {"name": "Milo", "lang": "English", "gender": "男"},
-            {"name": "Dean", "lang": "English", "gender": "男"},
-        ]
-    for voice in MIMO_VOICES:
-        ret_list.append(
-            {"DisplayName": f"mimo:{voice['name']}-{voice['lang']}-{voice['gender']}", "Value": voice['name']})
-    return ret_list
-
-
 async def get_google_gemini_tts_voices() -> list:
     ret_list = []
     # 30 个声音 + 性别信息（来源：Google 官方文档及 Replicate 声音表）

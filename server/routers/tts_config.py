@@ -4,11 +4,13 @@ import wave
 from pathlib import Path
 
 import anyio.to_thread
+import azure.cognitiveservices.speech as speechsdk
 import edge_tts
 import httpx
 from fastapi import APIRouter
-from fastapi.params import Query, Depends
+from fastapi import Query, Depends
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,8 +24,7 @@ from utils.file_utils import get_current_path
 from utils.result import result_failure, result_succ
 from utils.tts_utils import TTSUtils
 from utils.tts_voice import get_edge_tts_voices, get_azure_tts_v2_voices, get_silicon_flow_tts_voices, \
-    get_google_gemini_tts_voices, get_xiaomi_mimo_tts_voices
-import azure.cognitiveservices.speech as speechsdk
+    get_google_gemini_tts_voices
 
 router = APIRouter(
     prefix="/tts_config",
@@ -65,7 +66,7 @@ async def get_tts_list():
         {"name": "Azure TTS V1", "value": const.TTS_LIST_AZURE_TTS_V1},
         {"name": "Azure TTS V2", "value": const.TTS_LIST_AZURE_TTS_V2},
         {"name": "SiliconFlow TTS", "value": const.TTS_LIST_SILICON_FLOW_TTS},
-        {"name": "Google Gemini TTS", "value": const.TTS_LIST_GOOGLE_GEMINI_TTS},
+        {"name": "Google Gemini TTS", "value": const.TTS_LIST_GOOGLE_GEMINI_TTS}
     ]
 
 
@@ -106,15 +107,13 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
     await anyio.to_thread.run_sync(lambda: os.makedirs(out_path, exist_ok=True))
     voice_file_name = voice.replace("/", "_")
     output = os.path.join(out_path, voice_file_name + ".mp3")
-    if engine <= 0 or engine > 6:
-        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND, f"TTS engine {engine} does not exist ")
     voice = voice.strip()
     if not voice.startswith("zh-CN") and not voice.strip("en-US"):
         return result_failure(const.TTS_CONFIG_ERR_VOICE_NOT_FOUND, "TTS voice does not exist")
-    text = None
+
     if voice.strip().startswith("zh-CN"):
         text = const.TTS_CONFIG_PREVIEW['zh']
-    if voice.strip().startswith("en-US"):
+    elif voice.strip().startswith("en-US"):
         text = const.TTS_CONFIG_PREVIEW['en']
     else:
         text = const.TTS_CONFIG_PREVIEW['en']
@@ -172,18 +171,22 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
     elif engine == const.TTS_LIST_GOOGLE_GEMINI_TTS:
         model = "gemini-2.5-flash-preview-tts"
         client = genai.Client(api_key=tts_apikey)
-        response = await client.aio.models.generate_content(
-            model=model,
-            contents=text,
-            config=types.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                speech_config=types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
+        try:
+            response = await client.aio.models.generate_content(
+                model=model,
+                contents=text,
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)
+                        )
                     )
                 )
             )
-        )
+        except genai_errors.ClientError as e:
+            logging.error(f"Google Gemini TTS 合成失败: {e}")
+            return result_failure(const.TTS_CONFIG_ERR_UNKNOWN, f"合成失败: {e}")
         audio_data = response.candidates[0].content.parts[0].inline_data.data
         # Gemini 返回的是 24kHz/16bit/单声道 PCM，先存成 wav
         wav_path = output.rsplit(".", 1)[0] + ".wav"
@@ -198,7 +201,8 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
         result = {"output": output.replace(f"{cwd}/", "")}
     if not result:
         logging.error(f"TTS ENGINE {engine} NOT FOUND")
-        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND, f"TTS ENGINE {engine} NOT FOUND")
+        return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND,
+                              f"TTS ENGINE {TTSUtils.get_name(engine)} NOT FOUND")
     return result_succ(result)
 
 

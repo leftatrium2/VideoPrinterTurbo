@@ -559,7 +559,7 @@ async function handleCheckLink() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrlFirst')); return }
   checkingLink.value = true
   try {
-    const res = await checkTaskUrl(form.task_url)
+    const res = await checkTaskUrl(form.task_url, form.is_download_proxy)
     if (res.code === 0) {
       ElMessage.success(t('addTask.checkLinkSuccess'))
     } else {

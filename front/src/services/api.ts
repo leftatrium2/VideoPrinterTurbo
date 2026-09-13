@@ -219,8 +219,8 @@ export function updateTask(params: UpdateTaskParams): Promise<ApiResult<Record<s
   return request(http.post('/tasks/update', params))
 }
 
-export function checkTaskUrl(url: string): Promise<CheckUrlResult> {
-  return request(http.get('/tasks/check', { params: { url } }))
+export function checkTaskUrl(url: string, useProxy: boolean): Promise<CheckUrlResult> {
+  return request(http.get('/tasks/check', { params: { url, use_proxy: useProxy } }))
 }
 
 export function deleteTask(taskId: string): Promise<ApiResult<Record<string, unknown>>> {

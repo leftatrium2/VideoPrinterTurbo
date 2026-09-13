@@ -10,7 +10,7 @@ from config.config import init_config
 from models.model import VptTtsVoiceConfig
 from utils.database import database
 from utils.tts_voice import get_edge_tts_voices, get_azure_tts_v2_voices, get_silicon_flow_tts_voices, \
-    get_google_gemini_tts_voices, get_xiaomi_mimo_tts_voices
+    get_google_gemini_tts_voices
 
 
 async def gen_config(db: AsyncSession):
@@ -104,29 +104,6 @@ async def gen_config(db: AsyncSession):
             the_update_datetime = datetime.strptime(dt_str, DATETIME_FORMAT_STR)
         if abs(the_update_datetime - datetime.now()) > timedelta(days=10):
             voices = await get_google_gemini_tts_voices()
-            item.tts_voice_content = json.dumps(voices)
-            item.tts_server_time = datetime.now().strftime(DATETIME_FORMAT_STR)
-    await db.commit()
-    await db.refresh(item)
-    # TTS_LIST_XIAOMI_MIMO_TTS
-    result = await db.execute(
-        select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == "TTS_LIST_XIAOMI_MIMO_TTS"))
-    item = result.scalar_one_or_none()
-    if not item:
-        voices = await get_xiaomi_mimo_tts_voices()
-        item = VptTtsVoiceConfig(
-            tts_server_name="TTS_LIST_XIAOMI_MIMO_TTS",
-            tts_voice_content=json.dumps(voices),
-            tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
-        )
-        db.add(item)
-    else:
-        the_update_datetime = datetime.now()
-        dt_str = item.tts_server_time
-        if dt_str.strip():
-            the_update_datetime = datetime.strptime(dt_str, DATETIME_FORMAT_STR)
-        if abs(the_update_datetime - datetime.now()) > timedelta(days=10):
-            voices = await get_xiaomi_mimo_tts_voices()
             item.tts_voice_content = json.dumps(voices)
             item.tts_server_time = datetime.now().strftime(DATETIME_FORMAT_STR)
     await db.commit()

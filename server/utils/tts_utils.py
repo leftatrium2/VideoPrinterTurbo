@@ -19,6 +19,8 @@ class TTSUtils:
             return "SILICON FLOW TTS"
         elif engine == const.TTS_LIST_GOOGLE_GEMINI_TTS:
             return "GOOGLE GEMINI TTS"
+        elif engine == const.TTS_LIST_XIAOMI_MIMO_TTS:
+            return "Xiaomi MiMO TTS"
         return None
 
     @staticmethod

@@ -79,7 +79,7 @@ class YtDlpDownloader(BaseDownloader):
                 if result and result.get('duration', 0) > 0:
                     return True
             except Exception as e:
-                raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), tr=e) from e
+                raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), e)
         return False
 
     def download(
@@ -130,9 +130,11 @@ class YtDlpDownloader(BaseDownloader):
                 ret_dict['status'] = 0
                 ret_dict['message'] = ""
         except Exception as e:
+            logger.error(e)
+            ret_dict['status'] = -1
+            ret_dict['message'] = str(e)
             if context:
                 context.on_error(url, e)
-            raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), tr=e) from e
         return ret_dict
 
 
@@ -161,6 +163,5 @@ if __name__ == "__main__":
     downloader = YtDlpDownloader()
     download_url = "https://www.youtube.com/watch?v=E7YiKBeOneo"
     proxy = "http://127.0.0.1:7890"
-    if downloader.check(download_url, proxy_type=const.PROXY_CONFIG_TYPE_HTTPS, proxy_url=proxy):
-        downloader.download(download_url, video_full_path=full_path, context=TestDownloaderContext(),
-                            proxy_type=const.PROXY_CONFIG_TYPE_HTTPS, proxy_url=proxy)
+    if downloader.check(download_url, proxy_url=proxy):
+        downloader.download(download_url, video_full_path=full_path, context=TestDownloaderContext(), proxy_url=proxy)

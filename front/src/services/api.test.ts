@@ -128,13 +128,23 @@ describe('api service', () => {
       .toBe('http://localhost:8080/stream/storage/cache_videos/final.mp4')
   })
 
-  it('checkTaskUrl 成功时返回 code 0', async () => {
+  it('checkTaskUrl 勾选代理时携带 use_proxy=true', async () => {
     mockHttp.get.mockResolvedValue({ data: { code: 0, msg: 'success', data: {} } })
-    const result = await api.checkTaskUrl('https://www.youtube.com/shorts/XV2_PfXqAJI')
+    const result = await api.checkTaskUrl('https://www.youtube.com/shorts/XV2_PfXqAJI', true)
     expect(mockHttp.get).toHaveBeenCalledWith('/tasks/check', {
-      params: { url: 'https://www.youtube.com/shorts/XV2_PfXqAJI' },
+      params: { url: 'https://www.youtube.com/shorts/XV2_PfXqAJI', use_proxy: true },
     })
     expect(result).toEqual({ code: 0, msg: 'success', data: {} })
+  })
+
+  it('checkTaskUrl 未勾选代理时携带 use_proxy=false', async () => {
+    mockHttp.get.mockResolvedValue({ data: { code: 0, msg: 'success', data: {} } })
+
+    await api.checkTaskUrl('https://www.youtube.com/shorts/XV2_PfXqAJI', false)
+
+    expect(mockHttp.get).toHaveBeenCalledWith('/tasks/check', {
+      params: { url: 'https://www.youtube.com/shorts/XV2_PfXqAJI', use_proxy: false },
+    })
   })
 
   it('checkTaskUrl 失败时返回非 0 code', async () => {

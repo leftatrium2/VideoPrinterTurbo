@@ -9,7 +9,7 @@ from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 def tts(tts_engine: str, subtitle_path: str, lang: str, voice: str, api_key: str = None,
         region: str = None, proxy: str = None) -> bool:
     tts: TTSBase = None
-    if tts_engine == "Azure TTS V1":
+    if tts_engine == "TTS_LIST_AZURE_TTS_V1":
         tts = AzureTTSV1()
     elif tts_engine == "Google Gemini TTS":
         tts = GoogleGeminiTTS()

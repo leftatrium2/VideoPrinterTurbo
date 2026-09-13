@@ -367,7 +367,8 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
         for item in data:
             if item.tts_server_name.strip() == "TTS_LIST_AZURE_TTS_V1":
                 # Output to Speech -- Azure TTS V1
-                ret_dict['tts'].append({"name": "Azure TTS V1", "value": _config.i18n_config['task']['tts'][0][lang],
+                ret_dict['tts'].append({"name": _config.i18n_config['task']['tts'][0][lang],
+                                        "value": "TTS_LIST_AZURE_TTS_V1",
                                         "voices": json.loads(item.tts_voice_content)})
             if item.tts_server_name.strip() == "TTS_LIST_AZURE_TTS_V2":
                 # Output to Speech -- Azure TTS V2
@@ -383,11 +384,6 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
                 # Output to Speech -- Google Gemini TTS
                 ret_dict['tts'].append(
                     {"name": _config.i18n_config['task']['tts'][3][lang], "value": "TTS_LIST_GOOGLE_GEMINI_TTS",
-                     "voices": json.loads(item.tts_voice_content)})
-            if item.tts_server_name.strip() == "TTS_LIST_XIAOMI_MIMO_TTS":
-                # Output to Speech -- Xiaomi MiMo TTS
-                ret_dict['tts'].append(
-                    {"name": _config.i18n_config['task']['tts'][4][lang], "value": "TTS_LIST_XIAOMI_MIMO_TTS",
                      "voices": json.loads(item.tts_voice_content)})
 
     return result_succ(ret_dict)
