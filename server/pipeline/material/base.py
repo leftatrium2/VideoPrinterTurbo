@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -38,10 +39,10 @@ class BaseMaterialSearcher(ABC):
     @abstractmethod
     def config(
             self,
-            proxy: str | None = None,
+            proxy_url: Optional[str] = None,
             api_keys: str | list[str] | tuple[str, ...] | None = None,
             tls_verify: bool = True,
-    ) -> None:
+    ):
         """Configure the provider client before calling :meth:`search`."""
 
     @abstractmethod

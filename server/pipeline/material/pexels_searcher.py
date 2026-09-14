@@ -1,17 +1,15 @@
 """Search and download video footage from the Pexels API."""
-import asyncio
 import hashlib
 import os
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlsplit
 
 import requests
 from loguru import logger
 from moviepy import VideoFileClip
 
-from config.config import init_config
 from pipeline.material.base import BaseMaterialSearcher, MaterialInfo, VideoAspect
-from utils.file_utils import get_material_path
 
 
 class PexelsSearcher(BaseMaterialSearcher):
@@ -23,12 +21,20 @@ class PexelsSearcher(BaseMaterialSearcher):
         self._proxies: dict[str, str] | None = None
         self._tls_verify = True
 
-    def config(self, proxy=None, api_keys=None, tls_verify=True) -> None:
+    def config(
+            self,
+            proxy_url: Optional[str] = None,
+            api_keys: str | list[str] | tuple[str, ...] | None = None,
+            tls_verify: bool = True,
+    ):
         if isinstance(api_keys, str):
             api_keys = [api_keys]
         self._api_keys = [key.strip() for key in (api_keys or []) if key and key.strip()]
         self._api_key_index = 0
-        self._proxies = {"http": proxy, "https": proxy} if proxy else None
+        if proxy_url:
+            if proxy_url.startswith("socks5://"):
+                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
+        self._proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
         self._tls_verify = bool(tls_verify)
 
     def validate_config(self) -> bool:

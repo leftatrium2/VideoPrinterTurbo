@@ -8,14 +8,21 @@ from typing import Optional
 
 from openai import OpenAI
 from sqlalchemy import select
+from sympy.polys.ring_series import rs_asin
 
 from models.model import VptLlmConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig
 from pipeline.material.base import BaseMaterialSearcher, VideoAspect
 from pipeline.material.pexels_searcher import PexelsSearcher
 from pipeline.material.pixabay_searcher import PixabaySearcher
+from pipeline.utils.pipeline_llm_utils import llm_rewrite
+from pipeline.utils.pipeline_video_downloader_utils import init_downloader
+from utils import const
 from utils.database import database
-from utils.file_utils import get_material_path
+from utils.exception import VPTException
+from utils.file_utils import get_material_path, get_download_path, get_llm_rewrite_path
 from utils.video_utils import get_video_duration
+
+import config.config as _config
 
 SUBTITLE_TIMESTAMP_RE = re.compile(
     r"^\d{1,2}:\d{2}:\d{2}[,.]\d{3}\s*-->\s*"
@@ -50,7 +57,7 @@ def __read_subtitle_text(subtitle_file: str | Path) -> str:
     return " ".join(subtitle_lines)
 
 
-def __get_material_keyword_from_llm(text_file_path: str) -> Optional[list]:
+def __get_material_keyword_from_llm(text_file_path: str, proxy_url: Optional[str] = None) -> Optional[list]:
     if not os.path.exists(text_file_path):
         logging.error(f"{text_file_path} is not exists")
         return None
@@ -59,23 +66,24 @@ def __get_material_keyword_from_llm(text_file_path: str) -> Optional[list]:
     result = db.execute(select(VptLlmConfig).limit(1))
     item = result.scalar_one_or_none()
     if not item:
-        logging.error(
-            f"LLM is not configured to extract search keywords from the subtitles of the current video footage.")
-        return None
+        raise VPTException(const.PIPELINE_ERR_LLM_CONFIG,
+                           f"LLM is not configured to extract search keywords from the subtitles of the current video footage.")
     api_key = item.api_key
     base_url = item.base_url
     if not api_key or not base_url:
-        logging.error(
-            f"LLM configure is not correct. api key: {api_key} or base_url: {base_url} not set")
-        return None
-    client = OpenAI(
-        api_key=api_key,
-        base_url=base_url,
-    )
+        raise VPTException(const.PIPELINE_ERR_LLM_APIKEY_OR_BASEURL,
+                           f"LLM configure is not correct. api key: {api_key} or base_url: {base_url} not set")
+    kwargs = {"api_key": api_key, "base_url": base_url}
+    if proxy_url:
+        import httpx
+        kwargs["http_client"] = httpx.Client(proxy=proxy_url)
+    client = OpenAI(**kwargs)
     amount = 5
-    model = "gpt-5.5"
+    model = None
     if item.llm_model_name:
         model = item.llm_model_name
+    if not model:
+        raise VPTException(const.PIPELINE_ERR_LLM_MODEL, "model name is empty!")
     system_prompt = """
   你是一个视频素材搜索词生成器。
 
@@ -109,16 +117,16 @@ def __get_material_keyword_from_llm(text_file_path: str) -> Optional[list]:
         ],
         extra_body={"enable_thinking": False}
     )
+    if not response.choices or not response.choices[0].message.content:
+        raise VPTException(const.PIPELINE_ERR_LLM_OPENAI_RESPONSE, f"LLM 返回为空或内容为空")
     text = response.choices[0].message.content.strip()
     # 即使模型意外附带说明，也尽量提取 JSON 数组
     match = re.search(r"\[[\s\S]*\]", text)
     if not match:
-        logging.error(f"模型未返回 JSON 数组：{text}")
-        return None
+        raise VPTException(const.PIPELINE_ERR_LLM_RESPONSE_NOT_JSON, f"模型未返回 JSON 数组：{text}")
     terms = json.loads(match.group())
     if not isinstance(terms, list) or not all(isinstance(term, str) for term in terms):
-        logging.error(f"模型返回格式错误：{text}")
-        return None
+        raise VPTException(const.PIPELINE_ERR_LLM_RESPONSE_NOT_JSON, f"模型返回格式错误：{text}")
     return terms
 
 
@@ -130,27 +138,23 @@ def __get_material_api_key(material_type: str) -> Optional[str]:
     elif material_type == "pixabay":
         result = db.execute(select(VptVideoMaterialPixabayConfig).limit(1))
     if not result:
-        logging.error(
-            f"{material_type} is not configured of the current video footage.")
-        return None
+        raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG,
+                           f"{material_type} is not configured of the current video footage.")
     item = result.scalar_one_or_none()
     if not item:
-        logging.error(
-            f"{material_type} is not configured of the current video footage in step2.")
-        return None
+        raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG,
+                           f"{material_type} is not configured of the current video for scalar_one_or_none.")
     api_key = None
     if material_type == "pexels":
         api_key = item.pexels_api_key
     elif material_type == "pixabay":
         api_key = item.pixabay_api_key
     if not api_key:
-        logging.error(
-            f"{material_type} is not configured of the current video footage in step3.")
-        return None
+        raise VPTException(const.PIPELINE_ERR_LLM_APIKEY_OR_BASEURL,
+                           f"{material_type} is not configured of api_key")
     return api_key
 
 
-# 7. Video overlay
 def video_overlay(
         video_file_path: str,
         subtitle_file_path: str,
@@ -158,13 +162,13 @@ def video_overlay(
         material_keyword: str,
         material_video_ratio: int = 0,
         material_max_duration: int = 0,
-        proxy: Optional[str] = None
+        proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+        proxy_url: Optional[str] = None
 ) -> list:
     # 1. 通过下载的视频文件，获取视频时长
     video_duration = get_video_duration(video_file_path)
     if video_duration <= 0:
-        logging.error(f"{video_file_path} is not exists or not a video file")
-        return []
+        raise VPTException(const.PIPELINE_ERR_FFPROBE_DURATION, f"{video_file_path} is not exists or not a video file")
     # 2. 搜索关键字
     video_searcher: Optional[BaseMaterialSearcher] = None
     api_key = __get_material_api_key(material_type)
@@ -173,11 +177,10 @@ def video_overlay(
     elif material_type == "pixabay":
         video_searcher = PixabaySearcher()
     if not video_searcher:
-        logging.error(
-            f"Must Pexels or pixabay will use the video_overlay function, otherwise use the local uploader!")
-        return []
-    if proxy:
-        video_searcher.config(proxy=proxy, api_keys=api_key)
+        raise VPTException(const.PIPELINE_ERR_VALUE,
+                           f"Must Pexels or pixabay will use the video_overlay function, otherwise use the local uploader!")
+    if proxy_url:
+        video_searcher.config(proxy_url=proxy_url, api_keys=api_key)
     else:
         video_searcher.config(api_keys=api_key)
     material_path = asyncio.run(get_material_path())
@@ -187,10 +190,9 @@ def video_overlay(
         keyword_list = material_keyword.split(' ')
     else:
         # 如果没有找到搜索关键字，那么从当前的字幕（ASR导出的也算）
-        keyword_list = __get_material_keyword_from_llm(subtitle_file_path)
+        keyword_list = __get_material_keyword_from_llm(subtitle_file_path, proxy_url=proxy_url)
         if not keyword_list:
-            logging.error("No keyword found")
-            return []
+            raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_KEYWORD_FROM_LLM, "No keyword found")
     # 4 开始搜索
     video_aspect = VideoAspect.portrait
     if material_video_ratio == 1:
@@ -217,3 +219,25 @@ def video_overlay(
             if curr_video_duration >= video_duration:
                 break
     return material_list
+
+
+if __name__ == "__main__":
+    _config.init_config()
+    init_downloader()
+    download_path = asyncio.run(get_download_path())
+    video_path = os.path.join(download_path, "20260720215545133997.mp4")
+    llm_rewrite_path = asyncio.run(get_llm_rewrite_path())
+    subtitle_path = os.path.join(llm_rewrite_path, "20260720215545133997.srt")
+    database.start()
+
+    result = video_overlay(
+        video_file_path=video_path,
+        subtitle_file_path=subtitle_path,
+        material_type="pexels",
+        material_keyword="",
+        material_video_ratio=0,
+        material_max_duration=0,
+        proxy_type=const.PROXY_CONFIG_TYPE_HTTPS,
+        proxy_url="http://127.0.0.1:7890"
+    )
+    print(result)
