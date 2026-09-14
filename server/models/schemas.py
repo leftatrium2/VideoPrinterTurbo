@@ -64,7 +64,7 @@ class TaskItem(BaseModel):
     task_upload_video_path: str = ""
     task_original_video_path: str = ""
     # Is a proxy used for the downloader?
-    is_download_proxy: bool = False
+    is_use_proxy: bool = False
     ### 1. Audio to Text
     is_from_asr_or_subtitle: bool = False
     # Audio conversion method

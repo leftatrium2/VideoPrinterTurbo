@@ -31,7 +31,7 @@ export interface AddTaskParams {
   task_url: string
   task_upload_video_path: string
   task_original_video_path: string
-  is_download_proxy: boolean
+  is_use_proxy: boolean
   // 音频转文字
   is_from_asr_or_subtitle: boolean
   audio_rewrite_type: number
@@ -159,7 +159,7 @@ export interface TaskDetail {
   task_url: string
   task_upload_video_path: string
   task_original_video_path: string
-  is_download_proxy: number
+  is_use_proxy: number
   create_time: string
   is_deleted: number
   status: number

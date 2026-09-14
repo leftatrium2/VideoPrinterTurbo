@@ -24,7 +24,7 @@
               <el-button :icon="Link" :loading="checkingLink" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
             </template>
           </el-input>
-          <el-checkbox v-model="form.is_download_proxy" class="mt-12">{{ t('addTask.downloadUseProxy') }}</el-checkbox>
+          <el-checkbox v-model="form.is_use_proxy" class="mt-12">{{ t('addTask.downloadUseProxy') }}</el-checkbox>
         </template>
 
         <div v-else class="upload-zone mt-12">
@@ -327,28 +327,6 @@
       </div>
     </div>
 
-    <!-- Section 8: Publish -->
-    <div class="section-card">
-      <div class="section-header">
-        <div class="header-left">
-          <el-icon class="section-icon"><Share /></el-icon>
-          <el-checkbox :model-value="false" class="section-toggle" @click="() => ElMessage.warning(t('addTask.publishNotAvailable'))" />
-          <span class="section-title">{{ t('addTask.publish') }}</span>
-        </div>
-        <HelpPopover :content="t('addTask.helpPublish')" />
-      </div>
-      <div class="section-body">
-        <div class="field-label">{{ t('addTask.publishSettings') }}</div>
-        <el-input
-          type="textarea"
-          :rows="5"
-          :model-value="publishPlaceholder"
-          readonly
-          class="publish-textarea"
-        />
-      </div>
-    </div>
-
     <!-- Submit -->
     <div class="submit-area">
       <el-button type="primary" size="large" :loading="submitting" class="submit-btn" @click="handleSubmit">
@@ -418,7 +396,7 @@ const enabled = reactive({
 const form = reactive({
   task_url: '',
   video_input_mode: 'download' as 'download' | 'upload',
-  is_download_proxy: false,
+  is_use_proxy: false,
   transcription_mode: 0 as number,
   subtitle_lang: 0 as number,
   llm_prompt: '',
@@ -553,13 +531,11 @@ const taskVideoFileList = ref<UploadFile[]>([])
 const taskUploadVideoPath = ref('')
 const taskOriginalVideoPath = ref('')
 
-const publishPlaceholder = `{ 'platform': 'douyin', 'auto_publish': true, ... }`
-
 async function handleCheckLink() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrlFirst')); return }
   checkingLink.value = true
   try {
-    const res = await checkTaskUrl(form.task_url, form.is_download_proxy)
+    const res = await checkTaskUrl(form.task_url, form.is_use_proxy)
     if (res.code === 0) {
       ElMessage.success(t('addTask.checkLinkSuccess'))
     } else {
@@ -698,7 +674,7 @@ const SUBTITLE_POSITION_OPTIONS = ['bottom-center', 'top-center', 'center', 'cus
 
 async function applyTaskDetail(detail: TaskDetail) {
   form.task_url = detail.task_url
-  form.is_download_proxy = !!detail.is_download_proxy
+  form.is_use_proxy = !!detail.is_use_proxy
   if (detail.task_upload_video_path) {
     form.video_input_mode = 'upload'
     taskUploadVideoPath.value = detail.task_upload_video_path
@@ -787,7 +763,7 @@ async function handleSubmit() {
       task_url: form.video_input_mode === 'download' ? form.task_url.trim() : '',
       task_upload_video_path: form.video_input_mode === 'upload' ? taskUploadVideoPath.value : '',
       task_original_video_path: form.video_input_mode === 'upload' ? taskOriginalVideoPath.value : '',
-      is_download_proxy: form.video_input_mode === 'download' && form.is_download_proxy,
+      is_use_proxy: form.video_input_mode === 'download' && form.is_use_proxy,
       // 音频转文字
       is_from_asr_or_subtitle: enabled.transcription,
       audio_rewrite_type: form.transcription_mode,
@@ -1062,12 +1038,6 @@ async function handleSubmit() {
   font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: 2px;
-}
-
-/* ─── Publish ─── */
-.publish-textarea {
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
 }
 
 /* ─── Submit ─── */

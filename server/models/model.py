@@ -91,7 +91,7 @@ class VptTasks(Base):
     tts_volume: Mapped[float] = mapped_column(REAL, nullable=False, server_default=text('0'))
     subtitle_position: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     subtitle_lang: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
-    is_download_proxy: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    is_use_proxy: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     video_material_keyword: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_upload_video_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_original_video_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
