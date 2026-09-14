@@ -44,7 +44,9 @@ class AzureTTSV1(TTSBase):
             logging.error(f"No subtitle in {subtitle_path}")
             return None
         tts_file_path = os.path.join(path, f"{name}.m4a")
-        synth_kwargs = {"voice": voice, "proxy": self.__proxy}
+        synth_kwargs = {"voice": voice}
+        if self.__proxy_url:
+            synth_kwargs["proxy"] = self.__proxy_url
         with tempfile.TemporaryDirectory() as tmp_dir:
             timeline = TTSUtils.build_timeline(subs, AzureTTSV1.synthesize, synth_kwargs, tmp_dir)
 

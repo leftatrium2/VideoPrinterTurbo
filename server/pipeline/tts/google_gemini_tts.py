@@ -38,9 +38,8 @@ class GoogleGeminiTTS(TTSBase):
         client = genai.Client(api_key=api_key, http_options=http_options) if api_key else genai.Client(
             http_options=http_options)
 
-        response = client.models.generate_content(
+        chat = client.chats.create(
             model=model,
-            contents=text,
             config=types.GenerateContentConfig(
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
@@ -52,6 +51,7 @@ class GoogleGeminiTTS(TTSBase):
                 ),
             ),
         )
+        response = chat.send_message(text)
 
         part = response.candidates[0].content.parts[0]
         pcm_data = part.inline_data.data
@@ -86,9 +86,10 @@ class GoogleGeminiTTS(TTSBase):
 
         synth_kwargs = {
             "voice": voice, "api_key": self.__api_key,
-            "proxy": self.__proxy_url,
             "model": "gemini-2.5-flash-preview-tts",
         }
+        if self.__proxy_url:
+            synth_kwargs["proxy"] = self.__proxy_url
         with tempfile.TemporaryDirectory() as tmp_dir:
             timeline = TTSUtils.build_timeline(subs, GoogleGeminiTTS.synthesize, synth_kwargs, tmp_dir)
             TTSUtils.export_timeline(timeline, tts_file_path, bitrate=self.__bitrate)

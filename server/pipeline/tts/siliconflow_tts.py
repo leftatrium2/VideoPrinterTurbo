@@ -73,6 +73,7 @@ class SiliconFlowTTS(TTSBase):
         self.__api_key = api_key
         self.__proxy_type = proxy_type
         self.__proxy_url = proxy_url
+        self.__bitrate = "128k"
 
     def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
         if not os.path.exists(subtitle_path):
@@ -89,6 +90,8 @@ class SiliconFlowTTS(TTSBase):
         synth_kwargs = {
             "voice": voice, "api_key": self.__api_key, "model": "FunAudioLLM/CosyVoice2-0.5B",
         }
+        if self.__proxy_url:
+            synth_kwargs["proxy"] = self.__proxy_url
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             timeline = TTSUtils.build_timeline(subs, SiliconFlowTTS.synthesize, synth_kwargs, tmp_dir)
@@ -100,6 +103,10 @@ if __name__ == "__main__":
     _config.init_config()
     init_downloader()
     lang = asyncio.run(get_llm_rewrite_path())
-    tts: TTSBase = SiliconFlowTTS(api_key="", proxy_url="http://127.0.0.1:7890")
-    llm_rewrite_path = os.path.join(lang, "gSNFJbgoaHI.cn.srt")
+    tts: TTSBase = SiliconFlowTTS(
+        api_key="",
+        proxy_type=const.PROXY_CONFIG_TYPE_HTTPS,
+        proxy_url="http://127.0.0.1:7890"
+    )
+    llm_rewrite_path = os.path.join(lang, "20260720215545133997.srt")
     tts.rewrite(llm_rewrite_path, "", "FunAudioLLM/CosyVoice2-0.5B:alex")

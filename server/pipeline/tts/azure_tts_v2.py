@@ -96,10 +96,11 @@ class AzureTTSV2(TTSBase):
         tts_file_path = os.path.join(path, f"{name}.m4a")
         synth_kwargs = {
             "voice": voice, "key": self.__api_key,
-            "proxy": self.__proxy_url,
             "region": self.__region,
             "lang": lang,
         }
+        if self.__proxy_url:
+            synth_kwargs["proxy"] = self.__proxy_url
         try:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 timeline = TTSUtils.build_timeline(subs, AzureTTSV2.synthesize, synth_kwargs, tmp_dir)
