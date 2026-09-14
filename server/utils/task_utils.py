@@ -3,6 +3,8 @@ import logging
 import random
 import uuid
 
+logger = logging.getLogger(__name__)
+
 
 def gen_task_id() -> str:
     try:
@@ -11,7 +13,7 @@ def gen_task_id() -> str:
         curr_date_str = curr_ts.strftime("%Y%m%d%H%M%S") + str(num)
         return curr_date_str
     except Exception as e:
-        logging.error(e)
+        logger.error(e)
     return str(uuid.uuid4())
 
 

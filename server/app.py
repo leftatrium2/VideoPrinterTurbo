@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 
+import utils.logger  # noqa: F401  # 确保 logging.basicConfig 在最早执行
+
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker

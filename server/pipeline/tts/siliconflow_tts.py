@@ -13,6 +13,8 @@ from utils import const
 from utils.file_utils import get_tts_rewrite_path, get_llm_rewrite_path
 from utils.tts_utils import TTSUtils
 
+logger = logging.getLogger(__name__)
+
 
 class SiliconFlowTTS(TTSBase):
     __API_URL = "https://api.siliconflow.cn/v1/audio/speech"
@@ -77,13 +79,13 @@ class SiliconFlowTTS(TTSBase):
 
     def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
         if not os.path.exists(subtitle_path):
-            logging.error(f"File {subtitle_path} does not exist")
+            logger.error(f"File {subtitle_path} does not exist")
             return None
         name, ext = os.path.splitext(os.path.basename(subtitle_path))
         path = asyncio.run(get_tts_rewrite_path())
         subs = TTSUtils.parse_srt(subtitle_path)
         if not subs:
-            logging.error(f"No subtitle in {subtitle_path}")
+            logger.error(f"No subtitle in {subtitle_path}")
             return None
         tts_file_path = os.path.join(path, f"{name}.m4a")
 

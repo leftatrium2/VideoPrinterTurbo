@@ -1,12 +1,10 @@
-import threading
-
 from sqlalchemy import select, and_
 from tenacity import sleep
 
 from config.config import init_config
 from models.model import VptTasks
 from pipeline.pipeline_manager import pipeline, init_downloader
-from service import task_const
+from utils import const
 from utils.database import database
 from utils.logger import logger
 
@@ -28,7 +26,7 @@ class TaskManager(object):
             try:
                 result = session.execute(
                     select(VptTasks).where(and_(
-                        VptTasks.status == task_const.TASK_STATUS_QUEUE,
+                        VptTasks.pipeline_status == const.PIPELINE_STATUS_INI,
                         VptTasks.is_deleted == 0
                     )).order_by(VptTasks.create_time.asc()).limit(1)
                 )
@@ -37,13 +35,7 @@ class TaskManager(object):
                     sleep(5)
                     continue
                 pipeline.init()
-                result = pipeline.process_now(task)
-                if not result:
-                    logger.error(f"task failed: {task.id}")
-                    task.status = int(result or task_const.TASK_STATUS_ERROR_UNKNOWN)
-                    session.commit()
-                    session.refresh()
-                    continue
+                pipeline.process_now(task)
                 print(f"task success: {task.id}")
             except Exception as e:
                 logger.exception(f"job failed: {e}")

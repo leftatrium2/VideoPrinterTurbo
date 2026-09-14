@@ -8,14 +8,14 @@ from pipeline.bean.subtitle_bean import SubtitleBean
 from pipeline.bean.tts_bean import TTSBean
 from pipeline.bean.video_bean import VideoBean
 from pipeline.bean.video_overlay_bean import VideoOverlayBean
-from utils.const import PIPELINE_STATUS_INIT
+from utils import const
 
 
 @dataclass
 class PipeLineData:
     task_id: str = ""
     url: str = ""
-    status: int = PIPELINE_STATUS_INIT
+    status: int = const.PIPELINE_STATUS_INI
     video_bean: Optional[VideoBean] = None
     # 是否启用ASR或者拉取字幕（从youtube.com）
     is_asr_or_subtitle: bool = False

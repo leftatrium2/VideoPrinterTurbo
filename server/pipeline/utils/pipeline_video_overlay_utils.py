@@ -8,13 +8,12 @@ from typing import Optional
 
 from openai import OpenAI
 from sqlalchemy import select
-from sympy.polys.ring_series import rs_asin
 
+import config.config as _config
 from models.model import VptLlmConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig
 from pipeline.material.base import BaseMaterialSearcher, VideoAspect
 from pipeline.material.pexels_searcher import PexelsSearcher
 from pipeline.material.pixabay_searcher import PixabaySearcher
-from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 from utils import const
 from utils.database import database
@@ -22,7 +21,7 @@ from utils.exception import VPTException
 from utils.file_utils import get_material_path, get_download_path, get_llm_rewrite_path
 from utils.video_utils import get_video_duration
 
-import config.config as _config
+logger = logging.getLogger(__name__)
 
 SUBTITLE_TIMESTAMP_RE = re.compile(
     r"^\d{1,2}:\d{2}:\d{2}[,.]\d{3}\s*-->\s*"
@@ -59,7 +58,7 @@ def __read_subtitle_text(subtitle_file: str | Path) -> str:
 
 def __get_material_keyword_from_llm(text_file_path: str, proxy_url: Optional[str] = None) -> Optional[list]:
     if not os.path.exists(text_file_path):
-        logging.error(f"{text_file_path} is not exists")
+        logger.error(f"{text_file_path} is not exists")
         return None
     subtitle_text = __read_subtitle_text(text_file_path)
     db = database.get_sync_session()

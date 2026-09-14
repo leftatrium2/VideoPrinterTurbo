@@ -26,6 +26,8 @@ from utils.tts_utils import TTSUtils
 from utils.tts_voice import get_edge_tts_voices, get_azure_tts_v2_voices, get_silicon_flow_tts_voices, \
     get_google_gemini_tts_voices
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(
     prefix="/tts_config",
     tags=["TTS Config Module"]
@@ -143,7 +145,7 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
             result = {"output": output.replace(f"{cwd}/", "")}
         elif result.reason == speechsdk.ResultReason.Canceled:
             cancellation = result.cancellation_details
-            logging.error(f"合成失败: {cancellation.reason}, {cancellation.error_details}")
+            logger.error(f"合成失败: {cancellation.reason}, {cancellation.error_details}")
             return result_failure(const.TTS_CONFIG_ERR_UNKNOWN,
                                   f"合成失败: {cancellation.reason}, {cancellation.error_details}")
     elif engine == const.TTS_LIST_SILICON_FLOW_TTS:
@@ -185,7 +187,7 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
                 )
             )
         except genai_errors.ClientError as e:
-            logging.error(f"Google Gemini TTS 合成失败: {e}")
+            logger.error(f"Google Gemini TTS 合成失败: {e}")
             return result_failure(const.TTS_CONFIG_ERR_UNKNOWN, f"合成失败: {e}")
         audio_data = response.candidates[0].content.parts[0].inline_data.data
         # Gemini 返回的是 24kHz/16bit/单声道 PCM，先存成 wav
@@ -200,7 +202,7 @@ async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Que
         AudioSegment.from_wav(wav_path).export(output, format="mp3")
         result = {"output": output.replace(f"{cwd}/", "")}
     if not result:
-        logging.error(f"TTS ENGINE {engine} NOT FOUND")
+        logger.error(f"TTS ENGINE {engine} NOT FOUND")
         return result_failure(const.TTS_CONFIG_ERR_ENGINE_NOT_FOUND,
                               f"TTS ENGINE {TTSUtils.get_name(engine)} NOT FOUND")
     return result_succ(result)

@@ -1,10 +1,10 @@
 import logging
-import os
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Optional
 
+import config.config as _config
 from pipeline.transcriber.azure_asr.azure_transcriber import AzureASR
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.bytedance_asr.volcengine_transcriber import VolcengineASR
@@ -16,8 +16,9 @@ from pipeline.transcriber.whisper_remote_asr.remote_whisper_transcriber import R
 from pipeline.transcriber.xunfei_asr.xf_cloud_asr import XFCloudASR
 from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 from utils import const
-import config.config as _config
 from utils.exception import VPTException
+
+logger = logging.getLogger(__name__)
 
 
 def subtitle_convert(
@@ -26,7 +27,7 @@ def subtitle_convert(
         lang: int
 ) -> Optional[str]:
     if not url.strip():
-        logging.error("Url is empty")
+        logger.error("Url is empty")
         return None
     subtitle = SubTitleTranscriber()
     path = subtitle.subtitle(url, lang, self.__proxy)

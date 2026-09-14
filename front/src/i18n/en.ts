@@ -130,9 +130,9 @@ export default {
 
     helpDownload: 'Choose either a video page URL and check the link, or upload a local video file directly. If a link cannot be downloaded, please submit an issue on GitHub.',
     helpTranscription: 'Two methods available: "Extract from Subtitles" works for YouTube and similar sites with auto-captions; "Convert via ASR" extracts audio directly (recommended for non-YouTube videos).',
-    helpLlm: 'Enable LLM Rewrite to have the extracted text rewritten by an AI model using your custom prompt.',
-    helpVoice: '"Output to Voice" converts the processed text to speech via TTS and merges it into the new video.',
-    helpSubtitle: '"Output to Subtitle" keeps the original audio and adds the processed text as subtitles in the new video.',
+    helpLlm: 'If you select "LLM Rewrite" and enter a prompt, the extracted text will be rewritten by the LLM and output again. Note: To use "LLM Rewrite," you must select the "Audio to Text" option.',
+    helpVoice: '"Output to Speech" converts the processed text into audio using TTS and merges it into the new video. Note: To select "Output to Speech," you must also check "Audio to Text."',
+    helpSubtitle: '"Output to Subtitles": The original video\'s audio remains unchanged; the processed text is simply converted into subtitles and added to the new video. Note: To select "Output to Subtitles," you must also check the "Audio to Text" option.',
     helpBgm: 'After selecting background music, it will be merged into the new video.',
     helpVideoOverlay: 'When enabled, short clips from Pexels and similar sites will be fetched and stitched together.',
     publishNotAvailable: 'This feature is not available yet',

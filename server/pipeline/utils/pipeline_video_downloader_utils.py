@@ -12,6 +12,8 @@ from utils import const
 from utils.exception import VPTException
 from utils.file_utils import get_download_path
 
+logger = logging.getLogger(__name__)
+
 
 def init_downloader():
     """
@@ -51,11 +53,11 @@ def download_video(
         proxy_url: Optional[str] = None
 ) -> Optional[dict]:
     if not url.strip():
-        logging.error("Url is empty")
+        logger.error("Url is empty")
         return None
     downloader = _get_downloader(url)
     if not downloader:
-        logging.error("Downloader is None")
+        logger.error("Downloader is None")
         return None
     video_full_path = asyncio.run(get_download_path())
     video_full_path = os.path.join(video_full_path, task_id)
@@ -72,7 +74,7 @@ def _get_downloader(url: str) -> Optional[BaseDownloader]:
         keyword = k.lower().strip()
         if keyword in url:
             if k not in downloaders:
-                logging.error("cant find the downloader, maybe it not init, keyword: ", k)
+                logger.error("cant find the downloader, maybe it not init, keyword: ", k)
                 return None
             return downloaders[k]
 

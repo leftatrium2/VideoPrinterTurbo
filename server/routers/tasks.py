@@ -24,6 +24,7 @@ from utils.file_utils import get_upload_path
 from utils.result import result_succ, result_failure
 from utils.task_utils import gen_task_id
 
+logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/tasks",
     tags=["Task Module"]
@@ -399,7 +400,7 @@ async def check_task_url(
         use_proxy: bool = Query(default=False),
         db: AsyncSession = Depends(database.get_db)
 ):
-    logging.info(f"Checking task url: {url}")
+    logger.info(f"Checking task url: {url}")
     if use_proxy:
         result = await db.execute(select(VptProxyConfig).limit(1))
         item = result.scalar_one_or_none()

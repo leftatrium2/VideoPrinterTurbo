@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, REAL, Text, text
+from sqlalchemy import Index, Integer, REAL, Text, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
@@ -22,7 +22,7 @@ class VptAsrConfig(Base):
     openai_base_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     volcengine_appid: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     volcengine_access_token: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    remote_whisper_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    remote_whisper_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('1'))
     remote_vllm_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     remote_vllm_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     remote_whisper_cpp_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
@@ -51,12 +51,15 @@ class VptProxyConfig(Base):
 
 class VptTasks(Base):
     __tablename__ = 'vpt_tasks'
+    __table_args__ = (
+        Index('vpt_tasks_task_status_index', 'task_status'),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     task_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     create_time: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("datetime('now', 'localtime')"))
     is_deleted: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
-    status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    task_status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     task_id: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     error_code: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     error_desc: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
@@ -92,6 +95,8 @@ class VptTasks(Base):
     video_material_keyword: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_upload_video_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_original_video_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    task_message: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    pipeline_status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
 
 
 class VptTtsConfig(Base):

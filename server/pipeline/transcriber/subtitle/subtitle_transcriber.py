@@ -98,7 +98,7 @@ class SubTitleTranscriber(object):
         lang = self._yt_dlp_subtitle[index]
         subtitle_path = asyncio.run(get_subtitle_path())
         if not subtitle_path:
-            logging.error("Subtitle path is empty")
+            logger.error("Subtitle path is empty")
             return None
         ydl_opts = {
             'skip_download': True,
