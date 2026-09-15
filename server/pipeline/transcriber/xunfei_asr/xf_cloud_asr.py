@@ -1,24 +1,24 @@
-import asyncio
 import base64
 import hashlib
 import hmac
 import json
 import logging
+import os
 import time
 from typing import Optional, List, Tuple
 
 import requests
 
-from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
 from pipeline.transcriber.utils.asr_utils import get_duration_seconds, get_file_size, segments_to_srt, cleanup_dir, \
     split_audio_by_duration, build_proxies, save_to_srt
-from utils.file_utils import get_video_to_text_path
+from utils import const
+from utils.exception import VPTException
 
 logger = logging.getLogger(__name__)
 
-_API_BASE = "https://raasr.xfyun.cn/api"
+# _API_BASE = "https://raasr.xfyun.cn/api"
 _SLICE_SIZE = 10 * 1024 * 1024  # 10MB，官方建议分片大小
 
 # 官方限制：单文件不超过 500M，音频时长不超过 5 小时。
@@ -59,9 +59,9 @@ class XFCloudASR(BaseTranscriber):
     def __init__(
             self,
             app_id: str,
-            api_key: str,
             api_secret: str,
-            language: str = "cn",
+            web_api: str = "https://raasr.xfyun.cn/v2/api",
+            language: Optional[str] = None,
             max_chunk_seconds: int = _DEFAULT_MAX_CHUNK_SECONDS,
             max_file_size_bytes: int = _DEFAULT_MAX_FILE_SIZE,
             poll_interval_seconds: float = 15.0,
@@ -71,7 +71,7 @@ class XFCloudASR(BaseTranscriber):
         # 这里沿用 api_secret 命名以便与其他实时接口的 api_key/api_secret 概念区分统一。
         self.proxies = None
         self.app_id = app_id
-        self.api_key = api_key
+        self.web_api = web_api
         self.secret_key = api_secret
         self.language = language
         self.max_chunk_seconds = max_chunk_seconds
@@ -105,7 +105,7 @@ class XFCloudASR(BaseTranscriber):
             return save_to_srt(asr_text, audio_path)
         except Exception as e:
             logger.error(f"[XunfeiASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
-            return None
+            raise VPTException(code=const.TASK_ERR_UNKNOWN, message=f"讯飞转写失败: {e}") from e
         finally:
             if tmp_dir:
                 cleanup_dir(tmp_dir)
@@ -143,7 +143,7 @@ class XFCloudASR(BaseTranscriber):
         with open(audio_path, "rb") as f:
             file_bytes = f.read()
         file_len = len(file_bytes)
-        file_name = audio_path.split("/")[-1]
+        file_name = os.path.basename(audio_path)
 
         task_id = self._prepare(file_len=file_len, file_name=file_name, slice_num=self._calc_slice_num(file_len))
         self._upload_slices(task_id, file_bytes)
@@ -184,10 +184,13 @@ class XFCloudASR(BaseTranscriber):
         params.update({
             "file_len": str(file_len),
             "file_name": file_name,
-            "slice_num": str(slice_num),
-            "language": self.language,
+            "slice_num": str(slice_num)
         })
-        resp = requests.post(f"{_API_BASE}/prepare", data=params, timeout=30).json()
+        if self.language:
+            params.update({
+                "language": self.language
+            })
+        resp = requests.post(f"{self.web_api}/prepare", data=params, timeout=30, proxies=self.proxies).json()
         self._check_ok(resp, "prepare")
         return resp["data"]
 
@@ -199,13 +202,14 @@ class XFCloudASR(BaseTranscriber):
             params = self._common_params()
             params.update({"task_id": task_id, "slice_id": slice_id})
             files = {"content": (slice_id, chunk)}
-            resp = requests.post(f"{_API_BASE}/upload", data=params, files=files, timeout=60).json()
+            resp = requests.post(f"{self.web_api}/upload", data=params, files=files, timeout=60,
+                                 proxies=self.proxies).json()
             self._check_ok(resp, "upload")
 
     def _merge(self, task_id: str) -> None:
         params = self._common_params()
         params.update({"task_id": task_id})
-        resp = requests.post(f"{_API_BASE}/merge", data=params, timeout=30).json()
+        resp = requests.post(f"{self.web_api}/merge", data=params, timeout=30, proxies=self.proxies).json()
         self._check_ok(resp, "merge")
 
     def _wait_until_done(self, task_id: str) -> None:
@@ -213,7 +217,7 @@ class XFCloudASR(BaseTranscriber):
         while time.time() < deadline:
             params = self._common_params()
             params.update({"task_id": task_id})
-            resp = requests.post(f"{_API_BASE}/getProgress", data=params, timeout=30).json()
+            resp = requests.post(f"{self.web_api}/getProgress", data=params, timeout=30, proxies=self.proxies).json()
             self._check_ok(resp, "getProgress")
 
             progress = json.loads(resp["data"])
@@ -230,7 +234,7 @@ class XFCloudASR(BaseTranscriber):
     def _get_result(self, task_id: str) -> List[Segment]:
         params = self._common_params()
         params.update({"task_id": task_id})
-        resp = requests.post(f"{_API_BASE}/getResult", data=params, timeout=30).json()
+        resp = requests.post(f"{self.web_api}/getResult", data=params, timeout=30, proxies=self.proxies).json()
         self._check_ok(resp, "getResult")
 
         raw_list = json.loads(resp["data"])

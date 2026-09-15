@@ -94,7 +94,7 @@ def asr_convert(
         # local whisper
         local_whisper_type = args.get("local_whisper_type") or 0
         model_size = args.get("model_size") or "large-v3"
-        language = args.get("language") or "en"
+        language = args.get("language")
         transcriber = WhisperTranscriber(
             local_whisper_type=local_whisper_type,
             model_size=model_size,
@@ -142,12 +142,12 @@ def asr_convert(
         # xfyun cloud asr service
         # https://global.xfyun.cn/
         app_id = args.get("app_id")
-        api_key = args.get("api_key")
+        web_api = args.get("web_api")
         api_secret = args.get("api_secret")
-        language = args.get("language") or "en"
+        language = args.get("language")
         transcriber = XFCloudASR(
             app_id=app_id,
-            api_key=api_key,
+            web_api=web_api,
             api_secret=api_secret,
             language=language
         )
@@ -207,8 +207,8 @@ def asr_convert(
         transcriber = OpenAIASR(
             api_key=api_key,
             model=model,
-            language=language,
-            base_url=base_url
+            base_url=base_url,
+            language=language
         )
     if not transcriber:
         return None

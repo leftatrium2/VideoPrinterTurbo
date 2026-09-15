@@ -4,12 +4,11 @@ from typing import Optional
 from sqlalchemy import select
 
 from config.config import init_config
-from models.model import VptTasks
+from models.model import VptTasks, VptAsrConfig
 from pipeline.bean.pipeline_data import PipeLineData
-from pipeline.bean.video_bean import VideoBean
+from pipeline.bean.video_downloader_bean import VideoDownloaderBean
 from pipeline.downloader.base import DownloaderContext
 from pipeline.utils.pipeline_asr_utls import asr_convert
-from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_video_downloader_utils import check_video, download_video, init_downloader
 from utils import const
 from utils.database import database
@@ -29,19 +28,18 @@ class PipelineManager:
 
         def on_create(self, url: str):
             logger.info(f"on_create: url: {url}")
-            pass
 
         def on_start(self, url: str):
-            pass
+            logger.info(f"on_start: url: {url}")
 
         def on_progress(self, url: str, codec_type: int, progress: float):
-            pass
+            logger.info(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}")
 
         def on_complete(self, url: str):
-            pass
+            logger.info(f"on_complete: url: {url}")
 
         def on_error(self, url: str, error: Exception):
-            pass
+            logger.info(f"on_error: url: {url}, error: {error}")
 
     def set_proxy(self, proxy: str):
         self.__proxy = proxy
@@ -52,7 +50,8 @@ class PipelineManager:
     def init(self):
         self.__data = PipeLineData()
 
-    def __update_db_task(self, task: VptTasks):
+    @staticmethod
+    def __update_db_task(task: VptTasks):
         db = database.get_sync_session()
         result = db.execute(select(VptTasks).where(
             VptTasks.task_id == task.task_id,
@@ -62,8 +61,24 @@ class PipelineManager:
         if not item:
             logger.error(f"task not found: {task.task_id}")
             return
+        item.task_status = task.task_status
+        item.error_code = task.error_code
+        item.error_desc = task.error_desc
+        item.task_message = task.task_message
+        item.pipeline_status = task.pipeline_status
+        item.task_upload_video_path = task.task_upload_video_path
+        item.task_original_video_path = task.task_original_video_path
         db.commit()
-        db.refresh()
+        db.refresh(item)
+
+    @staticmethod
+    def __get_asr_config():
+        db = database.get_sync_session()
+        result = db.execute(select(VptAsrConfig).limit(1))
+        item = result.scalar_one_or_none()
+        if not item:
+            raise VPTException(const.PIPELINE_ERR_ASR_NOT_CONFIGURATION, "asr config not found")
+        return item
 
     def __update_pipeline_status(self, task: VptTasks, pipeline_status: int):
         self.__data.status = pipeline_status
@@ -96,7 +111,7 @@ class PipelineManager:
             return None
         # download video
         self.__data.status = const.PIPELINE_STATUS_DOWNLOADER
-        self.__data.video_bean = VideoBean()
+        self.__data.video_bean = VideoDownloaderBean()
         try:
             res = download_video(url=task.task_url,
                                  task_id=task.task_id,
@@ -121,7 +136,7 @@ class PipelineManager:
             task.task_status = const.TASK_ERR_UNKNOWN
             task.task_message = msg
             return None
-        self.__data.video_bean.url = res.get('url') or ''
+        self.__data.video_bean.url = task.task_url or task.task_upload_video_path
         self.__data.video_bean.video_path = res.get('video_path') or ''
         self.__data.video_bean.title = res.get('title') or ''
         self.__data.video_bean.duration = int(res.get('duration') or 0)
@@ -131,9 +146,79 @@ class PipelineManager:
         # asr or subtitle download
         if is_asr:
             try:
+                audio_rewrite_type = task.audio_rewrite_type
+                # 从 vpt_asr_config 表中获取相应的配置信息
+                asr_config = PipelineManager.__get_asr_config()
+                args = {}
+                if audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER:
+                    # 本地部署 本机 whisper
+                    args = {
+                        "local_whisper_type": asr_config.local_whisper_type
+                    }
+                elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER:
+                    # 本地部署 远程 whisper
+                    args = {
+                        "remote_whisper_type": asr_config.remote_whisper_type,
+                    }
+                    if asr_config.remote_whisper_type == const.TASK_CONFIG_REMOTE_VLLM_WHISPER:
+                        # vllm 部署方式
+                        args.update({
+                            "remote_server_url": asr_config.remote_vllm_url,
+                            "remote_server_model": asr_config.remote_vllm_model
+                        })
+                    elif asr_config.remote_whisper_type == const.TASK_CONFIG_REMOTE_WHISPER_CPP:
+                        # whisper 部署方式
+                        args.update({
+                            "remote_server_url": asr_config.remote_whisper_cpp_url
+                        })
+                elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD:
+                    # 腾讯云
+                    args = {
+                        "secret_id": asr_config.tencent_cloud_secret_id,
+                        "secret_key": asr_config.tencent_cloud_secret_key,
+                        "app_id": ""
+                    }
+                    pass
+                elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_XF_YUN:
+                    # 科大讯飞
+                    args = {
+                        "app_id": asr_config.xfyun_appid,
+                        "api_secret": asr_config.xfyun_secret_key,
+                        "web_api": asr_config.xfyun_web_api,
+                    }
+                    pass
+                elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_OPENAI:
+                    # OpenAI
+                    args = {
+                        "api_key": asr_config.openai_api_key,
+                        "model": asr_config.openai_model,
+                        "base_url": asr_config.openai_base_url
+                    }
+                    pass
+                elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_AZURE:
+                    # Azure
+                    args = {
+                        "subscription_key": asr_config.azure_subscription_key,
+                        "region": asr_config.azure_region
+                    }
+                    pass
+                elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_BYTEDANCE:
+                    # 字节-火山引擎
+                    args = {
+                        "app_id": asr_config.volcengine_appid,
+                        "access_token": asr_config.volcengine_access_token,
+                        "audio_format": "mp3"
+                    }
+                    pass
                 res = asr_convert(
-                    self.__data.video_bean.video_path
+                    self.__data.video_bean.video_path,
+                    audio_rewrite_type=audio_rewrite_type,
+                    **args
                 )
+                if not res:
+                    raise VPTException(const.PIPELINE_ERR_ASR_UNKNOWN, "asr unknown, can't get result")
+                self.__data.asr_bean.url = res.get('url') or ''
+                self.__data.asr_bean.subtitle_path = res
             except VPTException as ex:
                 logger.error(f"{task.task_url} download error, message:{ex}")
                 task.task_status = ex.code
@@ -146,21 +231,21 @@ class PipelineManager:
                 # 如果没有进行ASR处理，只有视频，那么是无法进行LLM处理的
                 logger.error(f"LLM rewrite need ASR result")
                 return None
-            try:
-                llm_rewrite(
-                    prompt="翻译为中文",
-                    src_path="",
-                    dst_path="",
-                    api_key="sk-ab80cf21b3884471aa20ce8613fcbd7b",
-                    base_url="https://api.deepseek.com",
-                    model="deepseek-flash"
-                )
-            except VPTException as ex:
-                logger.error(f"{task.task_url} llm rewrite error, message:{ex}")
-                task.task_status = ex.code
-                task.task_message = ex.message
-                self.__update_db_task(task)
-                return None
+            # try:
+            #     llm_rewrite(
+            #         prompt="翻译为中文",
+            #         src_path="",
+            #         dst_path="",
+            #         api_key="sk-ab80cf21b3884471aa20ce8613fcbd7b",
+            #         base_url="https://api.deepseek.com",
+            #         model="deepseek-flash"
+            #     )
+            # except VPTException as ex:
+            #     logger.error(f"{task.task_url} llm rewrite error, message:{ex}")
+            #     task.task_status = ex.code
+            #     task.task_message = ex.message
+            #     self.__update_db_task(task)
+            #     return None
         # rewrite to tts
         # rewrite to subtitle
         # bgm
@@ -169,26 +254,9 @@ class PipelineManager:
 pipeline = PipelineManager()
 
 if __name__ == "__main__":
-    class TestDownloaderContext(DownloaderContext):
-        def on_create(self, url: str):
-            print(f"on_create: {url}")
-
-        def on_start(self, url: str):
-            print(f"on_start: {url}")
-
-        def on_progress(self, url: str, codec_type: int, progress: float):
-            print(f"on_progress: codec={codec_type}, progress={progress:.1%}")
-
-        def on_error(self, url: str, error: Exception):
-            print(f"on_error: {url}: {error}")
-
-        def on_complete(self, url: str):
-            print(f"on_complete: {url}")
-
-
     init_config()
     init_downloader()
-    task_id = "20260727215533153521"
+    task_id = "20260913190132110313"
     database.start()
     db = database.get_sync_session()
     result = db.execute(select(VptTasks).where(
@@ -197,23 +265,4 @@ if __name__ == "__main__":
     ).order_by(VptTasks.create_time.asc()).limit(1))
     item = result.scalar_one_or_none()
     if item:
-        url = "https://www.youtube.com/watch?v=IlbPO9Vmuuo"
-        result = check_video(url, None)
-        if not result:
-            logger.error(f"task check failed: {task_id}")
-        result = download_video(url=url, task_id=task_id, ctx=TestDownloaderContext(),
-                                proxy_url="http://127.0.0.1:7890")
-        print(result)
-    # if item:
-    #     result = pipeline.video_overlay(
-    #         "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp4",
-    #         "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/Give Me 9 Minutes, I'll Make You AI-Native.srt",
-    #         material_type=item.video_material_type,
-    #         material_keyword=item.video_material_keyword,
-    #         material_video_ratio=item.video_material_video_ratio,
-    #         material_max_duration=item.video_material_max_duration
-    #     )
-    #     if not result:
-    #         print("video_overlay return False")
-    #     curr_data = pipeline.get_data()
-    #     print(curr_data)
+        pipeline.process_now(item)

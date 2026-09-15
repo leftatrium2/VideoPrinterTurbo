@@ -44,7 +44,7 @@ class OpenAIASR(BaseTranscriber):
                 raise VPTException(const.PIPELINE_ERR_IMPORT,
                                    "未安装 openai，请先执行 `pip install openai`。",
                                    tr=e) from e
-            kwargs = {"api_key": self.api_key}
+            kwargs: dict = {"api_key": self.api_key}
             if self.base_url:
                 kwargs["base_url"] = self.base_url
             if self.proxy:
@@ -97,13 +97,15 @@ class OpenAIASR(BaseTranscriber):
     def _transcribe_single_file(self, audio_path: str) -> List[Segment]:
         client = self._get_client()
         with open(audio_path, "rb") as f:
-            resp = client.audio.transcriptions.create(
-                model=self.model,
-                file=f,
-                language=self.language,
-                response_format="verbose_json",
-                timestamp_granularities=["segment"],
-            )
+            create_kwargs: dict = {
+                "model": self.model,
+                "file": f,
+                "response_format": "verbose_json",
+                "timestamp_granularities": ["segment"],
+            }
+            if self.language is not None:
+                create_kwargs["language"] = self.language
+            resp = client.audio.transcriptions.create(**create_kwargs)
 
         segments = []
         raw_segments = getattr(resp, "segments", None) or []

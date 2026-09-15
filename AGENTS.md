@@ -61,13 +61,22 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
 - 当前通过 `AddTask.vue` 编辑任务实际会新建任务：页面用 `GET /tasks/get` 回填表单，
   提交时调用 `POST /tasks/add`。
 - 任务 store 仅在存在 `status === 1` 的任务时每五秒轮询一次。
+- 下载代理字段为 `is_use_proxy`（不要使用旧字段 `is_download_proxy`）。检查链接时将
+  复选框状态以查询参数 `use_proxy=true|false` 传给 `/tasks/check`。
 - 修改 `AddTask.vue` 的 BGM/素材界面前，BGM 上传不要设置 `:limit="1"`；清空音频时
   使用 `removeAttribute('src')`，不要使用 `audio.src = ''`。
 - 视频覆盖比例字段为 `video_material_video_ratio`。
 - 视频覆盖的 `video_material_keyword` 可留空；非空时最多 5 个以空白分隔的词，只允许
   英文字母、数字、连字符和撇号。该规则仅由前端校验。
+- 添加任务页的“发布”区块因法律风险暂不展示，提交任务时固定传递 `is_publish=false`；
+  不要重新启用或实现发布功能，除非用户明确要求。
+- ASR 配置包含本地 Whisper 和“Whisper（远程 ASR）”。远程部署类型值为
+  `TASK_CONFIG_REMOTE_VLLM_WHISPER=1`（默认，使用 `remote_vllm_url`、
+  `remote_vllm_model`）或 `TASK_CONFIG_REMOTE_WHISPER_CPP=2`（使用
+  `remote_whisper_cpp_url`）；任务表单配置会在远程类型非 0 时提供远程 Whisper。
 - 已知 Azure TTS V1 从 `GET /tasks/` 返回展示名作为 `value`，会破坏前端引擎映射；
-  涉及此区域时请核实该行为。
+  涉及此区域时请核实该行为。其试听接口还要求 `vpt_tts_config` 中存在
+  `tts_server=1` 的记录，即使 V1 不需要凭据。
 
 ## 常用 API 接口
 
@@ -76,7 +85,7 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
 
 - `GET /tasks/`：任务表单配置；`POST /tasks/add`：创建任务；
   `POST /tasks/update`：更新任务。
-- `GET /tasks/list`、`GET /tasks/get?task_id=`、`GET /tasks/check?url=`、
+- `GET /tasks/list`、`GET /tasks/get?task_id=`、`GET /tasks/check?url=&use_proxy=`、
   `GET /tasks/del?task_id=`：分别用于列表、查询、校验与软删除任务。
 - `GET|POST /llm_config/` 与 `/llm_config/update`：LLM 配置。
 - `GET /tts_config/tts_list`、`GET /tts_config/tts_config_detail?engine=`、
