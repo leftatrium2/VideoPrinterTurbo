@@ -3,6 +3,7 @@ from typing import Optional
 
 from pipeline.bean.asr_bean import AsrBean
 from pipeline.bean.bgm_bean import BgmBean
+from pipeline.bean.ffmpeg_bean import FFMPEGBean
 from pipeline.bean.llm_bean import LLMBean
 from pipeline.bean.tts_bean import TTSBean
 from pipeline.bean.video_downloader_bean import VideoDownloaderBean
@@ -35,3 +36,5 @@ class PipeLineData:
     # 是否启用视频改写（如果启用，那么当前视频直接被覆盖）
     is_video_overlay: bool = False
     video_overlay_bean: Optional[VideoOverlayBean] = None
+    # 最后整理出来，往ffmpeg送的数据
+    ffmpeg_bean: FFMPEGBean = FFMPEGBean()

@@ -18,6 +18,7 @@ from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMat
 from models.schemas import TaskItem
 from pipeline.utils.pipeline_video_downloader_utils import check_video
 from utils import const
+from utils.config_utils import get_subtitle_font_list
 from utils.database import database
 from utils.exception import VPTException
 from utils.file_utils import get_upload_path
@@ -282,20 +283,9 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
                  "value": const.TASK_CONFIG_ASR_FROM_BYTEDANCE})
     # Output to subtitle
     ret_dict['subtitle'] = []
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][0][lang], "value": "Charm-Bold.ttf"})
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][1][lang], "value": "Charm-Regular.ttf"})
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][2][lang], "value": "MicrosoftYaHeiBold.ttf"})
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][3][lang], "value": "MicrosoftYaHeiNormal.ttf"})
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][4][lang], "value": "STHeitiLight.ttf"})
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][5][lang], "value": "STHeitiMedium.ttf"})
-    ret_dict['subtitle'].append(
-        {"name": _config.i18n_config['task']['subtitle'][6][lang], "value": "UTM Kabel KT.ttf"})
+    font_list = await get_subtitle_font_list()
+    for font in font_list:
+        ret_dict['subtitle'].append({"name": font, "value": font})
     # Background music
     ret_dict['bgm'] = []
     ret_dict['bgm'].append(

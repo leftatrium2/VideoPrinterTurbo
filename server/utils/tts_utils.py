@@ -48,7 +48,7 @@ class TTSUtils:
 
         tempo = current_ms / target_ms  # >1 表示原音频偏长，需要加速
         filters = []
-        remaining = tempo
+        remaining: float = tempo
         while remaining > 2.0:
             filters.append("atempo=2.0")
             remaining /= 2.0

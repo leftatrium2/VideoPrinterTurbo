@@ -1,0 +1,3 @@
+class FFMPEGBean(object):
+
+    pass

@@ -2,7 +2,7 @@
 import asyncio
 import os.path
 import subprocess
-from typing import Optional
+from typing import Any, Optional
 
 import yt_dlp
 from loguru import logger
@@ -107,8 +107,7 @@ class YtDlpDownloader(BaseDownloader):
             if proxy_url.startswith("socks5://"):
                 proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
             yt_dlp_opts['proxy'] = proxy_url
-        ret_dict = {}
-        ret_dict['url'] = url
+        ret_dict: dict[str, Any] = {'url': url}
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]
                 # ydl.download([url])

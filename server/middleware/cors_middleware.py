@@ -4,7 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # CORS
 def register_cors_middleware(app: FastAPI):
-    app.add_middleware(
+    app.add_middleware(  # pyright: ignore[reportArgumentType, reportCallIssue]
         CORSMiddleware,
         # Allowed origin addresses for cross-origin requests
         allow_origins=[

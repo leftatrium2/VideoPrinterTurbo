@@ -15,8 +15,41 @@ router = APIRouter(
     tags=["Downloader Config Module"]
 )
 
-AUDIO_MIME_TYPE = ["audio/mpeg", "audio/wav", "audio/flac", "audio/aac", "audio/amr"]
-VIDEO_MIME_TYPE = ["video/mp4", "video/mkv", "video/avi", "video/wmv", "video/flv"]
+AUDIO_MIME_TYPES = ["audio/mpeg", "audio/wav", "audio/flac", "audio/aac", "audio/amr"]
+VIDEO_MIME_TYPES = {
+    # 常见网页和移动端视频
+    "video/mp4",  # .mp4
+    "video/webm",  # .webm
+    "video/quicktime",  # .mov
+    "video/x-m4v",  # .m4v
+
+    # Matroska、AVI 和 Windows 视频
+    "video/x-matroska",  # .mkv
+    "video/mkv",  # 部分客户端会这样上报
+    "video/x-msvideo",  # .avi
+    "video/vnd.avi",  # AVI 的另一种 MIME 类型
+    "video/avi",  # 部分客户端会这样上报
+    "video/x-ms-wmv",  # .wmv
+    "video/x-ms-asf",  # .asf
+
+    # 常见传统视频格式
+    "video/mpeg",  # .mpeg、.mpg
+    "video/ogg",  # .ogv
+    "video/x-flv",  # .flv
+    "video/x-f4v",  # .f4v
+    "video/x-dv",  # .dv
+
+    # 手机、电视和传输流视频
+    "video/3gpp",  # .3gp
+    "video/3gpp2",  # .3g2
+    "video/mp2t",  # .ts、.mts、.m2ts
+    "video/x-ms-vob",  # .vob
+
+    # 较少见的视频格式
+    "video/vnd.rn-realvideo",  # .rv、.rmvb
+    "video/h264",  # 裸 H.264 视频流
+    "video/h265",  # 裸 H.265 / HEVC 视频流
+}
 MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
 
 
@@ -24,7 +57,7 @@ MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
 async def upload_video(files: list[UploadFile] = File(...)):
     ret_list = []
     for file in files:
-        if file.content_type not in VIDEO_MIME_TYPE:
+        if file.content_type not in VIDEO_MIME_TYPES:
             return result_failure(const.TASK_CONFIG_ERR_INVALID_FILE_FORMAT, "Uploaded file must be in video format")
         # Read content to check size
         content = await file.read()

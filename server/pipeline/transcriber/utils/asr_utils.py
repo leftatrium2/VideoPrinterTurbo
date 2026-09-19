@@ -118,7 +118,7 @@ def convert_audio(
 def split_audio_by_duration(
         audio_path: str,
         chunk_seconds: int,
-        out_dir: str = None,
+        out_dir: Optional[str] = None,
         sample_rate: int = 16000,
         channels: int = 1,
         audio_format: str = "wav",

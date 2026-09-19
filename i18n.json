@@ -34,36 +34,6 @@
         "en": "ByteDance Volcengine ASR"
       }
     ],
-    "subtitle": [
-      {
-        "cn": "Charm-Bold.ttf",
-        "en": "Charm-Bold.ttf"
-      },
-      {
-        "cn": "Charm-Regular.ttf",
-        "en": "Charm-Regular.ttf"
-      },
-      {
-        "cn": "MicrosoftYaHeiBold.ttf",
-        "en": "MicrosoftYaHeiBold.ttf"
-      },
-      {
-        "cn": "MicrosoftYaHeiNormal.ttf",
-        "en": "MicrosoftYaHeiNormal.ttf"
-      },
-      {
-        "cn": "STHeitiLight.ttf",
-        "en": "STHeitiLight.ttf"
-      },
-      {
-        "cn": "STHeitiMedium.ttf",
-        "en": "STHeitiMedium.ttf"
-      },
-      {
-        "cn": "UTM Kabel KT.ttf",
-        "en": "UTM Kabel KT.ttf"
-      }
-    ],
     "bgm": [
       {
         "cn": "随机背景音乐",

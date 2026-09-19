@@ -1,5 +1,4 @@
-from fastapi import APIRouter
-from fastapi.params import Depends
+from fastapi import APIRouter,Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

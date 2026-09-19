@@ -15,11 +15,11 @@ from pipeline.material.base import BaseMaterialSearcher, VideoAspect
 from pipeline.material.pexels_searcher import PexelsSearcher
 from pipeline.material.pixabay_searcher import PixabaySearcher
 from pipeline.utils.pipeline_video_downloader_utils import init_downloader
+from pipeline.utils.video_utils import get_video_or_audio_duration
 from utils import const
 from utils.database import database
 from utils.exception import VPTException
 from utils.file_utils import get_material_path, get_download_path, get_llm_rewrite_path
-from utils.video_utils import get_video_duration
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ def video_overlay(
         proxy_url: Optional[str] = None
 ) -> list:
     # 1. 通过下载的视频文件，获取视频时长
-    video_duration = get_video_duration(video_file_path)
+    video_duration = get_video_or_audio_duration(video_file_path)
     if video_duration <= 0:
         raise VPTException(const.PIPELINE_ERR_FFPROBE_DURATION, f"{video_file_path} is not exists or not a video file")
     # 2. 搜索关键字

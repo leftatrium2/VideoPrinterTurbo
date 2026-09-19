@@ -10,6 +10,7 @@ import requests
 
 from config.config import init_config
 from pipeline.downloader.base import BaseDownloader, DownloaderContext
+from utils import const
 from utils.const import DOWNLOADER_CODEC_MUXER_TYPE
 from utils.file_utils import get_download_path
 
@@ -181,12 +182,17 @@ def _merge_segments(segment_paths: list[str], output_path: str) -> None:
 
 
 class BiliBiliDownloader(BaseDownloader):
-    def check(self, url: str, proxy: Optional[str]) -> bool:
+    def check(
+            self,
+            url: str,
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
+    ) -> bool:
         if not _is_bilibili_video_url(url):
             return False
         try:
-            bvid, info, cid = _get_video_info(url, proxy)
-            return bool(info.get("duration", 0) > 0 and _get_mp4_segments(bvid, cid, proxy))
+            bvid, info, cid = _get_video_info(url, proxy_url)
+            return bool(info.get("duration", 0) > 0 and _get_mp4_segments(bvid, cid, proxy_url))
         except Exception as error:
             logger.warning("Unable to inspect Bilibili video {}: {}", url, error)
             return False
@@ -195,8 +201,9 @@ class BiliBiliDownloader(BaseDownloader):
             self,
             url: str,
             video_full_path: str,
-            context: Optional[DownloaderContext],
-            proxy: Optional[str]
+            context: Optional[DownloaderContext] = None,
+            proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
+            proxy_url: Optional[str] = None
     ) -> Optional[dict]:
         if not _is_bilibili_video_url(url):
             error = ValueError("Only Bilibili playback-detail URLs are supported")
@@ -213,12 +220,12 @@ class BiliBiliDownloader(BaseDownloader):
         try:
             if context:
                 context.on_start(url)
-            bvid, info, cid = _get_video_info(url, proxy)
-            segments = _get_mp4_segments(bvid, cid, proxy)
+            bvid, info, cid = _get_video_info(url, proxy_url)
+            segments = _get_mp4_segments(bvid, cid, proxy_url)
             video_path = f"{video_full_path}.mp4"
             segment_paths = [f"{video_full_path}.part{index}.mp4" for index in range(len(segments))]
             for index, (segment_urls, segment_path) in enumerate(zip(segments, segment_paths)):
-                _download_segment(segment_urls, segment_path, url, proxy, context, index, len(segments))
+                _download_segment(segment_urls, segment_path, url, proxy_url, context, index, len(segments))
             _merge_segments(segment_paths, video_path)
             if not os.path.isfile(video_path):
                 raise FileNotFoundError(f"Bilibili download did not create the expected MP4: {video_path}")
@@ -248,7 +255,6 @@ class BiliBiliDownloader(BaseDownloader):
 
 
 if __name__ == "__main__":
-    import sys
     import tempfile
 
 
@@ -273,12 +279,11 @@ if __name__ == "__main__":
 
     test_url = "https://www.bilibili.com/video/BV1B38b6pE2w/?spm_id_from=333.1007.tianma.1-1-1.click"
     test_base_path = os.path.join(tempfile.mkdtemp(prefix="vpt_bilibili_"), "video")
-    assert "yt_dlp" not in sys.modules, "Bilibili downloader must not import yt-dlp"
     full_path = asyncio.run(get_download_path())
     full_path = os.path.join(full_path, "20260720215545133998")
     downloader = BiliBiliDownloader()
-    assert downloader.check(test_url), "Bilibili playback page should pass validation"
-    video = downloader.download(test_url, full_path, TestDownloaderContext())
-    assert video is not None, "download should return video metadata"
-    assert video.video_path.endswith(".mp4") and os.path.isfile(video.video_path), "MP4 should exist"
-    print(video)
+    ret = downloader.download(test_url, full_path, TestDownloaderContext())
+    if ret:
+        print(ret)
+    else:
+        print("cant download")

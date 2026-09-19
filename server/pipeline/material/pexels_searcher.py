@@ -7,9 +7,9 @@ from urllib.parse import urlsplit
 
 import requests
 from loguru import logger
-from moviepy import VideoFileClip
 
 from pipeline.material.base import BaseMaterialSearcher, MaterialInfo, VideoAspect
+from pipeline.utils.video_utils import get_video_or_audio_duration
 
 
 class PexelsSearcher(BaseMaterialSearcher):
@@ -139,8 +139,8 @@ class PexelsSearcher(BaseMaterialSearcher):
     @staticmethod
     def _is_valid_video(path):
         try:
-            with VideoFileClip(str(path)) as clip:
-                return bool(clip.duration and clip.duration > 0)
+            duration = get_video_or_audio_duration(path)
+            return bool(duration > 0)
         except Exception as exc:
             logger.warning("Downloaded Pexels video is invalid: {}", exc)
             return False

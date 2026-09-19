@@ -96,9 +96,9 @@ def convert_subtitle_to_bean(intput_file: str, is_english: bool) -> SubtitleBean
     return bean
 
 
-def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> bool:
+def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> None:
     if not bean or not bean.get_first_item():
-        return False
+        return
     last_begin = bean.get_first_item().begin
     last_end = bean.get_first_item().end
     subtitle = ''
@@ -135,7 +135,6 @@ def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> bool:
                         f"{convert_subtitle_timestamp_to_str(last_begin)} --> {convert_subtitle_timestamp_to_str(last_end)}\n")
                     fp.write(f"{subtitle}\n\n")
         # Since subtitle is processed in post-processing mode, need to check if count matches item count at the end
-    pass
 
 
 def convert_subtitle_order(bean: SubtitleBean, output_file: str):

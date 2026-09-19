@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional, List
+from typing import Any, Optional, List
 
 import requests
 
@@ -78,7 +78,7 @@ class AzureASR(BaseTranscriber):
             f"https://{self.region}.api.cognitive.microsoft.com"
             f"/speechtotext/transcriptions:transcribe?api-version={_API_VERSION}"
         )
-        definition = {"locales": self.locales}
+        definition: dict[str, Any] = {"locales": self.locales}
         if self.enable_diarization:
             definition["diarization"] = {"enabled": True, "maxSpeakers": 8}
 

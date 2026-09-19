@@ -3,8 +3,7 @@ from contextlib import asynccontextmanager
 import utils.logger  # noqa: F401  # 确保 logging.basicConfig 在最早执行
 
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 import config.config as _config
 from config.config import init_config
@@ -35,7 +34,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     # Sync config
     # Start task manager
-    async_session_factory = sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)
+    async_session_factory = async_sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)
     async with async_session_factory() as session:
         await gen_config(db=session)
         await task_manager.start()
