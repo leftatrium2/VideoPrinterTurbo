@@ -9,7 +9,8 @@ import requests
 from loguru import logger
 
 from pipeline.material.base import BaseMaterialSearcher, MaterialInfo, VideoAspect
-from pipeline.utils.video_utils import get_video_or_audio_duration
+from utils.proxy_utils import build_yt_dlp_proxies
+from utils.video_utils import get_video_or_audio_duration
 
 
 class PixabaySearcher(BaseMaterialSearcher):
@@ -31,10 +32,7 @@ class PixabaySearcher(BaseMaterialSearcher):
             api_keys = [api_keys]
         self._api_keys = [key.strip() for key in (api_keys or []) if key and key.strip()]
         self._api_key_index = 0
-        if proxy_url:
-            if proxy_url.startswith("socks5://"):
-                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
-        self._proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+        self._proxies = build_yt_dlp_proxies(proxy_url) if proxy_url else None
         self._tls_verify = bool(tls_verify)
 
     def validate_config(self) -> bool:

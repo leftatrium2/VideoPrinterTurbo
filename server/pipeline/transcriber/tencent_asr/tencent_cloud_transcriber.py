@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import hashlib
 import hmac
@@ -9,14 +8,13 @@ from typing import List, Optional
 
 import requests
 
-from config.config import init_config
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
-from pipeline.transcriber.utils.asr_utils import get_duration_seconds, segments_to_srt, cleanup_dir, build_proxies, \
+from utils.asr_utils import get_duration_seconds, segments_to_srt, cleanup_dir, \
     convert_audio, split_audio_by_duration
 from utils import const
 from utils.exception import VPTException
-from utils.file_utils import get_video_to_text_path
+from utils.proxy_utils import build_requests_proxies
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +78,7 @@ class TencentCloudTranscriber(BaseTranscriber):
 
     def config(self, proxy: Optional[str] = None):
         if proxy:
-            self.proxies = build_proxies(proxy)
+            self.proxies = build_requests_proxies(proxy)
 
     def transcribe(self, audio_path: str) -> Optional[str]:
         tmp_dir = None

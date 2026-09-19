@@ -14,6 +14,7 @@ from utils import const
 from utils.convert_subtitle_ttml_to_srt import convert_subtitle_ttml_to_srt
 from utils.exception import VPTException
 from utils.file_utils import get_subtitle_path
+from utils.proxy_utils import build_yt_dlp_proxies
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +110,8 @@ class SubTitleTranscriber(object):
             'outtmpl': '%(id)s.%(ext)s',
             'quiet': True,
             'no_warnings': True,
+            'proxy': build_yt_dlp_proxies(proxy_url)
         }
-        if proxy_url:
-            # socks5h:// — DNS 交给代理服务器解析，对于翻墙场景更可靠
-            if proxy_url.startswith("socks5://"):
-                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
-            ydl_opts['proxy'] = proxy_url
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             video_id = info['id']

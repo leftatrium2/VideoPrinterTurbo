@@ -13,6 +13,7 @@ from utils import const
 from utils.const import DOWNLOADER_CODEC_VIDEO_TYPE, DOWNLOADER_CODEC_AUDIO_TYPE, DOWNLOADER_CODEC_MUXER_TYPE
 from utils.exception import VPTException
 from utils.file_utils import get_download_path
+from utils.proxy_utils import build_yt_dlp_proxies
 
 
 def make_hook(context: DownloaderContext):
@@ -66,13 +67,9 @@ class YtDlpDownloader(BaseDownloader):
             'ignoreerrors': True,
             'no_warnings': True,
             'extract_flat': True,
-            'skip_download': True
+            'skip_download': True,
+            'proxy': build_yt_dlp_proxies(proxy_url)
         }
-        if proxy_url:
-            # socks5h:// — DNS 交给代理服务器解析，对于翻墙场景更可靠
-            if proxy_url.startswith("socks5://"):
-                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
-            yt_dlp_opts['proxy'] = proxy_url
         with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]
             try:
                 result = ydl.extract_info(url, download=False)
@@ -100,13 +97,10 @@ class YtDlpDownloader(BaseDownloader):
             'ignoreerrors': True,
             'no_warnings': True,
             "noprogress": True,
+            'proxy': build_yt_dlp_proxies(proxy_url)
         }
         if context:
             yt_dlp_opts["progress_hooks"] = [make_hook(context)]
-        if proxy_url:
-            if proxy_url.startswith("socks5://"):
-                proxy_url = proxy_url.replace("socks5://", "socks5h://", 1)
-            yt_dlp_opts['proxy'] = proxy_url
         ret_dict: dict[str, Any] = {'url': url}
         try:
             with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]

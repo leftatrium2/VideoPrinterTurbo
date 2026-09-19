@@ -15,7 +15,7 @@ from pipeline.material.base import BaseMaterialSearcher, VideoAspect
 from pipeline.material.pexels_searcher import PexelsSearcher
 from pipeline.material.pixabay_searcher import PixabaySearcher
 from pipeline.utils.pipeline_video_downloader_utils import init_downloader
-from pipeline.utils.video_utils import get_video_or_audio_duration
+from utils.video_utils import get_video_or_audio_duration
 from utils import const
 from utils.database import database
 from utils.exception import VPTException

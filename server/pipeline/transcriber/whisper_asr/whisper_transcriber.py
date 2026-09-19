@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 
 from config.config import init_config
-from pipeline.transcriber.utils.asr_utils import segments_to_srt, save_to_srt
+from utils.asr_utils import segments_to_srt, save_to_srt
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.whisper_asr.engine.faster_engine import FasterWhisperEngine
 from pipeline.transcriber.whisper_asr.engine.mlx_engine import MLXWhisperEngine

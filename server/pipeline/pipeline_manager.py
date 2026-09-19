@@ -11,7 +11,7 @@ from pipeline.bean.video_downloader_bean import VideoDownloaderBean
 from pipeline.downloader.base import DownloaderContext
 from pipeline.utils.pipeline_asr_utls import asr_convert
 from pipeline.utils.pipeline_video_downloader_utils import check_video, download_video, init_downloader
-from pipeline.utils.video_utils import get_video_width_height, get_video_or_audio_duration
+from utils.video_utils import get_video_width_height, get_video_or_audio_duration
 from utils import const
 from utils.database import database
 from utils.exception import VPTException

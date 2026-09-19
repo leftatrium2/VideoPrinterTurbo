@@ -11,19 +11,9 @@ from pipeline.transcriber.segment import Segment
 from utils import const
 from utils.exception import VPTException
 from utils.file_utils import get_video_to_text_path
+from utils.video_utils import _check_binary
 
 logger = logging.getLogger(__name__)
-
-
-def _check_binary(name: str) -> None:
-    if shutil.which(name) is None:
-        raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND,
-                           f"未找到可执行文件 `{name}`，请先安装 ffmpeg（含 ffprobe）并确保其在 PATH 中。")
-
-
-def get_file_size(audio_path: str) -> int:
-    """返回文件大小（字节）"""
-    return os.path.getsize(audio_path)
 
 
 def format_timestamp(seconds: float) -> str:
@@ -160,24 +150,6 @@ def split_audio_by_duration(
     if not chunks:
         raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS, "音频分片失败：未生成任何分片文件")
     return chunks
-
-
-def build_proxies(proxy: Optional[str]) -> Optional[dict]:
-    """
-    将单个代理地址（如 "http://127.0.0.1:7890"）转换为 requests 库所需的 proxies 字典。
-    http/https 请求统一走同一个代理地址；不传 proxy 则返回 None（不使用代理）。
-    """
-    if not proxy:
-        return None
-    """
-    socks5:// 使用客户端 DNS 解析，socks5h:// 使用远端（代理服务器）DNS 解析。大多数场景推荐使用 socks5h://，避免本地 DNS 污染问题
-    """
-    if proxy.startswith("socks5://"):
-        proxy = proxy.replace("socks5://", "socks5h://", 1)
-    """
-    requests 需要 PySocks 来支持 socks5 等socks代理
-    """
-    return {"http": proxy, "https": proxy}
 
 
 def save_to_srt(asr_text: str, audio_path: str) -> Optional[str]:

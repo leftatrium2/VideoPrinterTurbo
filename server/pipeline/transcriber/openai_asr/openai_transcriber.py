@@ -3,10 +3,11 @@ from typing import Optional, List
 
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
-from pipeline.transcriber.utils.asr_utils import get_file_size, get_duration_seconds, \
+from utils.asr_utils import get_duration_seconds, \
     split_audio_by_duration, segments_to_srt, cleanup_dir, save_to_srt
 from utils import const
 from utils.exception import VPTException
+from utils.file_utils import get_file_size
 
 logger = logging.getLogger(__name__)
 
