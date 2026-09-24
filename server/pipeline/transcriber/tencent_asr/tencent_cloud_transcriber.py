@@ -10,9 +10,9 @@ import requests
 
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.segment import Segment
-from utils.asr_utils import get_duration_seconds, segments_to_srt, cleanup_dir, \
-    convert_audio, split_audio_by_duration
 from utils import const
+from utils.asr_utils import get_duration_seconds, segments_to_srt, cleanup_dir, \
+    convert_audio, split_audio_by_duration, save_to_srt
 from utils.exception import VPTException
 from utils.proxy_utils import build_requests_proxies
 
@@ -97,7 +97,8 @@ class TencentCloudTranscriber(BaseTranscriber):
             if not all_segments:
                 raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS,
                                    f"[TencentASRTranscriber] 未识别到任何内容: {audio_path}")
-            return segments_to_srt(all_segments)
+            srt_content = segments_to_srt(all_segments)
+            return save_to_srt(asr_text=srt_content, audio_path=audio_path)
         except Exception as e:
             raise VPTException(const.PIPELINE_ERR_ASR_TRANSCRIBER,
                                f"[TencentASRTranscriber] 转写失败: {audio_path}, 错误: {e}", tr=e) from e

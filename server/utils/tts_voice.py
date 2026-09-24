@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 import azure.cognitiveservices.speech as speechsdk
 from edge_tts import VoicesManager
@@ -174,3 +175,16 @@ async def get_azure_tts_v2_voices(db: AsyncSession) -> list:
             if short_name.strip().startswith("en-US") or short_name.strip().startswith("zh-CN"):
                 ret_list.append({"DisplayName": f"{short_name}-V2-{sex}", "Value": short_name})
     return ret_list
+
+
+def get_lang_from_voice(voice: str) -> Optional[str]:
+    voice = voice.strip()
+    if not voice.startswith("zh-CN") and not voice.strip("en-US"):
+        return None
+    if voice.strip().startswith("zh-CN"):
+        text = const.TTS_CONFIG_PREVIEW['zh']
+    elif voice.strip().startswith("en-US"):
+        text = const.TTS_CONFIG_PREVIEW['en']
+    else:
+        text = const.TTS_CONFIG_PREVIEW['en']
+    return text

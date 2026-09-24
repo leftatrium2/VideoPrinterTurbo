@@ -1,3 +1,6 @@
 class FFMPEGBean(object):
-
-    pass
+    def __str__(self) -> str:
+        return f"""
+        FFMPEGBean(
+        )
+        """

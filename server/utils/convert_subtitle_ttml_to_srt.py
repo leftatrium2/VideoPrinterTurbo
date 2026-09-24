@@ -104,14 +104,14 @@ def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> None:
     subtitle = ''
     seq_num = 1
     count = 0
-    with open(output_file, 'w+') as fp:
+    with open(output_file, 'w') as fp:
         for item in bean.get_item_list():
             count = count + 1
             if item.begin < last_end:
                 if subtitle.strip() == "":
-                    subtitle = f"{item.subtitle_convert}"
+                    subtitle = f"{item.subtitle}"
                 else:
-                    subtitle = f"{subtitle} {item.subtitle_convert}"
+                    subtitle = f"{subtitle} {item.subtitle}"
                 if count == bean.get_item_count():
                     if subtitle.strip() != '':
                         fp.write(f"{seq_num}\n")
@@ -125,7 +125,7 @@ def convert_subtitle_intersect(bean: SubtitleBean, output_file: str) -> None:
                     f"{convert_subtitle_timestamp_to_str(last_begin)} --> {convert_subtitle_timestamp_to_str(last_end)}\n")
                 fp.write(f"{subtitle}\n\n")
                 seq_num = seq_num + 1
-            subtitle = item.subtitle_convert
+            subtitle = item.subtitle
             last_begin = item.begin
             last_end = item.end
             if count == bean.get_item_count():
@@ -143,11 +143,11 @@ def convert_subtitle_order(bean: SubtitleBean, output_file: str):
     count = 1
     with open(output_file, 'w+') as fp:
         for item in bean.get_item_list():
-            if item.subtitle_convert.strip() != '':
+            if item.subtitle.strip() != '':
                 fp.write(f"{count}\n")
                 fp.write(
                     f"{convert_subtitle_timestamp_to_str(item.begin)} --> {convert_subtitle_timestamp_to_str(item.end)}\n")
-                fp.write(f"{item.subtitle_convert}\n\n")
+                fp.write(f"{item.subtitle}\n\n")
                 count = count + 1
     return True
 
@@ -176,6 +176,6 @@ def convert_subtitle_ttml_to_srt(input_file: str, output_file: str, is_english: 
 
 
 if __name__ == "__main__":
-    input = 'st_a069daec8995cfc3557889b57ef4bca7.en.ttml'
-    output = 'st_a069daec8995cfc3557889b57ef4bca7.en.srt'
+    input = '/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/subtitle/DgovrfgLxYs.en-orig.ttml'
+    output = '/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/subtitle/DgovrfgLxYs.en-orig.srt'
     convert_subtitle_ttml_to_srt(input, output, True)

@@ -15,6 +15,47 @@ def _check_binary(name: str) -> None:
                            f"未找到可执行文件 `{name}`，请先安装 ffmpeg（含 ffprobe）并确保其在 PATH 中。")
 
 
+def convert_video_to_mp3(
+        video_path: Path,
+        mp3_path: Path
+) -> None:
+    if not video_path.is_file():
+        raise FileNotFoundError(f"video path does not exists, video path: {video_path}")
+    if not shutil.which("ffmpeg"):
+        raise RuntimeError("未找到 ffmpeg，请先安装 FFmpeg。")
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i", str(video_path),
+                "-map", "0:a:0",  # 取第一条音频轨
+                "-vn",  # 不输出视频
+                "-ac", "1",  # 单声道，适合语音识别
+                "-ar", "16000",  # 16kHz，适合 Whisper
+                "-c:a", "libmp3lame",
+                "-b:a", "64k",
+                str(mp3_path),
+            ],
+            check=True,
+            timeout=600,
+            capture_output=True,
+            text=True
+        )
+    except subprocess.CalledProcessError as ex:
+        # FFmpeg 返回非 0 退出码
+        raise VPTException(const.PIPELINE_ERR_SUBPROCESS_NONE_ZERO, f"""
+        cmd: {ex.cmd}
+        return code: {ex.returncode}
+        stdout: {ex.stdout}
+        stderr: {ex.stderr}
+        """)
+    except FileNotFoundError as ex:
+        raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "path is not exists")
+    except subprocess.TimeoutExpired as ex:
+        raise VPTException(const.PIPELINE_ERR_TIMEOUT_EXPIRED, "timeout_expired")
+
+
 def get_video_or_audio_duration(path: str):
     real_path = Path(path).expanduser().resolve()
     if not real_path.is_file():

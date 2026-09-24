@@ -1,7 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 
 
-@dataclass
 class VideoDownloaderBean:
     task_url: str = ""
     task_upload_video_path: str = ""
@@ -13,3 +12,18 @@ class VideoDownloaderBean:
     duration: float = 0.0
     width: int = 0
     height: int = 0
+
+    def __str__(self) -> str:
+        return f"""
+        VideoDownloaderBean(
+            task_url: {self.task_url}, 
+            task_upload_video_path: {self.task_upload_video_path}, 
+            task_original_video_path: {self.task_original_video_path}, 
+            video_path: {self.video_path}, 
+            metadata: {self.metadata}, 
+            title: {self.title}, 
+            duration: {self.duration}, 
+            width: {self.width}, 
+            height: {self.height}
+        )
+        """

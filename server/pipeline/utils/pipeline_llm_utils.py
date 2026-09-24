@@ -32,7 +32,7 @@ if __name__ == "__main__":
         prompt="翻译为中文",
         src_path=src_path,
         dst_path=dst_path,
-        api_key="sk-ab80cf21b3884471aa20ce8613fcbd7b",
+        api_key="",
         base_url="https://api.deepseek.com",
         model="deepseek-flash"
     )

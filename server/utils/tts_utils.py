@@ -1,6 +1,7 @@
 import os
 import subprocess
 from datetime import timedelta
+from typing import Optional
 
 import srt
 from pydub import AudioSegment
@@ -10,7 +11,7 @@ from utils import const
 
 class TTSUtils:
     @staticmethod
-    def get_name(engine: int) -> str or None:
+    def get_name(engine: int) -> Optional[str]:
         if engine == const.TTS_LIST_AZURE_TTS_V1:
             return "AZURE TTS V1"
         elif engine == const.TTS_LIST_AZURE_TTS_V2:
@@ -19,8 +20,6 @@ class TTSUtils:
             return "SILICON FLOW TTS"
         elif engine == const.TTS_LIST_GOOGLE_GEMINI_TTS:
             return "GOOGLE GEMINI TTS"
-        elif engine == const.TTS_LIST_XIAOMI_MIMO_TTS:
-            return "Xiaomi MiMO TTS"
         return None
 
     @staticmethod
@@ -38,6 +37,9 @@ class TTSUtils:
         """
         用 ffmpeg atempo 滤镜把 in_path 的音频精确拉伸/压缩到 target_ms 长度。
         单个 atempo 只支持 0.5~2.0 倍速区间，超出范围时链式组合多个 atempo。
+        用于将 TTS音频 进行SRT字幕对齐
+        因为LLM中处理的原因（比如，字幕翻译导致字数超长），需要在TTS合成语音的过程中，将音频进行拉伸，以适应字幕时长
+        【后期考虑，将此功能放开，比如加上中间环节，可以人工编辑SRT文件】
         """
         current = AudioSegment.from_file(in_path)
         current_ms = len(current)

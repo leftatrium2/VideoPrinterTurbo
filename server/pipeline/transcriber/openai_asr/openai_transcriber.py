@@ -8,6 +8,7 @@ from utils.asr_utils import get_duration_seconds, \
 from utils import const
 from utils.exception import VPTException
 from utils.file_utils import get_file_size
+from utils.proxy_utils import build_requests_proxies
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class OpenAIASR(BaseTranscriber):
 
     def config(self, proxy: Optional[str] = None):
         if proxy:
-            self.proxy = proxy
+            self.proxy = build_requests_proxies(proxy)
 
     def _get_client(self):
         if self._client is None:

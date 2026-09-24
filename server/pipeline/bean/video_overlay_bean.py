@@ -1,15 +1,23 @@
-from dataclasses import dataclass
-
-
-class VideoOverlayItem:
+class MaterialVideoItem:
     url: str = ""
     file_path: str = ""
     duration: int = 0
     aspect: int = 0
     provider: str = ""
 
+    def __str__(self) -> str:
+        return f"""
+        MaterialVideoItem(
+            url: {self.url}, 
+            file_path: {self.file_path}, 
+            duration: {self.duration}, 
+            aspect: {self.aspect}, 
+            provider: {self.provider}
+        )
+        """
 
-class VideoOverlayBean:
+
+class MaterialVideoBean:
     # 视频素材类型
     # local: 本地上传
     # pexels: https://www.pexels.com/zh-cn/
@@ -30,4 +38,19 @@ class VideoOverlayBean:
     # 视频关键词（英文，可选）
     video_material_keyword: str = ""
     # 下载后得到的素材
-    video_materials: list[VideoOverlayItem] = []
+    video_materials: list[MaterialVideoItem] = []
+
+    def __str__(self) -> str:
+        return f"""
+        MaterialVideoBean(
+            video_material_type: {self.video_material_type}, 
+            uploaded_video_material: {self.uploaded_video_material}, 
+            video_material_splicing_mode: {self.video_material_splicing_mode}, 
+            video_material_transition_mode: {self.video_material_transition_mode}, 
+            video_material_video_ratio: {self.video_material_video_ratio}, 
+            video_material_max_duration: {self.video_material_max_duration}, 
+            video_material_generate_count: {self.video_material_generate_count}, 
+            video_material_keyword: {self.video_material_keyword}, 
+            video_materials: {self.video_materials}
+        )
+        """

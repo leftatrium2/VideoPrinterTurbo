@@ -1,6 +1,7 @@
 import json
 import os.path
 from pathlib import Path
+from typing import Optional
 
 import yaml
 
@@ -21,7 +22,7 @@ def load_yaml_config(file_path: str) -> dict:
         return yaml.safe_load(f)
 
 
-def load_json_config(file_path: str) -> dict or None:
+def load_json_config(file_path: str) -> Optional[dict]:
     file_path = Path(file_path)
     if not file_path.exists():
         return None

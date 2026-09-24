@@ -46,20 +46,22 @@ def check_video(
 
 
 def download_video(
-        url: str,
-        task_id: str,
+        url: Optional[str],
+        task_id: Optional[str],
         ctx: Optional[DownloaderContext] = None,
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None
 ) -> Optional[dict]:
-    if not url.strip():
-        logger.error("Url is empty")
-        return None
+    if not url or not url.strip():
+        raise VPTException(const.PIPELINE_ERR_VALUE, "url is empty!")
+    if not task_id:
+        raise VPTException(const.PIPELINE_ERR_VALUE, "task_id is empty!")
     downloader = _get_downloader(url)
     if not downloader:
-        logger.error("Downloader is None")
-        return None
+        raise VPTException(const.PIPELINE_ERR_VALUE, "downloader is None!")
     video_full_path = asyncio.run(get_download_path())
+    if not video_full_path:
+        raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "download path is empty!")
     video_full_path = os.path.join(video_full_path, task_id)
     return downloader.download(url, video_full_path, context=ctx, proxy_type=proxy_type, proxy_url=proxy_url)
 
@@ -69,13 +71,12 @@ def _get_downloader(url: str) -> Optional[BaseDownloader]:
     获取下载器，根据当前url中的域名部分，获取相应的下载器
     """
     if not url:
-        return None
-    for k, v in _config.downloader_config.items():
+        raise VPTException(const.PIPELINE_ERR_VALUE, "url is empty!")
+    for k, v in (_config.downloader_config if _config.downloader_config else {}).items():
         keyword = k.lower().strip()
         if keyword in url:
             if k not in downloaders:
-                logger.error("cant find the downloader, maybe it not init, keyword: ", k)
-                return None
+                raise VPTException(const.PIPELINE_ERR_KEY_IN_DICT, f"{k} not in downloaders")
             return downloaders[k]
 
     return downloaders['others']

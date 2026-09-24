@@ -11,7 +11,7 @@ from pipeline.tts.siliconflow_tts import SiliconFlowTTS
 from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 from utils import const
 from utils.exception import VPTException
-from utils.file_utils import get_llm_rewrite_path
+from utils.file_utils import get_llm_rewrite_path, get_tts_rewrite_path
 
 
 def tts_from_subtitle(
@@ -24,7 +24,7 @@ def tts_from_subtitle(
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None
 
-) -> bool:
+) -> Optional[str]:
     tts_service: Optional[TTSBase] = None
     if tts_engine == const.TTS_LIST_AZURE_TTS_V1_VAL:
         tts_service = AzureTTSV1(proxy_type=proxy_type, proxy_url=proxy_url)
@@ -56,21 +56,20 @@ def tts_from_subtitle(
             proxy_url=proxy_url
         )
     if not tts_service:
-        return False
-    tts_service.rewrite(subtitle_path, lang, voice)
-    return True
+        raise VPTException(const.PIPELINE_ERR_TTS_SERVICE, f"tts_service cant matched, please check your {tts_engine}!")
+    return tts_service.rewrite(subtitle_path, lang, voice)
 
 
 if __name__ == "__main__":
     _config.init_config()
     init_downloader()
 
-    lang = asyncio.run(get_llm_rewrite_path())
-    llm_rewrite_path = os.path.join(lang, "20260720215545133997.srt")
+    lang = asyncio.run(get_tts_rewrite_path())
+    tts_rewrite_path = os.path.join(lang, "20260720215545133997.srt")
 
     tts_from_subtitle(
         tts_engine="TTS_LIST_AZURE_TTS_V2",
-        subtitle_path=llm_rewrite_path,
+        subtitle_path=tts_rewrite_path,
         voice="zh-CN-XiaoxiaoNeural",
         lang="zh-CN",
         api_key="",

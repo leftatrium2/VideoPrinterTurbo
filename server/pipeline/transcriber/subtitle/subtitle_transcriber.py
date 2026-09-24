@@ -92,10 +92,20 @@ class SubTitleTranscriber(object):
         "zu"
     ]
 
+    @staticmethod
+    def get_subtitle_lang(index: int):
+        return SubTitleTranscriber._yt_dlp_subtitle[index]
+
     def __init__(self):
         pass
 
-    def subtitle(self, url: str, index: int, proxy_url: Optional[str] = None) -> Optional[str]:
+    def subtitle(
+            self,
+            url: str,
+            index: int,
+            target_full_path: str,
+            proxy_url: Optional[str] = None
+    ) -> Optional[str]:
         lang = self._yt_dlp_subtitle[index]
         subtitle_path = asyncio.run(get_subtitle_path())
         if not subtitle_path:
@@ -112,9 +122,12 @@ class SubTitleTranscriber(object):
             'no_warnings': True,
             'proxy': build_yt_dlp_proxies(proxy_url)
         }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            video_id = info['id']
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                video_id = info['id']
+        except Exception as ex:
+            raise VPTException(const.PIPELINE_ERR_YT_DLP, f"{ex}", tr=ex) from ex
         # yt-dlp 生成的字幕文件命名通常是 {id}.{lang}.{ext}
         pattern = f"{video_id}.{lang}.ttml"
         matches = glob.glob(pattern)
@@ -126,31 +139,34 @@ class SubTitleTranscriber(object):
         srt_path = ttml_path.replace("ttml", "srt")
         convert_subtitle_ttml_to_srt(ttml_path, srt_path, False)
         os.remove(ttml_path)
-        return srt_path
+        if os.path.exists(target_full_path):
+            os.remove(target_full_path)
+        shutil.move(srt_path, target_full_path)
+        return target_full_path
 
-    def info(self, url: str, index: int, proxy: str = None) -> str or None:
-        ydl_opts = {
-            'skip_download': True,
-            'quiet': True,
-            'no_warnings': True
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-        result = {}
-
-        # YouTube 自动生成字幕
-        auto_captions = info.get('automatic_captions', {}) or {}
-        all_subs = {'auto': auto_captions}
-
-        for kind, sub_dict in all_subs.items():
-            for lang, entries in sub_dict.items():
-                key = f"{lang}"
-                result[key] = [
-                    {'ext': e['ext'], 'url': e['url']}
-                    for e in entries
-                ]
-        logger.info(json.dumps(result))
-        return None
+    # def info(self, url: str, index: int, proxy: str = None) -> str or None:
+    #     ydl_opts = {
+    #         'skip_download': True,
+    #         'quiet': True,
+    #         'no_warnings': True
+    #     }
+    #     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    #         info = ydl.extract_info(url, download=False)
+    #     result = {}
+    #
+    #     # YouTube 自动生成字幕
+    #     auto_captions = info.get('automatic_captions', {}) or {}
+    #     all_subs = {'auto': auto_captions}
+    #
+    #     for kind, sub_dict in all_subs.items():
+    #         for lang, entries in sub_dict.items():
+    #             key = f"{lang}"
+    #             result[key] = [
+    #                 {'ext': e['ext'], 'url': e['url']}
+    #                 for e in entries
+    #             ]
+    #     logger.info(json.dumps(result))
+    #     return None
 
 
 if __name__ == "__main__":
