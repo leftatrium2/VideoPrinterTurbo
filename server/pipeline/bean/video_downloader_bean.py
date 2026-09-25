@@ -6,7 +6,7 @@ class VideoDownloaderBean:
     task_upload_video_path: str = ""
     task_original_video_path: str = ""
     """Standardised output from a downloader."""
-    video_path: str = ""
+    video_full_path: str = ""
     metadata: dict = field(default_factory=dict)
     title: str = ""
     duration: float = 0.0
@@ -19,7 +19,7 @@ class VideoDownloaderBean:
             task_url: {self.task_url}, 
             task_upload_video_path: {self.task_upload_video_path}, 
             task_original_video_path: {self.task_original_video_path}, 
-            video_path: {self.video_path}, 
+            video_full_path: {self.video_full_path}, 
             metadata: {self.metadata}, 
             title: {self.title}, 
             duration: {self.duration}, 

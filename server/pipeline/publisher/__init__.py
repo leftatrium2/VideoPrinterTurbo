@@ -1,1 +1,1 @@
-"""Publisher plugin — cross-posts videos to social media platforms."""
+"""Publisher module — cross-posts videos to social media platforms."""

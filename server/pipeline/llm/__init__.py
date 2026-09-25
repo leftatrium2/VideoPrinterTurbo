@@ -1,1 +1,1 @@
-"""LLM provider plugin — text generation, rewriting, and term extraction."""
+"""LLM provider module — text generation, rewriting, and term extraction."""

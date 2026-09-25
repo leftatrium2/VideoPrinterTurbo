@@ -37,5 +37,5 @@ class AsrBean:
             audio_rewrite_type: {self.__convert_asr_type_to_str(self.audio_rewrite_type)}, 
             task_url: {self.task_url}, 
             lang: {self.__get_subtitle_lang(self.lang)}, 
-            subtitle_path: {self.subtitle_full_path})
+            subtitle_full_path: {self.subtitle_full_path})
         """

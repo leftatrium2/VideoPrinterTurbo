@@ -1,1 +1,1 @@
-"""Material search plugin — finds video/image footage from external APIs."""
+"""Material search module — finds video/image footage from external APIs."""

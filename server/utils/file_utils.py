@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 from typing import Optional
 
 import anyio
@@ -103,6 +104,16 @@ async def get_output_path() -> Optional[str]:
     path = os.path.join(get_current_path(), path)
     await anyio.to_thread.run_sync(lambda: os.makedirs(path, exist_ok=True))
     return path
+
+
+def get_resource_font_path() -> str:
+    fonts_path = Path(get_current_path()).resolve() / "server" / "resources" / "fonts"
+    return str(fonts_path)
+
+
+def get_resource_bgm_path() -> str:
+    fonts_path = Path(get_current_path()).resolve() / "server" / "resources" / "songs"
+    return str(fonts_path)
 
 
 if __name__ == "__main__":

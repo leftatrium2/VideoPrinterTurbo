@@ -1,12 +1,12 @@
 import asyncio
 from pathlib import Path
 
-from config.config import get_current_path
 import config.config as _config
+from utils.file_utils import get_resource_font_path
 
 
 async def get_subtitle_font_list():
-    fonts_path = Path(get_current_path()).resolve() / "server" / "resources" / "fonts"
+    fonts_path = Path(get_resource_font_path())
     fonts = [p.name for p in fonts_path.iterdir() if p.suffix.lower() in (".ttf", ".ttc")]
     return fonts
 

@@ -1,1 +1,1 @@
-"""Downloader plugin — downloads a video from a URL and returns local paths."""
+"""Downloader module — downloads a video from a URL and returns local paths."""

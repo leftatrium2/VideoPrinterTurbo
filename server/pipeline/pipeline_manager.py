@@ -20,7 +20,7 @@ from utils import const
 from utils.database import database
 from utils.exception import VPTException
 from utils.file_utils import get_current_path, get_llm_rewrite_path, get_relative_path, get_absolute_path, \
-    get_tts_rewrite_path
+    get_tts_rewrite_path, get_resource_font_path
 from utils.video_utils import get_video_width_height, get_video_or_audio_duration
 from utils.tts_voice import get_lang_from_voice
 
@@ -137,7 +137,9 @@ class PipelineManager:
         # rewrite subtitle configuration
         self.__data.is_rewrite_subtitle = task.is_rewrite_to_subtitle == 1
         if self.__data.is_rewrite_subtitle:
-            self.__data.subtitle_bean.subtitle_font = task.subtitle_font
+            resource_font_path = Path(get_resource_font_path())
+            subtitle_font_path = resource_font_path / task.subtitle_font
+            self.__data.subtitle_bean.subtitle_font = str(subtitle_font_path)
             self.__data.subtitle_bean.subtitle_lang = task.subtitle_lang
             self.__data.subtitle_bean.subtitle_border_color = task.subtitle_border_color
             self.__data.subtitle_bean.subtitle_font_color = task.subtitle_font_color
@@ -293,7 +295,7 @@ class PipelineManager:
             # 按照以下规则进行路径过滤
             # 源路径：/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260913190132110313.mp4
             # 过滤后的相对路径：storage/downloads/20260913190132110313.mp4
-            self.__data.video_bean.video_path = get_relative_path(local_video_path)
+            self.__data.video_bean.video_full_path = local_video_path
             self.__data.video_bean.title = res.get('title') or ''
             self.__data.video_bean.duration = int(res.get('duration') or 0)
             self.__data.video_bean.width = int(res.get('width') or 0)
@@ -301,13 +303,13 @@ class PipelineManager:
             self.__data.video_bean.metadata = res.get('metadata') or {}
         else:
             # 对于本地上传的视频，只需要获取相应的视频基本信息即可，包括：时长、宽高等等
-            self.__data.video_bean.video_path = task.task_upload_video_path
             real_path = Path(get_current_path()).joinpath(task.task_upload_video_path).expanduser().resolve()
             if not real_path.is_file():
                 logger.error(f"upload video is not exists, path: {task.task_upload_video_path}")
                 return None
             self.__data.video_bean.width, self.__data.video_bean.height = get_video_width_height(str(real_path))
             self.__data.video_bean.duration = get_video_or_audio_duration(str(real_path))
+            self.__data.video_bean.video_full_path = str(real_path)
         # asr or subtitle download
         if self.__data.is_asr:
             try:
@@ -329,7 +331,7 @@ class PipelineManager:
                 else:
                     args = self.__process_asr_info(audio_rewrite_type, task, asr_config)
                     res = asr_convert(
-                        get_absolute_path(self.__data.video_bean.video_path),
+                        self.__data.video_bean.video_full_path,
                         audio_rewrite_type=audio_rewrite_type,
                         proxy_url=self.__proxy,
                         **args
@@ -448,7 +450,7 @@ class PipelineManager:
         if self.__data.is_material:
             subtitle_path = self.__get_subtitle_path()
             res_list = video_overlay(
-                video_file_path=self.__data.video_bean.video_path,
+                video_file_path=self.__data.video_bean.video_full_path,
                 subtitle_file_path=subtitle_path,
                 material_type=self.__data.material_video_bean.video_material_type,
                 material_keyword=self.__data.material_video_bean.video_material_keyword,
