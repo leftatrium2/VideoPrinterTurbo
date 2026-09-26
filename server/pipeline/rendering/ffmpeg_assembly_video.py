@@ -1,4 +1,5 @@
 import asyncio
+import math
 import os.path
 import subprocess
 import threading
@@ -114,15 +115,70 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             "ffmpeg",
             "-y"
         ]
-        # 视频部分
-        # todo 先暂时使用上传的视频原稿，后面再加 视频素材 列表部分
+
+        # ── 视频输入 ──
+        # next_input_idx 追踪当前已添加的 -i 数量，用于后续音频动态编号
+        next_input_idx = 0
         if self.__pipeline_data.is_material:
-            # 如果选择 视频覆盖 功能，那么 使用素材列表，将原视频覆盖掉
-            pass
+            materials = self.__pipeline_data.material_video_bean.video_materials
+            if not materials:
+                raise VPTException(
+                    const.PIPELINE_ERR_FILE_NOT_FOUND,
+                    "is_material=True 但 video_materials 为空"
+                )
+            n = len(materials)
+            total_material_dur = sum(item.duration for item in materials)
+            repeat = math.ceil(duration / total_material_dur) if total_material_dur > 0 else 1
+            # 逐段 scale + pad，再 split 出 repeat 份独立副本
+            for i in range(n):
+                filter_complex += (
+                    f"[{i}:v]scale=w={video_width}:h={video_height}:"
+                    f"force_original_aspect_ratio=decrease,"
+                    f"pad=w={video_width}:h={video_height}:x=-1:y=-1,"
+                    f"setsar=1,setpts=PTS-STARTPTS[v{i}];"
+                )
+                split_outputs = "".join(f"[v{i}_{r}]" for r in range(repeat))
+                filter_complex += f"[v{i}]split={repeat}{split_outputs};"
+            # 按轮次拼接所有副本
+            concat_labels = ""
+            for r in range(repeat):
+                for i in range(n):
+                    concat_labels += f"[v{i}_{r}]"
+            total = n * repeat
+            filter_complex += (
+                f"{concat_labels}concat=n={total}:a=0,"
+                f"trim=duration={duration},setpts=PTS-STARTPTS[vout];"
+            )
+            vsrc = "[vout]"
         else:
             command.append("-i")
             command.append(self.__pipeline_data.video_bean.video_full_path)
-        # 字幕部分
+            next_input_idx = 1
+
+        # ── 视频滤镜 ──
+        if self.__pipeline_data.is_material:
+            n = len(materials)
+            concat_inputs = ""
+            for i in range(n):
+                filter_complex += (
+                    f"[{i}:v]scale=w={video_width}:h={video_height}:"
+                    f"force_original_aspect_ratio=decrease,"
+                    f"pad=w={video_width}:h={video_height}:x=-1:y=-1,"
+                    f"setsar=1,setpts=PTS-STARTPTS[v{i}];"
+                )
+                concat_inputs += f"[v{i}]"
+            filter_complex += (
+                f"{concat_inputs}concat=n={n}:a=0[vcat];"
+            )
+            filter_complex += (
+                f"[vcat]loop=loop=-1:size=1:start=0,"
+                f"trim=duration={duration},setpts=PTS-STARTPTS[vout];"
+            )
+            vsrc = "[vout]"
+        else:
+            vsrc = "[0:v:0]"
+
+        # ── 字幕 ──
         if self.__pipeline_data.is_asr:
             subtitle_position = self.__pipeline_data.subtitle_bean.subtitle_position
             font_full_path = os.path.join(get_resource_font_path(), self.__pipeline_data.subtitle_bean.subtitle_font)
@@ -142,87 +198,72 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             if self.__pipeline_data.is_llm:
                 subtitle_path = self.__pipeline_data.llm_bean.llm_full_path
             subtitle_file = self.__escape_filter_path(subtitle_path)
-            # 开始拼装 subtitle滤镜 部分
             subtitle_filter = f"subtitles=filename='{subtitle_file}'"
             if font_dir:
                 subtitle_filter += f":fontsdir='{self.__escape_filter_path(font_dir)}'"
             subtitle_filter += f":force_style='{subtitle_style}'"
-            # 烧录字幕。烧录到画面后，视频必须重新编码。
-            filter_complex += f"[0:v:0]{subtitle_filter}[video];"
-        # 人声部分
+            filter_complex += f"{vsrc}{subtitle_filter}[video];"
+            vsrc = "[video]"
+
+        # ── 人声 ──
         if self.__pipeline_data.is_tts:
+            tts_idx = next_input_idx
             command.append("-i")
             command.append(self.__pipeline_data.tts_bean.tts_full_path)
-            filter_complex += "[1:a]aresample=48000,asetpts=N/SR/TB[voice];"
-        # bgm 部分
+            next_input_idx += 1
+            filter_complex += f"[{tts_idx}:a]aresample=48000,asetpts=N/SR/TB[voice];"
+
+        # ── BGM ──
         if self.__pipeline_data.is_bgm:
-            # 先处理 bgm 的ffmpeg输入项目
-            command.append("-stream_loop")
-            command.append("-1")
+            bgm_idx = next_input_idx
+            command.extend(["-stream_loop", "-1"])
             command.append("-i")
             if self.__pipeline_data.bgm_bean.uploaded_bgm:
-                # 如果存在上传的背景音乐，就用
                 command.append(self.__pipeline_data.bgm_bean.uploaded_bgm)
             else:
-                # 如果没有，那么使用本地的音乐，做随机操作
                 import glob, random
                 bgm_dir = get_resource_bgm_path()
                 bgm_path = random.choice(glob.glob(os.path.join(bgm_dir, "output*.mp3")))
                 command.append(bgm_path)
-            # 再处理 filter 部分
-            # 背景音乐：调整音量，并裁剪到视频时长。
-            filter_complex += f"[2:a]aresample=48000,"
-            filter_complex += f"volume={self.__pipeline_data.bgm_bean.bgm_volume},"
-            filter_complex += f"atrim=duration={duration},"
-            filter_complex += "asetpts=N/SR/TB[bgm];"
-            # 如果有人声（TTS生成的）
+            next_input_idx += 1
+            filter_complex += (
+                f"[{bgm_idx}:a]aresample=48000,"
+                f"volume={self.__pipeline_data.bgm_bean.bgm_volume},"
+                f"atrim=duration={duration},"
+                f"asetpts=N/SR/TB[bgm];"
+            )
             if self.__pipeline_data.is_tts:
-                filter_complex += "[voice][bgm]"
-                filter_complex += "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
+                filter_complex += (
+                    "[voice][bgm]"
+                    "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
+                )
 
+        # ── 映射输出流 ──
         if filter_complex:
-            command.append("-filter_complex")
-            command.append(filter_complex)
-            command.append("-map")
-            command.append("[video]")
-            command.append("-map")
-            command.append("[audio]")
+            command.extend(["-filter_complex", filter_complex])
+            command.extend(["-map", vsrc])
+            if self.__pipeline_data.is_tts or self.__pipeline_data.is_bgm:
+                if self.__pipeline_data.is_tts and self.__pipeline_data.is_bgm:
+                    command.extend(["-map", "[audio]"])
+                elif self.__pipeline_data.is_tts:
+                    command.extend(["-map", "[voice]"])
+                else:
+                    command.extend(["-map", "[bgm]"])
 
-        # 输出部分
+        # ── 输出配置 ──
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        # 完全清除所有 metadat
-        command.append("-map_metadata")
-        command.append("-1")
-        # 确保最终文件不会超过视频时长。
-        command.append("-t")
-        command.append(f"{duration:.3f}")
-        # 配置 H.264
-        command.append("-c:v")
-        command.append("libx264")
-        # 编码速度/质量平衡。可选 ultrafast~veryslow，越慢压缩率越高但耗时越长
-        command.append("-preset")
-        command.append("medium")
-        # 恒定质量因子。范围 0~51，越小质量越高。18 是视觉上接近无损的高质量，一般 23 是默认值
-        command.append("-crf")
-        command.append("23")
-        # 像素格式。必须指定，否则 libx264 默认可能用 yuv444p，很多播放器不支持
-        command.append("-pix_fmt")
-        command.append("yuv420p")
-        # 配置 AAC
-        command.append("-c:a")
-        command.append("aac")
-        # 音频比特率 192kbps，音质不错，接近透明（人耳难辨与原始的差异）
-        command.append("-b:a")
-        command.append("192k")
-        # 设置边下载边播放
-        command.append("-movflags")
-        command.append("+faststart")
-        # 设置输出文件
+        command.extend(["-map_metadata", "-1"])
+        command.extend(["-t", f"{duration:.3f}"])
+        command.extend(["-c:v", "libx264"])
+        command.extend(["-preset", "medium"])
+        command.extend(["-crf", "23"])
+        command.extend(["-pix_fmt", "yuv420p"])
+        command.extend(["-c:a", "aac"])
+        command.extend(["-b:a", "192k"])
+        command.extend(["-movflags", "+faststart"])
         command.append(str(output))
-        # 将结构化进度信息输出到 stdout
-        command.append("-progress")
-        command.append("pipe:1")
+        command.extend(["-progress", "pipe:1"])
 
         logger.info("FFmpeg 开始编码: %s", " ".join(command))
         duration_us = int(duration * 1_000_000)
