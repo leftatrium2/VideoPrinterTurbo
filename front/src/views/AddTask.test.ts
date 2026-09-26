@@ -3,8 +3,10 @@ import { defineComponent } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AddTask from './AddTask.vue'
 
+const route = vi.hoisted(() => ({ query: {} as Record<string, string> }))
+
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} }),
+  useRoute: () => route,
   useRouter: () => ({ push: vi.fn() }),
 }))
 
@@ -50,11 +52,36 @@ const stubs = {
 
 describe('AddTask', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
+    route.query = {}
     apiMocks.getTaskConfig.mockResolvedValue({
     asr: [], tts: [], subtitle: [], bgm: [],
     material: { source: [], splicing: [], transition: [], ratio: [] },
     })
     apiMocks.checkTaskUrl.mockResolvedValue({ code: 0, msg: 'success', data: {} })
+  })
+
+  it.each(['top-center', 'center', 'bottom-center', 'custom'])('saves subtitle position %s when editing', async (position) => {
+    route.query = { task_id: 'task-123' }
+    apiMocks.getTaskDetail.mockResolvedValue({
+      task_url: 'https://example.com/video',
+      tts_speed: 1, tts_volume: 1,
+      subtitle_position: 'bottom-center', subtitle_font_color: 0xffffff,
+      subtitle_border_color: 0, video_material_keyword: '',
+    })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+
+    const select = wrapper.findAllComponents({ name: 'el-select' })
+      .find((item) => item.attributes('modelvalue') === 'bottom-center')!
+    select.vm.$emit('update:modelValue', position)
+    await flushPromises()
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+
+    expect(apiMocks.updateTask).toHaveBeenCalledWith(expect.objectContaining({
+      task_id: 'task-123', subtitle_position: position === 'custom' ? '70' : position,
+    }))
   })
 
   it('does not expose a publish section when creating a task', async () => {

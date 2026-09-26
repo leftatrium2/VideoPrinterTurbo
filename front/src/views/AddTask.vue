@@ -780,6 +780,9 @@ async function handleSubmit() {
       // 输出到字幕
       is_rewrite_to_subtitle: enabled.subtitle_output,
       subtitle_font: form.subtitle_font,
+      subtitle_position: form.subtitle_position === 'custom'
+        ? form.subtitle_position_custom
+        : form.subtitle_position,
       subtitle_font_color: hexToInt(form.subtitle_color),
       subtitle_border_color: hexToInt(form.subtitle_stroke_color),
       subtitle_size: form.subtitle_size,

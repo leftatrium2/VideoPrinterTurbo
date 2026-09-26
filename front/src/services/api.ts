@@ -48,6 +48,7 @@ export interface AddTaskParams {
   // 输出到字幕
   is_rewrite_to_subtitle: boolean
   subtitle_font: string
+  subtitle_position: string
   subtitle_font_color: number
   subtitle_border_color: number
   subtitle_size: number

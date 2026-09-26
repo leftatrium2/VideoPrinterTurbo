@@ -5,6 +5,10 @@ class MaterialVideoItem:
     aspect: int = 0
     provider: str = ""
 
+    def __repr__(self) -> str:
+        return (f"MaterialVideoItem(url={self.url!r}, file_path={self.file_path!r}, "
+                f"duration={self.duration}, aspect={self.aspect}, provider={self.provider!r})")
+
     def __str__(self) -> str:
         return f"""
         MaterialVideoItem(

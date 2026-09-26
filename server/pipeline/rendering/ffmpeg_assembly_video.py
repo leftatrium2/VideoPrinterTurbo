@@ -1,30 +1,31 @@
 import asyncio
-import json
+import os.path
 import subprocess
+import threading
 from pathlib import Path
-
-from mpmath.ctx_mp_python import return_mpc
 
 from pipeline.bean.asr_bean import AsrBean
 from pipeline.bean.bgm_bean import BgmBean
 from pipeline.bean.llm_bean import LLMBean
+from pipeline.bean.pipeline_data import PipeLineData
 from pipeline.bean.tts_bean import TTSBean
 from pipeline.bean.video_downloader_bean import VideoDownloaderBean
-from pipeline.bean.video_overlay_bean import MaterialVideoBean
+from pipeline.bean.video_overlay_bean import MaterialVideoBean, MaterialVideoItem
 from pipeline.rendering.base import BaseAssemblyVideo
-from pipeline.bean.pipeline_data import PipeLineData
 from utils import const
 from utils.convert_subtitle_ttml_to_srt import SubtitleBean
 from utils.exception import VPTException
+from utils.file_utils import get_output_path, get_resource_font_path, get_resource_bgm_path
+from utils.font_utils import get_font_params
+from utils.logger import logger
 import config.config as _config
-from utils.file_utils import get_output_path
 
 
 class FFMpegAssemblyVideo(BaseAssemblyVideo):
     def __init__(self, pipeline_data: PipeLineData):
         self.__pipeline_data = pipeline_data
 
-    def __escape_filter_path(file_path: str) -> str:
+    def __escape_filter_path(self, file_path: str) -> str:
         """
         转义 FFmpeg filter 参数中的文件路径。
 
@@ -43,43 +44,57 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         )
 
     def __build_subtitle_style(
+            self,
             video_height: int,
-            position: str = "bottom",
+            position: str = "bottom-center",
             font_name: str = "Noto Sans CJK SC",
             font_size: int = 42,
             top_percent: float = 10,
+            font_color: int = 0xFFFFFF,
+            font_edge_color: int = 0xFFFFFF
     ) -> str:
         """
         生成 libass 字幕样式。
 
         position 可选值：
-        - bottom：底部居中
-        - top：顶部居中
-        - top_percent：距顶部指定百分比的位置
+        - "bottom-center"：底部居中
+        - "top-center"：顶部居中
+        - "center"：画面正中
+        - 数值字符串（如 "60"）：距顶部指定百分比的位置
+        - 空字符串：默认，等同于 "bottom-center"
+
+        font_size 基于 PlayResY=1080，推荐范围：
+        - 常规字幕（影视/教程）：36 ~ 48
+        - 大字字幕（短视频/手机竖屏）：48 ~ 64
+        - 小字字幕（信息密集/双行）：28 ~ 36
         """
         common_style = (
+            "PlayResY=1080,"
             f"FontName={font_name},"
             f"FontSize={font_size},"
-            "PrimaryColour=&H00FFFFFF,"
-            "OutlineColour=&H80000000,"
+            f"PrimaryColour=&H{font_color:06X},"
+            f"OutlineColour=&H{font_edge_color:06X},"
             "Outline=2,"
             "Shadow=0"
         )
 
-        if position == "bottom":
-            # Alignment=2：底部居中
+        if position in ("", "bottom-center"):
             return f"{common_style},Alignment=2,MarginV=50"
 
-        if position == "top":
-            # Alignment=8：顶部居中
+        if position == "top-center":
             return f"{common_style},Alignment=8,MarginV=50"
 
-        if position == "top_percent":
-            # 将距顶部的百分比换算为像素；Alignment=8 表示顶部居中。
-            margin_top = round(video_height * top_percent / 100)
+        if position == "center":
+            return f"{common_style},Alignment=5,MarginV=0"
+
+        if position.isdigit():
+            margin_top = round(video_height * int(position) / 100)
             return f"{common_style},Alignment=8,MarginV={margin_top}"
 
-        raise VPTException(const.PIPELINE_ERR_VIDEO_ASSEMBLY_SUBTITLE_POSITON, "position 仅支持：bottom、top、top_percent")
+        raise VPTException(
+            const.PIPELINE_ERR_VIDEO_ASSEMBLY_SUBTITLE_POSITON,
+            "position 仅支持：bottom-center、top-center、center 或数值字符串（如 \"60\"）"
+        )
 
     def assembly(self, output_path: str) -> str:
         """
@@ -92,86 +107,159 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             可选字体目录。若系统未安装指定字体，可传入字体文件所在目录。
         """
         duration = self.__pipeline_data.video_bean.duration
+        video_width = self.__pipeline_data.video_bean.width
         video_height = self.__pipeline_data.video_bean.height
-
-        subtitle_style = self.__build_subtitle_style(
-            video_height=video_height,
-            position=subtitle_position,
-            font_name=font_name,
-            font_size=font_size,
-            top_percent=subtitle_top_percent,
-        )
-
-        subtitle_file = escape_filter_path(subtitle_path)
-
-        subtitle_filter = f"subtitles=filename='{subtitle_file}'"
-        if fonts_dir:
-            subtitle_filter += f":fontsdir='{escape_filter_path(fonts_dir)}'"
-
-        subtitle_filter += f":force_style='{subtitle_style}'"
-
-        filter_complex = (
-            # 烧录字幕。烧录到画面后，视频必须重新编码。
-            f"[0:v:0]{subtitle_filter}[video];"
-
-            # 人声音频。
-            "[1:a]aresample=48000,asetpts=N/SR/TB[voice];"
-
-            # 背景音乐：调整音量，并裁剪到视频时长。
-            f"[2:a]aresample=48000,"
-            f"volume={bgm_volume},"
-            f"atrim=duration={duration},"
-            "asetpts=N/SR/TB[bgm];"
-
-            # 混合人声和背景音乐。
-            # normalize=0 保持设定的背景音量比例，但音源本身过大时可能削波。
-            "[voice][bgm]"
-            "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
-        )
-
-        output = Path(output_path)
-        output.parent.mkdir(parents=True, exist_ok=True)
-
+        filter_complex = ""
         command = [
             "ffmpeg",
-            "-y",
-
-            # 输入 0：纯视频。
-            "-i", video_path,
-
-            # 输入 1：人声。
-            "-i", voice_path,
-
-            # 输入 2：背景音乐；无限循环，后续会按视频时长裁剪。
-            "-stream_loop", "-1",
-            "-i", bgm_path,
-
-            "-filter_complex", filter_complex,
-            "-map", "[video]",
-            "-map", "[audio]",
-
-            # 保留源视频的容器级 metadata（若有）。
-            "-map_metadata", "0",
-
-            # 确保最终文件不会超过视频时长。
-            "-t", f"{duration:.3f}",
-
-            # H.264 + AAC 兼容性较好。
-            "-c:v", "libx264",
-            "-preset", "medium",
-            "-crf", "18",
-            "-pix_fmt", "yuv420p",
-
-            "-c:a", "aac",
-            "-b:a", "192k",
-
-            # 便于网页端边下载边播放。
-            "-movflags", "+faststart",
-
-            str(output),
+            "-y"
         ]
+        # 视频部分
+        # todo 先暂时使用上传的视频原稿，后面再加 视频素材 列表部分
+        if self.__pipeline_data.is_material:
+            # 如果选择 视频覆盖 功能，那么 使用素材列表，将原视频覆盖掉
+            pass
+        else:
+            command.append("-i")
+            command.append(self.__pipeline_data.video_bean.video_full_path)
+        # 字幕部分
+        if self.__pipeline_data.is_asr:
+            subtitle_position = self.__pipeline_data.subtitle_bean.subtitle_position
+            font_full_path = os.path.join(get_resource_font_path(), self.__pipeline_data.subtitle_bean.subtitle_font)
+            font_dir, font_name = get_font_params(font_full_path)
+            font_size = self.__pipeline_data.subtitle_bean.subtitle_size
+            font_color = self.__pipeline_data.subtitle_bean.subtitle_font_color
+            font_edge_color = self.__pipeline_data.subtitle_bean.subtitle_border_color
+            subtitle_style = self.__build_subtitle_style(
+                video_height=video_height,
+                position=subtitle_position,
+                font_name=font_name,
+                font_size=font_size,
+                font_color=font_color,
+                font_edge_color=font_edge_color
+            )
+            subtitle_path = self.__pipeline_data.asr_bean.subtitle_full_path
+            if self.__pipeline_data.is_llm:
+                subtitle_path = self.__pipeline_data.llm_bean.llm_full_path
+            subtitle_file = self.__escape_filter_path(subtitle_path)
+            # 开始拼装 subtitle滤镜 部分
+            subtitle_filter = f"subtitles=filename='{subtitle_file}'"
+            if font_dir:
+                subtitle_filter += f":fontsdir='{self.__escape_filter_path(font_dir)}'"
+            subtitle_filter += f":force_style='{subtitle_style}'"
+            # 烧录字幕。烧录到画面后，视频必须重新编码。
+            filter_complex += f"[0:v:0]{subtitle_filter}[video];"
+        # 人声部分
+        if self.__pipeline_data.is_tts:
+            command.append("-i")
+            command.append(self.__pipeline_data.tts_bean.tts_full_path)
+            filter_complex += "[1:a]aresample=48000,asetpts=N/SR/TB[voice];"
+        # bgm 部分
+        if self.__pipeline_data.is_bgm:
+            # 先处理 bgm 的ffmpeg输入项目
+            command.append("-stream_loop")
+            command.append("-1")
+            command.append("-i")
+            if self.__pipeline_data.bgm_bean.uploaded_bgm:
+                # 如果存在上传的背景音乐，就用
+                command.append(self.__pipeline_data.bgm_bean.uploaded_bgm)
+            else:
+                # 如果没有，那么使用本地的音乐，做随机操作
+                import glob, random
+                bgm_dir = get_resource_bgm_path()
+                bgm_path = random.choice(glob.glob(os.path.join(bgm_dir, "output*.mp3")))
+                command.append(bgm_path)
+            # 再处理 filter 部分
+            # 背景音乐：调整音量，并裁剪到视频时长。
+            filter_complex += f"[2:a]aresample=48000,"
+            filter_complex += f"volume={self.__pipeline_data.bgm_bean.bgm_volume},"
+            filter_complex += f"atrim=duration={duration},"
+            filter_complex += "asetpts=N/SR/TB[bgm];"
+            # 如果有人声（TTS生成的）
+            if self.__pipeline_data.is_tts:
+                filter_complex += "[voice][bgm]"
+                filter_complex += "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
 
-    subprocess.run(command, check=True)
+        if filter_complex:
+            command.append("-filter_complex")
+            command.append(filter_complex)
+            command.append("-map")
+            command.append("[video]")
+            command.append("-map")
+            command.append("[audio]")
+
+        # 输出部分
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        # 完全清除所有 metadat
+        command.append("-map_metadata")
+        command.append("-1")
+        # 确保最终文件不会超过视频时长。
+        command.append("-t")
+        command.append(f"{duration:.3f}")
+        # 配置 H.264
+        command.append("-c:v")
+        command.append("libx264")
+        # 编码速度/质量平衡。可选 ultrafast~veryslow，越慢压缩率越高但耗时越长
+        command.append("-preset")
+        command.append("medium")
+        # 恒定质量因子。范围 0~51，越小质量越高。18 是视觉上接近无损的高质量，一般 23 是默认值
+        command.append("-crf")
+        command.append("23")
+        # 像素格式。必须指定，否则 libx264 默认可能用 yuv444p，很多播放器不支持
+        command.append("-pix_fmt")
+        command.append("yuv420p")
+        # 配置 AAC
+        command.append("-c:a")
+        command.append("aac")
+        # 音频比特率 192kbps，音质不错，接近透明（人耳难辨与原始的差异）
+        command.append("-b:a")
+        command.append("192k")
+        # 设置边下载边播放
+        command.append("-movflags")
+        command.append("+faststart")
+        # 设置输出文件
+        command.append(str(output))
+        # 将结构化进度信息输出到 stdout
+        command.append("-progress")
+        command.append("pipe:1")
+
+        logger.info("FFmpeg 开始编码: %s", " ".join(command))
+        duration_us = int(duration * 1_000_000)
+        stderr_lines: list[str] = []
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        def _drain_stderr():
+            for line in process.stderr:
+                stderr_lines.append(line)
+
+        stderr_thread = threading.Thread(target=_drain_stderr, daemon=True)
+        stderr_thread.start()
+
+        for line in process.stdout:
+            line = line.strip()
+            if line.startswith("out_time_ms="):
+                try:
+                    current_us = int(line.split("=")[1])
+                    progress = min(current_us / duration_us * 100, 100)
+                    logger.info("编码进度: %.1f%%", progress)
+                except (ValueError, ZeroDivisionError):
+                    pass
+
+        process.wait()
+        stderr_thread.join()
+        if process.returncode != 0:
+            stderr_tail = "".join(stderr_lines[-50:])
+            raise VPTException(
+                const.PIPELINE_ERR_VIDEO_ASSEMBLY_SUBTITLE_POSITON,
+                f"FFmpeg 编码失败 (返回码 {process.returncode}): {stderr_tail[-500:]}"
+            )
+        logger.info("FFmpeg 编码完成: %s", output)
 
 
 if __name__ == "__main__":
@@ -179,6 +267,7 @@ if __name__ == "__main__":
     output_path = asyncio.run(get_output_path())
     if not output_path:
         raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "get_output_path 为空")
+    output_path = os.path.join(output_path, "20260913190132110313.mp4")
 
     # 一个 PipeLineData 数据例子
     pipeline_data = PipeLineData()
@@ -205,7 +294,7 @@ if __name__ == "__main__":
     pipeline_data.asr_bean = AsrBean()
     pipeline_data.asr_bean.audio_rewrite_type = "BYTEDANCE"
     pipeline_data.asr_bean.task_url = "https://www.youtube.com/watch?v=DgovrfgLxYs"
-    pipeline_data.asr_bean.lang = "af"
+    pipeline_data.asr_bean.lang = 0
     pipeline_data.asr_bean.subtitle_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/20260913190132110313.srt"
     pipeline_data.is_llm = True
     pipeline_data.llm_bean = LLMBean()
@@ -221,26 +310,93 @@ if __name__ == "__main__":
     pipeline_data.is_rewrite_subtitle = True
     pipeline_data.subtitle_bean = SubtitleBean()
     pipeline_data.subtitle_bean.subtitle_lang = 0
-    pipeline_data.subtitle_bean.subtitle_font = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/server/resources/fonts/MicrosoftYaHeiBold.ttf"
+    pipeline_data.subtitle_bean.subtitle_font = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/server/resources/fonts/NotoSansSC-Regular.ttf"
     pipeline_data.subtitle_bean.subtitle_font_color = 16777215
     pipeline_data.subtitle_bean.subtitle_border_color = 0
-    pipeline_data.subtitle_bean.subtitle_position = ""
+    pipeline_data.subtitle_bean.subtitle_position = "bottom-center"
     pipeline_data.subtitle_bean.subtitle_size = 60
     pipeline_data.is_bgm = True
     pipeline_data.bgm_bean = BgmBean()
     pipeline_data.bgm_bean.bgm_volume = 0.5
     pipeline_data.bgm_bean.uploaded_bgm = ""
-    pipeline_data.is_material = False
+    # pipeline_data.is_material = False
+    # pipeline_data.material_video_bean = MaterialVideoBean()
+    # pipeline_data.material_video_bean.video_material_type = ""
+    # pipeline_data.material_video_bean.uploaded_video_material = ""
+    # pipeline_data.material_video_bean.video_material_splicing_mode = 0
+    # pipeline_data.material_video_bean.video_material_transition_mode = 0
+    # pipeline_data.material_video_bean.video_material_video_ratio = 0
+    # pipeline_data.material_video_bean.video_material_max_duration = 0
+    # pipeline_data.material_video_bean.video_material_generate_count = 0
+    # pipeline_data.material_video_bean.video_material_keyword = ""
+    # pipeline_data.material_video_bean.video_materials = []
+    pipeline_data.is_material = True
     pipeline_data.material_video_bean = MaterialVideoBean()
-    pipeline_data.material_video_bean.video_material_type = ""
-    pipeline_data.material_video_bean.uploaded_video_material = ""
-    pipeline_data.material_video_bean.video_material_splicing_mode = 0
-    pipeline_data.material_video_bean.video_material_transition_mode = 0
-    pipeline_data.material_video_bean.video_material_video_ratio = 0
-    pipeline_data.material_video_bean.video_material_max_duration = 0
-    pipeline_data.material_video_bean.video_material_generate_count = 0
+    pipeline_data.material_video_bean.video_material_type = "pixabay"
+    pipeline_data.material_video_bean.uploaded_video_material = []
+    pipeline_data.material_video_bean.video_material_splicing_mode = 1
+    pipeline_data.material_video_bean.video_material_transition_mode = 1
+    pipeline_data.material_video_bean.video_material_video_ratio = 1
+    pipeline_data.material_video_bean.video_material_max_duration = 10
+    pipeline_data.material_video_bean.video_material_generate_count = 1
     pipeline_data.material_video_bean.video_material_keyword = ""
     pipeline_data.material_video_bean.video_materials = []
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-c8883244fa39f454d484b945649aa5d7ec33dce30c6bdeffc5e77945b529dd8d.mp4"
+    item.duration = 21
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2024/07/01/218954_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-913b42a073de880793dc404920097535855b273ebed88ea48fa5599ac9f129e0.mp4"
+    item.duration = 15
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2025/01/10/251763_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
+    item.duration = 10
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-db73ed1f590a627f2efed4a161f3334b9a86fdae7f0f468c4cdb330783d0c4b6.mp4"
+    item.duration = 25
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2025/08/12/296958_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
+    item.duration = 10
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-0dd6feb1d05f5a4fe2b59b803074045b1e68ff8516d4f09a292bb16383151a1d.mp4"
+    item.duration = 44
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2026/02/23/336374_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
+
+    item = MaterialVideoItem()
+    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-473438b21d08aff75f433659d88bb5fc8d7fe631e1f5b9bd08281a7984adb2a4.mp4"
+    item.duration = 24
+    item.aspect = 1
+    item.provider = "pixabay"
+    item.url = "https://cdn.pixabay.com/video/2025/01/03/250395_large.mp4"
+    pipeline_data.material_video_bean.video_materials.append(item)
 
     # FFMpegAssemblyVideo 例子
     assembly_video = FFMpegAssemblyVideo(pipeline_data=pipeline_data)
