@@ -1,8 +1,9 @@
 import asyncio
-import math
 import os.path
 import subprocess
 import threading
+from collections import deque
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from pipeline.bean.asr_bean import AsrBean
@@ -97,7 +98,97 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             "position 仅支持：bottom-center、top-center、center 或数值字符串（如 \"60\"）"
         )
 
+    def __run_ffmpeg(self, command: list[str], duration: float, stage: str) -> None:
+        # 解码等错误也必须非零退出，stderr 与进度并发读取，避免管道阻塞。
+        command = [command[0], "-hide_banner", "-nostdin", "-nostats",
+                   "-loglevel", "error", "-xerror", *command[1:],
+                   "-progress", "pipe:1"]
+        logger.info("FFmpeg %s: %s", stage, " ".join(command))
+        stderr_tail = deque(maxlen=50)
+        try:
+            process = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, encoding="utf-8", errors="replace",
+            )
+        except OSError as exc:
+            logger.exception("FFmpeg %s启动失败", stage)
+            raise VPTException(const.PIPELINE_ERR_SUBPROCESS_NONE_ZERO,
+                               f"FFmpeg {stage}启动失败: {exc}") from exc
+
+        def drain_stderr():
+            for line in process.stderr:
+                line = line.rstrip()
+                if line:
+                    stderr_tail.append(line[-2000:])
+                    logger.error("FFmpeg %s: %s", stage, line)
+
+        stderr_thread = threading.Thread(target=drain_stderr, daemon=True)
+        stderr_thread.start()
+        try:
+            for line in process.stdout:
+                if line.startswith("out_time_us=") and duration > 0:
+                    try:
+                        current_us = int(line.split("=", 1)[1])
+                        progress = max(0, min(current_us / (duration * 1_000_000) * 100, 100))
+                        logger.info("%s进度: %.1f%%", stage, progress)
+                    except ValueError:
+                        pass
+            process.wait()
+        finally:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+            stderr_thread.join()
+            process.stdout.close()
+            process.stderr.close()
+        if process.returncode != 0:
+            detail = "\n".join(stderr_tail)[-4000:] or "FFmpeg 未输出错误详情"
+            raise VPTException(
+                const.PIPELINE_ERR_SUBPROCESS_NONE_ZERO,
+                f"FFmpeg {stage}失败 (返回码 {process.returncode}): {detail}",
+            )
+
+    def __prepare_materials(self, directory: Path) -> Path:
+        materials = self.__pipeline_data.material_video_bean.video_materials
+        if not materials:
+            raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND,
+                               "is_material=True 但 video_materials 为空")
+        video = self.__pipeline_data.video_bean
+        normalized = {}
+        entries = []
+        for index, item in enumerate(materials):
+            source = str(Path(item.file_path).resolve())
+            if source not in normalized:
+                target = directory / f"material_{index}.mp4"
+                # 逐段落盘，避免 split/concat 保留整轮未压缩的 4K 帧。
+                # concat demuxer 要求编码、尺寸、帧率、time base 一致。
+                self.__run_ffmpeg([
+                    "ffmpeg", "-y", "-i", source, "-map", "0:v:0", "-an",
+                    "-vf", f"fps=30,scale=w={video.width}:h={video.height}:"
+                    "force_original_aspect_ratio=decrease,"
+                    f"pad=w={video.width}:h={video.height}:x=-1:y=-1,"
+                    "setsar=1,setpts=PTS-STARTPTS",
+                    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+                    "-pix_fmt", "yuv420p", "-video_track_timescale", "15360",
+                    str(target),
+                ], item.duration, f"素材预处理 {index + 1}/{len(materials)}")
+                normalized[source] = target.name
+            entries.append(f"file '{normalized[source]}'\n")
+        playlist = directory / "materials.ffconcat"
+        playlist.write_text("ffconcat version 1.0\n" + "".join(entries), encoding="utf-8")
+        return playlist
+
     def assembly(self, output_path: str) -> str:
+        output = Path(output_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        if self.__pipeline_data.is_material:
+            # 与输出使用同一磁盘，成功、失败都会清理中间文件。
+            with TemporaryDirectory(prefix=".vpt_materials_", dir=output.parent) as directory:
+                playlist = self.__prepare_materials(Path(directory))
+                return self.__assembly(output_path, playlist)
+        return self.__assembly(output_path)
+
+    def __assembly(self, output_path: str, playlist: Path | None = None) -> str:
         """
         合并纯视频、人声、背景音乐和字幕，生成 MP4。
 
@@ -108,7 +199,6 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             可选字体目录。若系统未安装指定字体，可传入字体文件所在目录。
         """
         duration = self.__pipeline_data.video_bean.duration
-        video_width = self.__pipeline_data.video_bean.width
         video_height = self.__pipeline_data.video_bean.height
         filter_complex = ""
         command = [
@@ -117,66 +207,12 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         ]
 
         # ── 视频输入 ──
-        # next_input_idx 追踪当前已添加的 -i 数量，用于后续音频动态编号
-        next_input_idx = 0
-        if self.__pipeline_data.is_material:
-            materials = self.__pipeline_data.material_video_bean.video_materials
-            if not materials:
-                raise VPTException(
-                    const.PIPELINE_ERR_FILE_NOT_FOUND,
-                    "is_material=True 但 video_materials 为空"
-                )
-            n = len(materials)
-            total_material_dur = sum(item.duration for item in materials)
-            repeat = math.ceil(duration / total_material_dur) if total_material_dur > 0 else 1
-            # 逐段 scale + pad，再 split 出 repeat 份独立副本
-            for i in range(n):
-                filter_complex += (
-                    f"[{i}:v]scale=w={video_width}:h={video_height}:"
-                    f"force_original_aspect_ratio=decrease,"
-                    f"pad=w={video_width}:h={video_height}:x=-1:y=-1,"
-                    f"setsar=1,setpts=PTS-STARTPTS[v{i}];"
-                )
-                split_outputs = "".join(f"[v{i}_{r}]" for r in range(repeat))
-                filter_complex += f"[v{i}]split={repeat}{split_outputs};"
-            # 按轮次拼接所有副本
-            concat_labels = ""
-            for r in range(repeat):
-                for i in range(n):
-                    concat_labels += f"[v{i}_{r}]"
-            total = n * repeat
-            filter_complex += (
-                f"{concat_labels}concat=n={total}:a=0,"
-                f"trim=duration={duration},setpts=PTS-STARTPTS[vout];"
-            )
-            vsrc = "[vout]"
+        if playlist is not None:
+            command.extend(["-stream_loop", "-1", "-f", "concat", "-i", str(playlist)])
         else:
-            command.append("-i")
-            command.append(self.__pipeline_data.video_bean.video_full_path)
-            next_input_idx = 1
-
-        # ── 视频滤镜 ──
-        if self.__pipeline_data.is_material:
-            n = len(materials)
-            concat_inputs = ""
-            for i in range(n):
-                filter_complex += (
-                    f"[{i}:v]scale=w={video_width}:h={video_height}:"
-                    f"force_original_aspect_ratio=decrease,"
-                    f"pad=w={video_width}:h={video_height}:x=-1:y=-1,"
-                    f"setsar=1,setpts=PTS-STARTPTS[v{i}];"
-                )
-                concat_inputs += f"[v{i}]"
-            filter_complex += (
-                f"{concat_inputs}concat=n={n}:a=0[vcat];"
-            )
-            filter_complex += (
-                f"[vcat]loop=loop=-1:size=1:start=0,"
-                f"trim=duration={duration},setpts=PTS-STARTPTS[vout];"
-            )
-            vsrc = "[vout]"
-        else:
-            vsrc = "[0:v:0]"
+            command.extend(["-i", self.__pipeline_data.video_bean.video_full_path])
+        next_input_idx = 1
+        vsrc = "[0:v:0]"
 
         # ── 字幕 ──
         if self.__pipeline_data.is_asr:
@@ -241,7 +277,7 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         # ── 映射输出流 ──
         if filter_complex:
             command.extend(["-filter_complex", filter_complex])
-            command.extend(["-map", vsrc])
+            command.extend(["-map", "0:v:0" if vsrc == "[0:v:0]" else vsrc])
             if self.__pipeline_data.is_tts or self.__pipeline_data.is_bgm:
                 if self.__pipeline_data.is_tts and self.__pipeline_data.is_bgm:
                     command.extend(["-map", "[audio]"])
@@ -256,51 +292,16 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         command.extend(["-map_metadata", "-1"])
         command.extend(["-t", f"{duration:.3f}"])
         command.extend(["-c:v", "libx264"])
-        command.extend(["-preset", "medium"])
+        command.extend(["-preset", "ultrafast"])
         command.extend(["-crf", "23"])
         command.extend(["-pix_fmt", "yuv420p"])
         command.extend(["-c:a", "aac"])
         command.extend(["-b:a", "192k"])
         command.extend(["-movflags", "+faststart"])
         command.append(str(output))
-        command.extend(["-progress", "pipe:1"])
-
-        logger.info("FFmpeg 开始编码: %s", " ".join(command))
-        duration_us = int(duration * 1_000_000)
-        stderr_lines: list[str] = []
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-
-        def _drain_stderr():
-            for line in process.stderr:
-                stderr_lines.append(line)
-
-        stderr_thread = threading.Thread(target=_drain_stderr, daemon=True)
-        stderr_thread.start()
-
-        for line in process.stdout:
-            line = line.strip()
-            if line.startswith("out_time_ms="):
-                try:
-                    current_us = int(line.split("=")[1])
-                    progress = min(current_us / duration_us * 100, 100)
-                    logger.info("编码进度: %.1f%%", progress)
-                except (ValueError, ZeroDivisionError):
-                    pass
-
-        process.wait()
-        stderr_thread.join()
-        if process.returncode != 0:
-            stderr_tail = "".join(stderr_lines[-50:])
-            raise VPTException(
-                const.PIPELINE_ERR_VIDEO_ASSEMBLY_SUBTITLE_POSITON,
-                f"FFmpeg 编码失败 (返回码 {process.returncode}): {stderr_tail[-500:]}"
-            )
+        self.__run_ffmpeg(command, duration, "编码")
         logger.info("FFmpeg 编码完成: %s", output)
+        return str(output)
 
 
 if __name__ == "__main__":
@@ -360,84 +361,84 @@ if __name__ == "__main__":
     pipeline_data.bgm_bean = BgmBean()
     pipeline_data.bgm_bean.bgm_volume = 0.5
     pipeline_data.bgm_bean.uploaded_bgm = ""
-    # pipeline_data.is_material = False
-    # pipeline_data.material_video_bean = MaterialVideoBean()
-    # pipeline_data.material_video_bean.video_material_type = ""
-    # pipeline_data.material_video_bean.uploaded_video_material = ""
-    # pipeline_data.material_video_bean.video_material_splicing_mode = 0
-    # pipeline_data.material_video_bean.video_material_transition_mode = 0
-    # pipeline_data.material_video_bean.video_material_video_ratio = 0
-    # pipeline_data.material_video_bean.video_material_max_duration = 0
-    # pipeline_data.material_video_bean.video_material_generate_count = 0
-    # pipeline_data.material_video_bean.video_material_keyword = ""
-    # pipeline_data.material_video_bean.video_materials = []
-    pipeline_data.is_material = True
+    pipeline_data.is_material = False
     pipeline_data.material_video_bean = MaterialVideoBean()
-    pipeline_data.material_video_bean.video_material_type = "pixabay"
-    pipeline_data.material_video_bean.uploaded_video_material = []
-    pipeline_data.material_video_bean.video_material_splicing_mode = 1
-    pipeline_data.material_video_bean.video_material_transition_mode = 1
-    pipeline_data.material_video_bean.video_material_video_ratio = 1
-    pipeline_data.material_video_bean.video_material_max_duration = 10
-    pipeline_data.material_video_bean.video_material_generate_count = 1
+    pipeline_data.material_video_bean.video_material_type = ""
+    pipeline_data.material_video_bean.uploaded_video_material = ""
+    pipeline_data.material_video_bean.video_material_splicing_mode = 0
+    pipeline_data.material_video_bean.video_material_transition_mode = 0
+    pipeline_data.material_video_bean.video_material_video_ratio = 0
+    pipeline_data.material_video_bean.video_material_max_duration = 0
+    pipeline_data.material_video_bean.video_material_generate_count = 0
     pipeline_data.material_video_bean.video_material_keyword = ""
     pipeline_data.material_video_bean.video_materials = []
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-c8883244fa39f454d484b945649aa5d7ec33dce30c6bdeffc5e77945b529dd8d.mp4"
-    item.duration = 21
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2024/07/01/218954_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-913b42a073de880793dc404920097535855b273ebed88ea48fa5599ac9f129e0.mp4"
-    item.duration = 15
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2025/01/10/251763_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
-    item.duration = 10
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-db73ed1f590a627f2efed4a161f3334b9a86fdae7f0f468c4cdb330783d0c4b6.mp4"
-    item.duration = 25
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2025/08/12/296958_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
-    item.duration = 10
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-0dd6feb1d05f5a4fe2b59b803074045b1e68ff8516d4f09a292bb16383151a1d.mp4"
-    item.duration = 44
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2026/02/23/336374_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-473438b21d08aff75f433659d88bb5fc8d7fe631e1f5b9bd08281a7984adb2a4.mp4"
-    item.duration = 24
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2025/01/03/250395_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
+    # pipeline_data.is_material = True
+    # pipeline_data.material_video_bean = MaterialVideoBean()
+    # pipeline_data.material_video_bean.video_material_type = "pixabay"
+    # pipeline_data.material_video_bean.uploaded_video_material = []
+    # pipeline_data.material_video_bean.video_material_splicing_mode = 1
+    # pipeline_data.material_video_bean.video_material_transition_mode = 1
+    # pipeline_data.material_video_bean.video_material_video_ratio = 1
+    # pipeline_data.material_video_bean.video_material_max_duration = 10
+    # pipeline_data.material_video_bean.video_material_generate_count = 1
+    # pipeline_data.material_video_bean.video_material_keyword = ""
+    # pipeline_data.material_video_bean.video_materials = []
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-c8883244fa39f454d484b945649aa5d7ec33dce30c6bdeffc5e77945b529dd8d.mp4"
+    # item.duration = 21
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2024/07/01/218954_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-913b42a073de880793dc404920097535855b273ebed88ea48fa5599ac9f129e0.mp4"
+    # item.duration = 15
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2025/01/10/251763_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
+    # item.duration = 10
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-db73ed1f590a627f2efed4a161f3334b9a86fdae7f0f468c4cdb330783d0c4b6.mp4"
+    # item.duration = 25
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2025/08/12/296958_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
+    # item.duration = 10
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-0dd6feb1d05f5a4fe2b59b803074045b1e68ff8516d4f09a292bb16383151a1d.mp4"
+    # item.duration = 44
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2026/02/23/336374_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-473438b21d08aff75f433659d88bb5fc8d7fe631e1f5b9bd08281a7984adb2a4.mp4"
+    # item.duration = 24
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2025/01/03/250395_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
 
     # FFMpegAssemblyVideo 例子
     assembly_video = FFMpegAssemblyVideo(pipeline_data=pipeline_data)
