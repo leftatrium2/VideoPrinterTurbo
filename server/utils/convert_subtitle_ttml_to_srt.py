@@ -1,5 +1,8 @@
+import logging
 import re
 import xml.etree.cElementTree as ET
+
+logger = logging.getLogger(__name__)
 
 G_ORDER_TYPE_KEY = 1
 G_INTERSECT_TYPE_KEY = 2
@@ -38,9 +41,7 @@ class SubtitleBean(object):
 
     def print(self):
         for item in self.subtitle_list:
-            print(f"{item}")
-
-    pass
+            logger.info(f"{item}")
 
 
 def convert_subtitle_str_to_timestamp(ts: str) -> int:

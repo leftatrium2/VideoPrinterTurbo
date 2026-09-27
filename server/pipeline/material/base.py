@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -36,14 +35,14 @@ class VideoAspect(Enum):
 class BaseMaterialSearcher(ABC):
     """Provider-independent contract for video material search and download."""
 
-    @abstractmethod
-    def config(
-            self,
-            proxy_url: Optional[str] = None,
-            api_keys: str | list[str] | tuple[str, ...] | None = None,
-            tls_verify: bool = True,
-    ):
-        """Configure the provider client before calling :meth:`search`."""
+    # @abstractmethod
+    # def config(
+    #         self,
+    #         proxy_url: Optional[str] = None,
+    #         api_keys: str | list[str] | tuple[str, ...] | None = None,
+    #         tls_verify: bool = True,
+    # ):
+    #     """Configure the provider client before calling :meth:`search`."""
 
     @abstractmethod
     def search(

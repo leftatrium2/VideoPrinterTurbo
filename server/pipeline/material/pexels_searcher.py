@@ -16,24 +16,29 @@ from utils.video_utils import get_video_or_audio_duration
 class PexelsSearcher(BaseMaterialSearcher):
     _SEARCH_URL = "https://api.pexels.com/videos/search"
 
-    def __init__(self) -> None:
-        self._api_keys: list[str] = []
-        self._api_key_index = 0
+    def __init__(self,
+                 api_keys: Optional[list[str]] = None,
+                 api_key_index: int = 0,
+                 proxy_url: Optional[str] = None,
+                 tls_verify: bool = True) -> None:
+        self._api_keys: list[str] = api_keys if api_keys else []
+        self._api_key_index = api_key_index
         self._proxies: dict[str, str] | None = None
-        self._tls_verify = True
-
-    def config(
-            self,
-            proxy_url: Optional[str] = None,
-            api_keys: str | list[str] | tuple[str, ...] | None = None,
-            tls_verify: bool = True,
-    ):
-        if isinstance(api_keys, str):
-            api_keys = [api_keys]
-        self._api_keys = [key.strip() for key in (api_keys or []) if key and key.strip()]
-        self._api_key_index = 0
+        self._tls_verify = tls_verify
         self._proxies = build_requests_proxies(proxy_url) if proxy_url else None
-        self._tls_verify = bool(tls_verify)
+
+    # def config(
+    #         self,
+    #         proxy_url: Optional[str] = None,
+    #         api_keys: str | list[str] | tuple[str, ...] | None = None,
+    #         tls_verify: bool = True,
+    # ):
+    #     if isinstance(api_keys, str):
+    #         api_keys = [api_keys]
+    #     self._api_keys = [key.strip() for key in (api_keys or []) if key and key.strip()]
+    #     self._api_key_index = 0
+    #     self._proxies = build_requests_proxies(proxy_url) if proxy_url else None
+    #     self._tls_verify = bool(tls_verify)
 
     def validate_config(self) -> bool:
         return bool(self._api_keys)

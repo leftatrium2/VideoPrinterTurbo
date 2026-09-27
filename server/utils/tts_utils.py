@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 from datetime import timedelta
@@ -7,6 +8,8 @@ import srt
 from pydub import AudioSegment
 
 from utils import const
+
+logger = logging.getLogger(__name__)
 
 
 class TTSUtils:
@@ -94,8 +97,8 @@ class TTSUtils:
             fit_wav = os.path.join(tmp_dir, f"fit_{i}.wav")
 
             text = sub.content.strip()
-            print(f"[{i + 1}/{len(subs)}] {text[:24]!r}  "
-                  f"{start_ms}ms -> {end_ms}ms (目标 {target_ms}ms)")
+            logger.info(f"[{i + 1}/{len(subs)}] {text[:24]!r}  "
+                        f"{start_ms}ms -> {end_ms}ms (目标 {target_ms}ms)")
 
             synth_fn(text, out_path=raw_audio, **synth_kwargs)
             TTSUtils.stretch_to_duration(raw_audio, fit_wav, target_ms)

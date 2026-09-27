@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 import config.config as _config
 from models.model import VptLlmConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig
+from pipeline.bean.video_overlay_bean import MaterialVideoItem
 from pipeline.material.base import BaseMaterialSearcher, VideoAspect
 from pipeline.material.pexels_searcher import PexelsSearcher
 from pipeline.material.pixabay_searcher import PixabaySearcher
@@ -62,96 +63,102 @@ def __get_material_keyword_from_llm(text_file_path: str, proxy_url: Optional[str
         return None
     subtitle_text = __read_subtitle_text(text_file_path)
     db = database.get_sync_session()
-    result = db.execute(select(VptLlmConfig).limit(1))
-    item = result.scalar_one_or_none()
-    if not item:
-        raise VPTException(const.PIPELINE_ERR_LLM_CONFIG,
-                           f"LLM is not configured to extract search keywords from the subtitles of the current video footage.")
-    api_key = item.api_key
-    base_url = item.base_url
-    if not api_key or not base_url:
-        raise VPTException(const.PIPELINE_ERR_LLM_APIKEY_OR_BASEURL,
-                           f"LLM configure is not correct. api key: {api_key} or base_url: {base_url} not set")
-    kwargs = {"api_key": api_key, "base_url": base_url}
-    if proxy_url:
-        import httpx
-        kwargs["http_client"] = httpx.Client(proxy=proxy_url)
-    client = OpenAI(**kwargs)
-    amount = 5
-    model = None
-    if item.llm_model_name:
-        model = item.llm_model_name
-    if not model:
-        raise VPTException(const.PIPELINE_ERR_LLM_MODEL, "model name is empty!")
-    system_prompt = """
-  你是一个视频素材搜索词生成器。
+    try:
+        result = db.execute(select(VptLlmConfig).limit(1))
+        item = result.scalar_one_or_none()
+        if not item:
+            raise VPTException(const.PIPELINE_ERR_LLM_CONFIG,
+                               f"LLM is not configured to extract search keywords from the subtitles of the current video footage.")
+        api_key = item.api_key
+        base_url = item.base_url
+        if not api_key or not base_url:
+            raise VPTException(const.PIPELINE_ERR_LLM_APIKEY_OR_BASEURL,
+                               f"LLM configure is not correct. api key: {api_key} or base_url: {base_url} not set")
+        kwargs = {"api_key": api_key, "base_url": base_url}
+        if proxy_url:
+            import httpx
+            kwargs["http_client"] = httpx.Client(proxy=proxy_url)
+        client = OpenAI(**kwargs)
+        amount = 5
+        model = None
+        if item.llm_model_name:
+            model = item.llm_model_name
+        if not model:
+            raise VPTException(const.PIPELINE_ERR_LLM_MODEL, "model name is empty!")
+        system_prompt = """
+      你是一个视频素材搜索词生成器。
+    
+      任务：根据用户提供的视频字幕，生成适合 Pexels、Pixabay 等素材网站使用的英文搜索词。
+    
+      规则：
+      1. 只返回 JSON 字符串数组，不要 Markdown，不要解释。
+      2. 每个搜索词包含 1 至 4 个英文单词。
+      3. 搜索词应对应可视觉化的内容：人物、动作、物品、场景、环境或情绪。
+      4. 覆盖字幕中的不同重点，避免语义重复。
+      5. 优先使用可在视频素材网站中实际搜索到的具体表达。
+      """.strip()
+        user_prompt = f"""
+      请基于以下字幕生成 {amount} 个英文视频素材搜索词：
+    
+      <subtitle>
+      {subtitle_text}
+      </subtitle>
+      """.strip()
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ],
+            extra_body={"enable_thinking": False}
+        )
+        if not response.choices or not response.choices[0].message.content:
+            raise VPTException(const.PIPELINE_ERR_LLM_OPENAI_RESPONSE, f"LLM 返回为空或内容为空")
+        text = response.choices[0].message.content.strip()
+        # 即使模型意外附带说明，也尽量提取 JSON 数组
+        match = re.search(r"\[[\s\S]*\]", text)
+        if not match:
+            raise VPTException(const.PIPELINE_ERR_LLM_RESPONSE_NOT_JSON, f"模型未返回 JSON 数组：{text}")
+        terms = json.loads(match.group())
+        if not isinstance(terms, list) or not all(isinstance(term, str) for term in terms):
+            raise VPTException(const.PIPELINE_ERR_LLM_RESPONSE_NOT_JSON, f"模型返回格式错误：{text}")
+        return terms
+    finally:
+        db.close()
 
-  任务：根据用户提供的视频字幕，生成适合 Pexels、Pixabay 等素材网站使用的英文搜索词。
 
-  规则：
-  1. 只返回 JSON 字符串数组，不要 Markdown，不要解释。
-  2. 每个搜索词包含 1 至 4 个英文单词。
-  3. 搜索词应对应可视觉化的内容：人物、动作、物品、场景、环境或情绪。
-  4. 覆盖字幕中的不同重点，避免语义重复。
-  5. 优先使用可在视频素材网站中实际搜索到的具体表达。
-  """.strip()
-    user_prompt = f"""
-  请基于以下字幕生成 {amount} 个英文视频素材搜索词：
-
-  <subtitle>
-  {subtitle_text}
-  </subtitle>
-  """.strip()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ],
-        extra_body={"enable_thinking": False}
-    )
-    if not response.choices or not response.choices[0].message.content:
-        raise VPTException(const.PIPELINE_ERR_LLM_OPENAI_RESPONSE, f"LLM 返回为空或内容为空")
-    text = response.choices[0].message.content.strip()
-    # 即使模型意外附带说明，也尽量提取 JSON 数组
-    match = re.search(r"\[[\s\S]*\]", text)
-    if not match:
-        raise VPTException(const.PIPELINE_ERR_LLM_RESPONSE_NOT_JSON, f"模型未返回 JSON 数组：{text}")
-    terms = json.loads(match.group())
-    if not isinstance(terms, list) or not all(isinstance(term, str) for term in terms):
-        raise VPTException(const.PIPELINE_ERR_LLM_RESPONSE_NOT_JSON, f"模型返回格式错误：{text}")
-    return terms
-
-
-def __get_material_api_key(material_type: str) -> Optional[str]:
+def __get_material_api_key(material_type: str) -> Optional[list[str]]:
     db = database.get_sync_session()
-    result = None
-    if material_type == "pexels":
-        result = db.execute(select(VptVideoMaterialPexelsConfig).limit(1))
-    elif material_type == "pixabay":
-        result = db.execute(select(VptVideoMaterialPixabayConfig).limit(1))
-    if not result:
-        raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG,
-                           f"{material_type} is not configured of the current video footage.")
-    item = result.scalar_one_or_none()
-    if not item:
-        raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG,
-                           f"{material_type} is not configured of the current video for scalar_one_or_none.")
-    api_key = None
-    if material_type == "pexels":
-        api_key = item.pexels_api_key
-    elif material_type == "pixabay":
-        api_key = item.pixabay_api_key
-    if not api_key:
-        raise VPTException(const.PIPELINE_ERR_LLM_APIKEY_OR_BASEURL,
-                           f"{material_type} is not configured of api_key")
-    return api_key
+    try:
+        result = None
+        if material_type == "pexels":
+            result = db.execute(select(VptVideoMaterialPexelsConfig).limit(1))
+        elif material_type == "pixabay":
+            result = db.execute(select(VptVideoMaterialPixabayConfig).limit(1))
+        if not result:
+            raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG,
+                               f"{material_type} is not configured of the current video footage.")
+        item = result.scalar_one_or_none()
+        if not item:
+            raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG,
+                               f"{material_type} is not configured of the current video for scalar_one_or_none.")
+        api_key = None
+        if material_type == "pexels":
+            api_key = item.pexels_api_key
+        elif material_type == "pixabay":
+            api_key = item.pixabay_api_key
+        if not api_key:
+            raise VPTException(const.PIPELINE_ERR_LLM_APIKEY_OR_BASEURL,
+                               f"{material_type} is not configured of api_key")
+        return [api_key]
+    finally:
+        db.close()
 
 
 def video_overlay(
@@ -170,19 +177,21 @@ def video_overlay(
         raise VPTException(const.PIPELINE_ERR_FFPROBE_DURATION, f"{video_file_path} is not exists or not a video file")
     # 2. 搜索关键字
     video_searcher: Optional[BaseMaterialSearcher] = None
-    api_key = __get_material_api_key(material_type)
+    api_keys = __get_material_api_key(material_type)
     if material_type == "pexels":
-        video_searcher = PexelsSearcher()
+        video_searcher = PexelsSearcher(proxy_url=proxy_url, api_keys=api_keys)
     elif material_type == "pixabay":
-        video_searcher = PixabaySearcher()
+        video_searcher = PixabaySearcher(proxy_url=proxy_url, api_keys=api_keys)
     if not video_searcher:
         raise VPTException(const.PIPELINE_ERR_VALUE,
                            f"Must Pexels or pixabay will use the video_overlay function, otherwise use the local uploader!")
-    if proxy_url:
-        video_searcher.config(proxy_url=proxy_url, api_keys=api_key)
-    else:
-        video_searcher.config(api_keys=api_key)
+    # if proxy_url:
+    #     video_searcher.config(proxy_url=proxy_url, api_keys=api_key)
+    # else:
+    #     video_searcher.config(api_keys=api_key)
     material_path = asyncio.run(get_material_path())
+    if not material_path:
+        raise VPTException(const.PIPELINE_ERR_VIDEO_OVERLAY_DB_CONFIG, f"config.yaml storage.material not set!")
     keyword_list = []
     # 如果用户设置了搜索关键字，那么优先使用此关键字搜索
     if material_keyword:
@@ -205,14 +214,16 @@ def video_overlay(
     if material_info_list:
         for material_info in material_info_list:
             full_file_path = video_searcher.download(material_info, material_path)
-            material_dict = {
-                "file_path": full_file_path,
-                "duration": material_info.duration,
-                "aspect": video_aspect.value,
-                "provider": material_info.provider,
-                "url": material_info.url
-            }
-            material_list.append(material_dict)
+            if full_file_path:
+                material_video_item = MaterialVideoItem()
+                material_video_item.file_path = full_file_path
+                material_video_item.duration = material_info.duration
+                material_video_item.aspect = video_aspect.value
+                material_video_item.provider = material_info.provider
+                material_video_item.url = material_info.url
+                material_list.append(material_video_item)
+            else:
+                logger.error(f"Download material {material_info} failed")
 
             curr_video_duration += material_info.duration
             if curr_video_duration >= video_duration:

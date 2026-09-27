@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter
 from fastapi.params import Depends, Query
 from sqlalchemy import select
@@ -13,6 +15,8 @@ router = APIRouter(
     prefix="/material_config",
     tags=["Material Config Module"]
 )
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/pexels_list")
@@ -46,7 +50,6 @@ async def del_pexels_config(pexels_config_id: int = Query(default=0), db: AsyncS
     item = result.scalar_one_or_none()
     if not item:
         return result_failure(const.TTS_CONFIG_ERR_MATERIAL_PARAM, "pexels_config_id does not exist")
-    print(item)
     await db.delete(item)
     await db.commit()
     return result_succ()

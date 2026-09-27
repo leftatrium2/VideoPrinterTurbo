@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +13,7 @@ from models.model import VptTasks, VptAsrConfig, VptLlmConfig, VptTtsConfig
 from pipeline.bean.pipeline_data import PipeLineData
 from pipeline.bean.video_downloader_bean import VideoDownloaderBean
 from pipeline.downloader.base import DownloaderContext
+from pipeline.rendering.ffmpeg_assembly_video import FFMpegAssemblyVideo
 from pipeline.utils.pipeline_asr_utls import asr_convert, subtitle_convert
 from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_material_video_utils import video_overlay
@@ -20,7 +23,7 @@ from utils import const
 from utils.database import database
 from utils.exception import VPTException
 from utils.file_utils import get_current_path, get_llm_rewrite_path, get_relative_path, get_absolute_path, \
-    get_tts_rewrite_path, get_resource_font_path
+    get_tts_rewrite_path, get_resource_font_path, get_output_path
 from utils.video_utils import get_video_width_height, get_video_or_audio_duration
 from utils.tts_voice import get_lang_from_voice
 
@@ -63,41 +66,50 @@ class PipelineManager:
     @staticmethod
     def __update_db_task(task: VptTasks):
         db = database.get_sync_session()
-        result = db.execute(select(VptTasks).where(
-            VptTasks.task_id == task.task_id,
-            VptTasks.is_deleted == 0
-        ))
-        item = result.scalar_one_or_none()
-        if not item:
-            logger.error(f"task not found: {task.task_id}")
-            return
-        item.task_status = task.task_status
-        item.error_code = task.error_code
-        item.error_desc = task.error_desc
-        item.task_message = task.task_message
-        item.pipeline_status = task.pipeline_status
-        item.task_upload_video_path = task.task_upload_video_path
-        item.task_original_video_path = task.task_original_video_path
-        db.commit()
-        db.refresh(item)
+        try:
+            result = db.execute(select(VptTasks).where(
+                VptTasks.task_id == task.task_id,
+                VptTasks.is_deleted == 0
+            ))
+            item = result.scalar_one_or_none()
+            if not item:
+                logger.error(f"task not found: {task.task_id}")
+                return
+            item.task_status = task.task_status
+            item.error_code = task.error_code
+            item.error_desc = task.error_desc
+            item.task_message = task.task_message
+            item.pipeline_status = task.pipeline_status
+            item.task_upload_video_path = task.task_upload_video_path
+            item.task_original_video_path = task.task_original_video_path
+            db.commit()
+            db.refresh(item)
+        finally:
+            db.close()
 
     @staticmethod
     def __get_asr_config():
         asr_config_db = database.get_sync_session()
-        asr_config_result = asr_config_db.execute(select(VptAsrConfig).limit(1))
-        asr_config_item = asr_config_result.scalar_one_or_none()
-        if not asr_config_item:
-            raise VPTException(const.PIPELINE_ERR_ASR_NOT_CONFIGURATION, "asr config not found")
-        return asr_config_item
+        try:
+            asr_config_result = asr_config_db.execute(select(VptAsrConfig).limit(1))
+            asr_config_item = asr_config_result.scalar_one_or_none()
+            if not asr_config_item:
+                raise VPTException(const.PIPELINE_ERR_ASR_NOT_CONFIGURATION, "asr config not found")
+            return asr_config_item
+        finally:
+            asr_config_db.close()
 
     @staticmethod
     def __get_llm_config():
         llm_config_db = database.get_sync_session()
-        llm_config_result = llm_config_db.execute(select(VptLlmConfig).limit(1))
-        llm_config_item = llm_config_result.scalar_one_or_none()
-        if not llm_config_item:
-            raise VPTException(const.PIPELINE_ERR_LLM_CONFIG, "llm config not found")
-        return llm_config_item
+        try:
+            llm_config_result = llm_config_db.execute(select(VptLlmConfig).limit(1))
+            llm_config_item = llm_config_result.scalar_one_or_none()
+            if not llm_config_item:
+                raise VPTException(const.PIPELINE_ERR_LLM_CONFIG, "llm config not found")
+            return llm_config_item
+        finally:
+            llm_config_db.close()
 
     def __update_pipeline_status(self, task: VptTasks, pipeline_status: int):
         self.__data.status = pipeline_status
@@ -149,7 +161,7 @@ class PipelineManager:
         self.__data.is_bgm = task.is_bgm == 1
         if self.__data.is_bgm:
             self.__data.bgm_bean.bgm_volume = task.bgm_volume
-            self.__data.bgm_bean.uploaded_bgm = task.uploaded_bgm
+            self.__data.bgm_bean.uploaded_bgm = self.__parse_uploaded_bgm(task.uploaded_bgm)
         # video material configuration
         self.__data.is_material = task.is_video_material == 1
         if self.__data.is_material:
@@ -161,6 +173,24 @@ class PipelineManager:
             self.__data.material_video_bean.video_material_max_duration = task.video_material_max_duration
             self.__data.material_video_bean.video_material_generate_count = task.video_material_generate_count
             self.__data.material_video_bean.video_material_keyword = task.video_material_keyword
+
+    @staticmethod
+    def __parse_uploaded_bgm(raw: str | None) -> str:
+        """数据库存储上传元数据 JSON；流水线只接收路径，空值表示随机 BGM。"""
+        if raw is None or (isinstance(raw, str) and not raw.strip()):
+            return ""
+        try:
+            metadata = json.loads(raw)
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise VPTException(message="BGM 配置不是有效的 JSON 对象", tr=exc) from exc
+        if not isinstance(metadata, dict):
+            raise VPTException(message="BGM 配置必须是 JSON 对象")
+        if not metadata:
+            return ""
+        saved_as = metadata.get("saved_as")
+        if not isinstance(saved_as, str) or not saved_as.strip() or "\x00" in saved_as:
+            raise VPTException(message="自定义 BGM 配置缺少有效的 saved_as 文件路径")
+        return str(Path(get_absolute_path(saved_as)).resolve())
 
     def __process_asr_info(self, audio_rewrite_type: int, task: VptTasks, asr_config: VptAsrConfig) -> dict:
         args = None
@@ -232,12 +262,19 @@ class PipelineManager:
     @staticmethod
     def __get_tts_config(tts_server: int):
         tts_config_db = database.get_sync_session()
-        tts_config_result = tts_config_db.execute(select(VptTtsConfig).where(VptTtsConfig.tts_server == tts_server))
-        tts_config_item = tts_config_result.scalar_one_or_none()
-        return tts_config_item
+        try:
+            tts_config_result = tts_config_db.execute(select(VptTtsConfig).where(VptTtsConfig.tts_server == tts_server))
+            tts_config_item = tts_config_result.scalar_one_or_none()
+            return tts_config_item
+        finally:
+            tts_config_db.close()
 
-    def process_now(self, task: VptTasks):
-        # todo 这个函数太长了，后续需要拆分优化一下
+    def process_now(self, task: VptTasks) -> Optional[str]:
+        """
+        处理任务
+        :param task: 任务信息
+        :return: 生成的最终视频文件全路径
+        """
         self.__process_task_info(task)
         # set status to start
         self.__update_pipeline_status(task, const.PIPELINE_STATUS_START)
@@ -460,7 +497,16 @@ class PipelineManager:
             )
             self.__data.material_video_bean.video_materials = res_list
         # assembly video(ffmpeg)
-        print(self.__data)
+        output_path = asyncio.run(get_output_path())
+        if not output_path:
+            msg = f"config.yaml storage.output not set! pls set storage.output first"
+            logger.error(msg)
+            task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
+            task.task_message = msg
+            return None
+        output_path = os.path.join(output_path, f"{task.task_id}.mp4")
+        assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
+        return assembly_video.assembly(output_path)
 
 
 pipeline = PipelineManager()
@@ -471,10 +517,14 @@ if __name__ == "__main__":
     task_id = "20260913190132110313"
     database.start()
     db = database.get_sync_session()
-    result = db.execute(select(VptTasks).where(
-        VptTasks.task_id == task_id,
-        VptTasks.is_deleted == 0
-    ).order_by(VptTasks.create_time.asc()).limit(1))
-    item = result.scalar_one_or_none()
-    if item:
-        pipeline.process_now(item)
+    try:
+        result = db.execute(select(VptTasks).where(
+            VptTasks.task_id == task_id,
+            VptTasks.is_deleted == 0
+        ).order_by(VptTasks.create_time.asc()).limit(1))
+        item = result.scalar_one_or_none()
+        if item:
+            output = pipeline.process_now(item)
+            print(output)
+    finally:
+        db.close()

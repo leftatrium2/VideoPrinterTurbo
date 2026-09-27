@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -6,6 +7,8 @@ from typing import Optional
 import anyio
 
 import config.config as _config
+
+logger = logging.getLogger(__name__)
 
 
 def get_file_size(audio_path: str) -> int:
@@ -119,8 +122,8 @@ def get_resource_bgm_path() -> str:
 if __name__ == "__main__":
     absolute_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260913190132110313.mp4"
     ret_relative_path = get_relative_path(absolute_path)
-    print(f"relative path: {ret_relative_path}")
+    logger.info(f"relative path: {ret_relative_path}")
 
     relative_path = "storage/downloads/20260913190132110313.mp4"
     ret_absolute_path = get_absolute_path(relative_path)
-    print(f"absolute path: {ret_absolute_path}")
+    logger.info(f"absolute path: {ret_absolute_path}")

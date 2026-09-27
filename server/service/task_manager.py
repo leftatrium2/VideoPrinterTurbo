@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import select, and_
 from tenacity import sleep
 
@@ -6,7 +8,8 @@ from models.model import VptTasks
 from pipeline.pipeline_manager import pipeline, init_downloader
 from utils import const
 from utils.database import database
-from utils.logger import logger
+
+logger = logging.getLogger(__name__)
 
 
 # Task Manager
@@ -21,25 +24,27 @@ class TaskManager(object):
     processes_threading = None
 
     def process(self):
-        session = database.get_sync_session()
-        while True:
-            try:
-                result = session.execute(
-                    select(VptTasks).where(and_(
-                        VptTasks.pipeline_status == const.PIPELINE_STATUS_INI,
-                        VptTasks.is_deleted == 0
-                    )).order_by(VptTasks.create_time.asc()).limit(1)
-                )
-                task = result.scalar_one_or_none()
-                if not task:
-                    sleep(5)
-                    continue
-                pipeline.init()
-                pipeline.process_now(task)
-                print(f"task success: {task.id}")
-            except Exception as e:
-                logger.exception(f"job failed: {e}")
-        pass
+        db = database.get_sync_session()
+        try:
+            while True:
+                try:
+                    result = db.execute(
+                        select(VptTasks).where(and_(
+                            VptTasks.pipeline_status == const.PIPELINE_STATUS_INI,
+                            VptTasks.is_deleted == 0
+                        )).order_by(VptTasks.create_time.asc()).limit(1)
+                    )
+                    task = result.scalar_one_or_none()
+                    if not task:
+                        sleep(5)
+                        continue
+                    pipeline.init()
+                    pipeline.process_now(task)
+                    logger.info(f"task success: {task.id}")
+                except Exception as e:
+                    logger.exception(f"job failed: {e}")
+        finally:
+            db.close()
 
     async def start(self):
         logger.info("Starting TaskManager")

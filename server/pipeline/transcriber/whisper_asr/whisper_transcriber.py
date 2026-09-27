@@ -90,4 +90,4 @@ if __name__ == "__main__":
     result = transcriber.transcribe(
         "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp3")
 
-    print(result)
+    logger.info(result)

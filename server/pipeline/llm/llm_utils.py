@@ -1,6 +1,9 @@
 import json
+import logging
 import re
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class LLMUtils:
@@ -58,7 +61,7 @@ class LLMUtils:
                 result.sort(key=lambda x: x["id"])
                 return [item["text"] for item in result]
             except (json.JSONDecodeError, ValueError, KeyError) as e:
-                print(f"[警告] 第 {attempt + 1} 次尝试解析失败：{e}，重试中...")
+                logger.warning(f"[警告] 第 {attempt + 1} 次尝试解析失败：{e}，重试中...")
                 time.sleep(1)
 
         raise RuntimeError(f"改写失败，已重试 {max_retries} 次仍无法获得合法结果")
@@ -79,7 +82,7 @@ class LLMUtils:
             batch = subtitles[start:start + batch_size]
             texts = [s["text"] for s in batch]
 
-            print(f"正在处理第 {start + 1} ~ {start + len(batch)} 条字幕（共 {total} 条）...")
+            logger.info(f"正在处理第 {start + 1} ~ {start + len(batch)} 条字幕（共 {total} 条）...")
             new_texts = LLMUtils.rewrite_batch(client, model, texts, user_instruction)
 
             for sub, new_text in zip(batch, new_texts):

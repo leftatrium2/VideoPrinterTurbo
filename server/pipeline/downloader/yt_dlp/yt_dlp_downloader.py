@@ -1,11 +1,11 @@
 """YtDlpDownloader — downloads videos via yt-dlp with subtitle extraction."""
 import asyncio
+import logging
 import os.path
 import subprocess
 from typing import Any, Optional
 
 import yt_dlp
-from loguru import logger
 
 from config.config import init_config
 from pipeline.downloader.base import BaseDownloader, DownloaderContext
@@ -14,6 +14,8 @@ from utils.const import DOWNLOADER_CODEC_VIDEO_TYPE, DOWNLOADER_CODEC_AUDIO_TYPE
 from utils.exception import VPTException
 from utils.file_utils import get_download_path
 from utils.proxy_utils import build_yt_dlp_proxies
+
+logger = logging.getLogger(__name__)
 
 
 def make_hook(context: DownloaderContext):
@@ -89,7 +91,7 @@ class YtDlpDownloader(BaseDownloader):
     ) -> Optional[dict]:
         if context:
             context.on_create(url)
-        yt_dlp_opts = {
+        yt_dlp_opts: dict[str, Any] = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             "outtmpl": f"{video_full_path}",
             "merge_output_format": "mp4",
@@ -131,22 +133,22 @@ class YtDlpDownloader(BaseDownloader):
         return ret_dict
 
 
-class TestDownloaderContext(DownloaderContext):
+class InnerDownloaderContext(DownloaderContext):
+
     def on_create(self, url: str):
-        print(f"on_create: url: {url}")
+        logger.info(f"on_create: url: {url}")
 
     def on_start(self, url: str):
-        print(f"on_start: url: {url}")
+        logger.info(f"on_start: url: {url}")
 
     def on_progress(self, url: str, codec_type: int, progress: float):
-        print(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}")
-
-    def on_error(self, url: str, error: Exception):
-        print(f"on_error: url : {url}")
-        print(error)
+        logger.info(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}")
 
     def on_complete(self, url: str):
-        print(f"on_complete: url: {url}")
+        logger.info(f"on_complete: url: {url}")
+
+    def on_error(self, url: str, error: Exception):
+        logger.info(f"on_error: url: {url}, error: {error}")
 
 
 if __name__ == "__main__":
@@ -157,4 +159,4 @@ if __name__ == "__main__":
     download_url = "https://www.youtube.com/watch?v=E7YiKBeOneo"
     proxy = "http://127.0.0.1:7890"
     if downloader.check(download_url, proxy_url=proxy):
-        downloader.download(download_url, video_full_path=full_path, context=TestDownloaderContext(), proxy_url=proxy)
+        downloader.download(download_url, video_full_path=full_path, context=InnerDownloaderContext(), proxy_url=proxy)

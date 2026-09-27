@@ -260,19 +260,19 @@ if __name__ == "__main__":
 
     class TestDownloaderContext(DownloaderContext):
         def on_create(self, url: str):
-            print(f"on_create: {url}")
+            logger.info(f"on_create: {url}")
 
         def on_start(self, url: str):
-            print(f"on_start: {url}")
+            logger.info(f"on_start: {url}")
 
         def on_progress(self, url: str, codec_type: int, progress: float):
-            print(f"on_progress: codec={codec_type}, progress={progress:.1%}")
+            logger.info(f"on_progress: codec={codec_type}, progress={progress:.1%}")
 
         def on_error(self, url: str, error: Exception):
-            print(f"on_error: {url}: {error}")
+            logger.info(f"on_error: {url}: {error}")
 
         def on_complete(self, url: str):
-            print(f"on_complete: {url}")
+            logger.info(f"on_complete: {url}")
 
 
     init_config()
@@ -284,6 +284,6 @@ if __name__ == "__main__":
     downloader = BiliBiliDownloader()
     ret = downloader.download(test_url, full_path, TestDownloaderContext())
     if ret:
-        print(ret)
+        logger.info(ret)
     else:
-        print("cant download")
+        logger.info("cant download")
