@@ -1,8 +1,10 @@
 # Use modern Docker/BuildKit's bundled frontend; avoid an extra registry pull.
 
-# CPU-only: docker build -f Dockerfile -t videoprinterturbo:cpu .
-# Run: docker run -d -p 8000:8000 videoprinterturbo:cpu
-# In ASR settings select local OpenAI Whisper.
+# NVIDIA CUDA: docker build --platform linux/amd64 -f Dockerfile.gpu -t videoprinterturbo:gpu .
+# Run on a NVIDIA host with NVIDIA Container Toolkit and a CUDA 12.8-compatible driver:
+# docker run -d --gpus all -p 8000:8000 videoprinterturbo:gpu
+# In ASR settings select local Faster Whisper (or OpenAI Whisper).
+# CUDA libraries come from the official PyTorch cu128 wheels.
 ARG PYTHON_IMAGE=python:3.11-slim-bullseye
 
 FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS frontend
@@ -17,16 +19,17 @@ RUN VITE_API_BASE_URL=/api npm run build
 
 FROM ${PYTHON_IMAGE} AS runtime
 USER root
-ENV CUDA_VISIBLE_DEVICES="" \
-    NVIDIA_VISIBLE_DEVICES=void \
+ENV NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    LD_LIBRARY_PATH="/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cublas/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cudnn/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=5 \
     PATH="/VideoPrinterTurbo/.venv/bin:$PATH"
 WORKDIR /VideoPrinterTurbo
 
-# Bullseye security packages were removed after LTS ended (Debian #1147093).
-# Use the last complete snapshot; package signature verification stays enabled.
 RUN sed -i 's|deb http://deb.debian.org/debian-security|deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260903T220410Z/|' /etc/apt/sources.list \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get install -y --no-install-recommends \
@@ -48,14 +51,16 @@ requirements = [d for d in project['project']['dependencies']
                 if not d.startswith('mlx-whisper')]
 pathlib.Path('/tmp/requirements.txt').write_text('\n'.join(requirements) + '\n')
 PY
-# Install PyTorch from the CPU-only index first, then constrain its exact build
-# so installing openai-whisper cannot replace it with a CUDA-enabled wheel.
+# Install the CUDA 12.8 PyTorch build and its NVIDIA runtime dependencies.
+# CTranslate2 uses CUDA 12 / cuDNN 9; expose those wheel libraries above.
+# Pin PyTorch so subsequent dependency resolution preserves the CUDA build.
 ARG TORCH_VERSION=2.10.0
-RUN python -m pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cpu \
+RUN python -m pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cu128 \
     && python -c "from importlib.metadata import version; print('torch==' + version('torch'))" > /tmp/torch-constraints.txt \
-    && python -m pip install -c /tmp/torch-constraints.txt -r /tmp/requirements.txt \
+    && python -m pip install -c /tmp/torch-constraints.txt -r /tmp/requirements.txt "ctranslate2==4.6.0" \
     && python -m pip check \
-    && python -c "import torch; assert torch.version.cuda is None, 'Expected CPU-only PyTorch'" \
+    && python -c "import torch; assert torch.version.cuda == '12.8', 'Expected CUDA 12.8 PyTorch'" \
+    && python -c "import ctypes; ctypes.CDLL('libcublas.so.12'); ctypes.CDLL('libcudnn.so.9'); import ctranslate2" \
     && rm /tmp/requirements.txt /tmp/backend-pyproject.toml /tmp/torch-constraints.txt
 
 # Explicit copies avoid bundling local databases, virtualenvs and credentials.

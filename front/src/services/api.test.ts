@@ -149,13 +149,13 @@ describe('api service', () => {
 
   it('checkTaskUrl 失败时返回非 0 code', async () => {
     mockHttp.get.mockResolvedValue({ data: { code: 1101, msg: '任务 url 检查失败', data: {} } })
-    const result = await api.checkTaskUrl('bad-url')
+    const result = await api.checkTaskUrl('bad-url', false)
     expect(result.code).toBe(1101)
     expect(result.msg).toBe('任务 url 检查失败')
   })
 
   it('checkTaskUrl 网络异常时抛出错误', async () => {
     mockHttp.get.mockRejectedValue(new Error('Network Error'))
-    await expect(api.checkTaskUrl('https://example.com')).rejects.toThrow('Network Error')
+    await expect(api.checkTaskUrl('https://example.com', false)).rejects.toThrow('Network Error')
   })
 })

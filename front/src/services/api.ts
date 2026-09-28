@@ -208,7 +208,8 @@ export async function getTaskDetail(taskId: string): Promise<TaskDetail> {
   return res.data
 }
 
-export function addTask(params: AddTaskParams): Promise<ApiResult<Record<string, unknown>>> {
+// The backend supplies defaults for omitted task options (including URL-only retries).
+export function addTask(params: Pick<AddTaskParams, 'task_url'> & Partial<Omit<AddTaskParams, 'task_url'>>): Promise<ApiResult<Record<string, unknown>>> {
   return request(http.post('/tasks/add', params))
 }
 

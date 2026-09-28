@@ -1,9 +1,12 @@
 # Use modern Docker/BuildKit's bundled frontend; avoid an extra registry pull.
 
-# CPU-only: docker build -f Dockerfile -t videoprinterturbo:cpu .
-# Run: docker run -d -p 8000:8000 videoprinterturbo:cpu
+# Apple Silicon Mac: Linux ARM64 CPU container, not macOS/Metal GPU.
+# mlx-whisper is intentionally excluded: Docker Desktop cannot expose Metal.
+# Build: docker build --platform linux/arm64 -f Dockerfile.mac -t videoprinterturbo:mac .
+# Run: docker run -d --platform linux/arm64 -p 8000:8000 videoprinterturbo:mac
 # In ASR settings select local OpenAI Whisper.
 ARG PYTHON_IMAGE=python:3.11-slim-bullseye
+ARG RUNTIME_PLATFORM=linux/arm64
 
 FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS frontend
 WORKDIR /VideoPrinterTurbo/front
@@ -15,8 +18,9 @@ COPY front/src ./src
 COPY front/public ./public
 RUN VITE_API_BASE_URL=/api npm run build
 
-FROM ${PYTHON_IMAGE} AS runtime
+FROM --platform=${RUNTIME_PLATFORM} ${PYTHON_IMAGE} AS runtime
 USER root
+RUN test "$(uname -m)" = "aarch64"
 ENV CUDA_VISIBLE_DEVICES="" \
     NVIDIA_VISIBLE_DEVICES=void \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -25,8 +29,6 @@ ENV CUDA_VISIBLE_DEVICES="" \
     PATH="/VideoPrinterTurbo/.venv/bin:$PATH"
 WORKDIR /VideoPrinterTurbo
 
-# Bullseye security packages were removed after LTS ended (Debian #1147093).
-# Use the last complete snapshot; package signature verification stays enabled.
 RUN sed -i 's|deb http://deb.debian.org/debian-security|deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260903T220410Z/|' /etc/apt/sources.list \
     && apt-get -o Acquire::Retries=5 update \
     && apt-get install -y --no-install-recommends \

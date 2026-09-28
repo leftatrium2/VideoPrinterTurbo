@@ -345,11 +345,11 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElPopover } from 'element-plus'
 import type { UploadFile } from 'element-plus'
 import {
-  Download, User, EditPen, Tickets, Bell, Film, Share, Promotion,
+  Download, User, EditPen, Tickets, Bell, Film, Promotion,
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
 import { addTask, updateTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, uploadTaskVideo, getAsrLang } from '@/services/api'
-import type { TaskConfigData, TaskConfigMaterialData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
+import type { TaskConfigData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
 import { validateVideoMaterialKeyword } from '@/utils/videoMaterialKeyword'
 
 const router = useRouter()

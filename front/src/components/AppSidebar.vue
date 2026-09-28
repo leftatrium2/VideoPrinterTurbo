@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import {
-  Film, Plus, List,
+  Plus, List,
   Microphone, MagicStick, Picture, Promotion, Headset, Connection,
 } from '@element-plus/icons-vue'
 
