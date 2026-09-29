@@ -14,7 +14,7 @@ class VptAsrConfig(Base):
     xfyun_appid: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     xfyun_secret_key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     xfyun_web_api: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    local_whisper_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    local_whisper_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('3'))
     azure_subscription_key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     azure_region: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     openai_api_key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))

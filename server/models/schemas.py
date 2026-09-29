@@ -21,7 +21,7 @@ class ASRConfigItem(BaseModel):
     xfyun_appid: str = ""
     xfyun_secret_key: str = ""
     xfyun_web_api: str = ""
-    local_whisper_type: int = 0
+    local_whisper_type: int = 3
     azure_subscription_key: str = ""
     azure_region: str = ""
     openai_api_key: str = ""
