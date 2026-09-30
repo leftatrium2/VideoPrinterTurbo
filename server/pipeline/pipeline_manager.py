@@ -22,10 +22,10 @@ from pipeline.utils.pipeline_video_downloader_utils import check_video, download
 from utils import const
 from utils.database import database
 from utils.exception import VPTException
-from utils.file_utils import get_current_path, get_llm_rewrite_path, get_relative_path, get_absolute_path, \
+from utils.file_utils import get_current_path, get_llm_rewrite_path, get_absolute_path, \
     get_tts_rewrite_path, get_resource_font_path, get_output_path
-from utils.video_utils import get_video_width_height, get_video_or_audio_duration
 from utils.tts_voice import get_lang_from_voice
+from utils.video_utils import get_video_width_height, get_video_or_audio_duration, convert_video_to_mp3
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +76,6 @@ class PipelineManager:
                 logger.error(f"task not found: {task.task_id}")
                 return
             item.task_status = task.task_status
-            item.error_code = task.error_code
-            item.error_desc = task.error_desc
             item.task_message = task.task_message
             item.pipeline_status = task.pipeline_status
             item.task_upload_video_path = task.task_upload_video_path
@@ -152,7 +150,6 @@ class PipelineManager:
             resource_font_path = Path(get_resource_font_path())
             subtitle_font_path = resource_font_path / task.subtitle_font
             self.__data.subtitle_bean.subtitle_font = str(subtitle_font_path)
-            self.__data.subtitle_bean.subtitle_lang = task.subtitle_lang
             self.__data.subtitle_bean.subtitle_border_color = task.subtitle_border_color
             self.__data.subtitle_bean.subtitle_font_color = task.subtitle_font_color
             self.__data.subtitle_bean.subtitle_position = task.subtitle_position
@@ -203,8 +200,7 @@ class PipelineManager:
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER:
             # 本地部署 远程 whisper
             args = {
-                "remote_whisper_type": asr_config.remote_whisper_type,
-                "language": "en"
+                "remote_whisper_type": asr_config.remote_whisper_type
             }
             if asr_config.remote_whisper_type == const.TASK_CONFIG_REMOTE_VLLM_WHISPER:
                 # vllm 部署方式
@@ -296,7 +292,7 @@ class PipelineManager:
                 self.__update_db_task(task)
                 return None
         # download video
-        self.__data.status = const.PIPELINE_STATUS_DOWNLOADER
+        self.__update_pipeline_status(task, const.PIPELINE_STATUS_DOWNLOADER)
         if self.__data.is_remote_video:
             try:
                 res = download_video(
@@ -339,16 +335,20 @@ class PipelineManager:
             self.__data.video_bean.height = int(res.get('height') or 0)
             self.__data.video_bean.metadata = res.get('metadata') or {}
         else:
-            # 对于本地上传的视频，只需要获取相应的视频基本信息即可，包括：时长、宽高等等
+            # 对于本地上传的视频，先将文件名改成 task_id.xxx 形式
             real_path = Path(get_current_path()).joinpath(task.task_upload_video_path).expanduser().resolve()
             if not real_path.is_file():
                 logger.error(f"upload video is not exists, path: {task.task_upload_video_path}")
                 return None
-            self.__data.video_bean.width, self.__data.video_bean.height = get_video_width_height(str(real_path))
-            self.__data.video_bean.duration = get_video_or_audio_duration(str(real_path))
-            self.__data.video_bean.video_full_path = str(real_path)
+            new_real_path = real_path.with_stem(task.task_id)
+            real_path.rename(new_real_path)
+            # 对于本地上传的视频，只需要获取相应的视频基本信息即可，包括：时长、宽高等等
+            self.__data.video_bean.width, self.__data.video_bean.height = get_video_width_height(str(new_real_path))
+            self.__data.video_bean.duration = get_video_or_audio_duration(str(new_real_path))
+            self.__data.video_bean.video_full_path = str(new_real_path)
         # asr or subtitle download
         if self.__data.is_asr:
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_ASR)
             try:
                 audio_rewrite_type = task.audio_rewrite_type
                 # 从 vpt_asr_config 表中获取相应的配置信息
@@ -367,8 +367,17 @@ class PipelineManager:
                     )
                 else:
                     args = self.__process_asr_info(audio_rewrite_type, task, asr_config)
+                    video_full_path = Path(self.__data.video_bean.video_full_path).resolve()
+                    audio_mp3_path = video_full_path.with_suffix(".mp3")
+                    convert_video_to_mp3(video_full_path, audio_mp3_path)
+                    if not audio_mp3_path.is_file():
+                        msg = f"{str(audio_mp3_path)} not exists!"
+                        task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
+                        task.task_message = msg
+                        self.__update_db_task(task)
+                        return None
                     res = asr_convert(
-                        self.__data.video_bean.video_full_path,
+                        str(audio_mp3_path),
                         audio_rewrite_type=audio_rewrite_type,
                         proxy_url=self.__proxy,
                         **args
@@ -386,45 +395,47 @@ class PipelineManager:
                 return None
         # llm prompt rewrite
         if self.__data.is_llm:
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_LLM)
             if not self.__data.is_asr:
                 # 如果没有进行ASR处理，只有视频，那么是无法进行LLM处理的
                 logger.error(f"LLM rewrite need ASR result")
                 return None
-        try:
-            srt_path = Path(self.__data.asr_bean.subtitle_full_path).expanduser().resolve()
-            llm_rewrite_dir = asyncio.run(get_llm_rewrite_path())
-            if not llm_rewrite_dir:
-                logger.error(f"llm rewrite dir is not exists")
-                return None
-            llm_rewrite_path = Path(llm_rewrite_dir).joinpath(srt_path.name)
-            llm_config_item = PipelineManager.__get_llm_config()
-            api_key = llm_config_item.api_key
-            base_url = llm_config_item.base_url
-            model = llm_config_item.llm_model_name
-            llm_rewrite(
-                prompt=self.__data.llm_bean.llm_text,
-                src_path=str(srt_path),
-                dst_path=str(llm_rewrite_path),
-                api_key=api_key,
-                base_url=base_url,
-                model=model
-            )
-            if not llm_rewrite_path.is_file():
-                msg = f"{task.task_url} llm rewrite error, llm rewrite path is None"
-                logger.exception(msg)
-                task.task_status = const.PIPELINE_ERR_FILE_SAVE
-                task.task_message = msg
+            try:
+                srt_path = Path(self.__data.asr_bean.subtitle_full_path).expanduser().resolve()
+                llm_rewrite_dir = asyncio.run(get_llm_rewrite_path())
+                if not llm_rewrite_dir:
+                    logger.error(f"llm rewrite dir is not exists")
+                    return None
+                llm_rewrite_path = Path(llm_rewrite_dir).joinpath(srt_path.name)
+                llm_config_item = PipelineManager.__get_llm_config()
+                api_key = llm_config_item.api_key
+                base_url = llm_config_item.base_url
+                model = llm_config_item.llm_model_name
+                llm_rewrite(
+                    prompt=self.__data.llm_bean.llm_text,
+                    src_path=str(srt_path),
+                    dst_path=str(llm_rewrite_path),
+                    api_key=api_key,
+                    base_url=base_url,
+                    model=model
+                )
+                if not llm_rewrite_path.is_file():
+                    msg = f"{task.task_url} llm rewrite error, llm rewrite path is None"
+                    logger.exception(msg)
+                    task.task_status = const.PIPELINE_ERR_FILE_SAVE
+                    task.task_message = msg
+                    self.__update_db_task(task)
+                    return None
+                self.__data.llm_bean.llm_full_path = str(llm_rewrite_path)
+            except VPTException as ex:
+                logger.exception(f"{task.task_url} llm rewrite error")
+                task.task_status = ex.code
+                task.task_message = ex.message
                 self.__update_db_task(task)
                 return None
-            self.__data.llm_bean.llm_full_path = str(llm_rewrite_path)
-        except VPTException as ex:
-            logger.exception(f"{task.task_url} llm rewrite error")
-            task.task_status = ex.code
-            task.task_message = ex.message
-            self.__update_db_task(task)
-            return None
         # rewrite to tts
         if self.__data.is_tts:
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_TTS)
             tts_rewrite_dir = asyncio.run(get_tts_rewrite_path())
             if not tts_rewrite_dir:
                 msg = f"config.yaml storage.tts_rewrite not set!"
@@ -485,6 +496,7 @@ class PipelineManager:
             self.__data.tts_bean.tts_full_path = str(res_path)
         # material video
         if self.__data.is_material:
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_OVERLAY)
             subtitle_path = self.__get_subtitle_path()
             res_list = video_overlay(
                 video_file_path=self.__data.video_bean.video_full_path,
@@ -497,6 +509,7 @@ class PipelineManager:
             )
             self.__data.material_video_bean.video_materials = res_list
         # assembly video(ffmpeg)
+        self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
         output_path = asyncio.run(get_output_path())
         if not output_path:
             msg = f"config.yaml storage.output not set! pls set storage.output first"
@@ -514,7 +527,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20260913190132110313"
+    task_id = "20260930150125329927"
     database.start()
     db = database.get_sync_session()
     try:

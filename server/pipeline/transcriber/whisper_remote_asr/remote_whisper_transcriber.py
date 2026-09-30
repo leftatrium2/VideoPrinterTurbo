@@ -58,7 +58,7 @@ if __name__ == "__main__":
         remote_server_model="",
         language="zh"
     )
-    result = remote_whisper_transcriber.transcribe("/Users/sunxiao5/1-asr.mp3")
+    result = remote_whisper_transcriber.transcribe("/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/1ee55737d1454ab189a06b90e81698d6.mp3")
     if result:
         print(result)
     else:

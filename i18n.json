@@ -153,279 +153,850 @@
     "asr_lang_subtitle": [
       {
         "cn": "南非荷兰语",
-        "en": "Afrikaans"
+        "en": "Afrikaans",
+        "val": "0"
       },
       {
         "cn": "阿尔巴尼亚语",
-        "en": "Albanian"
+        "en": "Albanian",
+        "val": "1"
       },
       {
         "cn": "阿姆哈拉语",
-        "en": "Amharic"
+        "en": "Amharic",
+        "val": "2"
       },
       {
         "cn": "阿拉伯语",
-        "en": "Arabic"
+        "en": "Arabic",
+        "val": "3"
       },
       {
         "cn": "亚美尼亚语",
-        "en": "Armenian"
+        "en": "Armenian",
+        "val": "4"
       },
       {
         "cn": "阿塞拜疆语",
-        "en": "Azerbaijani"
+        "en": "Azerbaijani",
+        "val": "5"
       },
       {
         "cn": "巴斯克语",
-        "en": "Basque"
+        "en": "Basque",
+        "val": "6"
       },
       {
         "cn": "白俄罗斯语",
-        "en": "Belarusian"
+        "en": "Belarusian",
+        "val": "7"
       },
       {
         "cn": "孟加拉语",
-        "en": "Bengali"
+        "en": "Bengali",
+        "val": "8"
       },
       {
         "cn": "保加利亚语",
-        "en": "Bulgarian"
+        "en": "Bulgarian",
+        "val": "9"
       },
       {
         "cn": "缅甸语",
-        "en": "Burmese"
+        "en": "Burmese",
+        "val": "10"
       },
       {
         "cn": "中文(简体)",
-        "en": "Chinese Simplified"
+        "en": "Chinese Simplified",
+        "val": "11"
       },
       {
         "cn": "中文(繁体)",
-        "en": "Chinese Traditional"
+        "en": "Chinese Traditional",
+        "val": "12"
       },
       {
         "cn": "捷克语",
-        "en": "Czech"
+        "en": "Czech",
+        "val": "13"
       },
       {
         "cn": "丹麦语",
-        "en": "Danish"
+        "en": "Danish",
+        "val": "14"
       },
       {
         "cn": "荷兰语",
-        "en": "Dutch"
+        "en": "Dutch",
+        "val": "15"
       },
       {
         "cn": "英语",
-        "en": "English"
+        "en": "English",
+        "val": "16"
       },
       {
         "cn": "英语(原声)",
-        "en": "English original"
+        "en": "English original",
+        "val": "17"
       },
       {
         "cn": "爱沙尼亚语",
-        "en": "Estonian"
+        "en": "Estonian",
+        "val": "18"
       },
       {
         "cn": "菲律宾语",
-        "en": "Filipino"
+        "en": "Filipino",
+        "val": "19"
       },
       {
         "cn": "芬兰语",
-        "en": "Finnish"
+        "en": "Finnish",
+        "val": "20"
       },
       {
         "cn": "法语",
-        "en": "French"
+        "en": "French",
+        "val": "21"
       },
       {
         "cn": "加利西亚语",
-        "en": "Galician"
+        "en": "Galician",
+        "val": "22"
       },
       {
         "cn": "格鲁吉亚语",
-        "en": "Georgian"
+        "en": "Georgian",
+        "val": "23"
       },
       {
         "cn": "德语",
-        "en": "German"
+        "en": "German",
+        "val": "24"
       },
       {
         "cn": "希腊语",
-        "en": "Greek"
+        "en": "Greek",
+        "val": "25"
       },
       {
         "cn": "古吉拉特语",
-        "en": "Gujarati"
+        "en": "Gujarati",
+        "val": "26"
       },
       {
         "cn": "希伯来语",
-        "en": "Hebrew"
+        "en": "Hebrew",
+        "val": "27"
       },
       {
         "cn": "印地语",
-        "en": "Hindi"
+        "en": "Hindi",
+        "val": "28"
       },
       {
         "cn": "匈牙利语",
-        "en": "Hungarian"
+        "en": "Hungarian",
+        "val": "29"
       },
       {
         "cn": "冰岛语",
-        "en": "Icelandic"
+        "en": "Icelandic",
+        "val": "30"
       },
       {
         "cn": "印尼语",
-        "en": "Indonesian"
+        "en": "Indonesian",
+        "val": "31"
       },
       {
         "cn": "意大利语",
-        "en": "Italian"
+        "en": "Italian",
+        "val": "32"
       },
       {
         "cn": "日语",
-        "en": "Japanese"
+        "en": "Japanese",
+        "val": "33"
       },
       {
         "cn": "爪哇语",
-        "en": "Javanese"
+        "en": "Javanese",
+        "val": "34"
       },
       {
         "cn": "卡纳达语",
-        "en": "Kannada"
+        "en": "Kannada",
+        "val": "35"
       },
       {
         "cn": "高棉语",
-        "en": "Khmer"
+        "en": "Khmer",
+        "val": "36"
       },
       {
         "cn": "韩语",
-        "en": "Korean"
+        "en": "Korean",
+        "val": "37"
       },
       {
         "cn": "老挝语",
-        "en": "Lao"
+        "en": "Lao",
+        "val": "38"
       },
       {
         "cn": "拉脱维亚语",
-        "en": "Latvian"
+        "en": "Latvian",
+        "val": "39"
       },
       {
         "cn": "立陶宛语",
-        "en": "Lithuanian"
+        "en": "Lithuanian",
+        "val": "40"
       },
       {
         "cn": "马其顿语",
-        "en": "Macedonian"
+        "en": "Macedonian",
+        "val": "41"
       },
       {
         "cn": "马来语",
-        "en": "Malay"
+        "en": "Malay",
+        "val": "42"
       },
       {
         "cn": "马拉雅拉姆语",
-        "en": "Malayalam"
+        "en": "Malayalam",
+        "val": "43"
       },
       {
         "cn": "马拉地语",
-        "en": "Marathi"
+        "en": "Marathi",
+        "val": "44"
       },
       {
         "cn": "蒙古语",
-        "en": "Mongolian"
+        "en": "Mongolian",
+        "val": "45"
       },
       {
         "cn": "尼泊尔语",
-        "en": "Nepali"
+        "en": "Nepali",
+        "val": "46"
       },
       {
         "cn": "挪威语",
-        "en": "Norwegian"
+        "en": "Norwegian",
+        "val": "47"
       },
       {
         "cn": "波斯语",
-        "en": "Farsi"
+        "en": "Farsi",
+        "val": "48"
       },
       {
         "cn": "波兰语",
-        "en": "Polish"
+        "en": "Polish",
+        "val": "49"
       },
       {
         "cn": "葡萄牙语",
-        "en": "Portuguese"
+        "en": "Portuguese",
+        "val": "50"
       },
       {
         "cn": "葡萄牙语(葡萄牙)",
-        "en": "Portuguese-Portugal"
+        "en": "Portuguese-Portugal",
+        "val": "51"
       },
       {
         "cn": "旁遮普语",
-        "en": "Punjabi"
+        "en": "Punjabi",
+        "val": "52"
       },
       {
         "cn": "罗马尼亚语",
-        "en": "Romanian"
+        "en": "Romanian",
+        "val": "53"
       },
       {
         "cn": "俄语",
-        "en": "Russian"
+        "en": "Russian",
+        "val": "54"
       },
       {
         "cn": "僧伽罗语",
-        "en": "Sinhala"
+        "en": "Sinhala",
+        "val": "55"
       },
       {
         "cn": "斯洛伐克语",
-        "en": "Slovak"
+        "en": "Slovak",
+        "val": "56"
       },
       {
         "cn": "西班牙语",
-        "en": "Spanish"
+        "en": "Spanish",
+        "val": "57"
       },
       {
         "cn": "巽他语",
-        "en": "Sundanese"
+        "en": "Sundanese",
+        "val": "58"
       },
       {
         "cn": "斯瓦希里语",
-        "en": "Swahili"
+        "en": "Swahili",
+        "val": "59"
       },
       {
         "cn": "瑞典语",
-        "en": "Swedish"
+        "en": "Swedish",
+        "val": "60"
       },
       {
         "cn": "泰米尔语",
-        "en": "Tamil"
+        "en": "Tamil",
+        "val": "61"
       },
       {
         "cn": "泰卢固语",
-        "en": "Telugu"
+        "en": "Telugu",
+        "val": "62"
       },
       {
         "cn": "泰语",
-        "en": "Thai"
+        "en": "Thai",
+        "val": "63"
       },
       {
         "cn": "土耳其语",
-        "en": "Turkish"
+        "en": "Turkish",
+        "val": "64"
       },
       {
         "cn": "乌克兰语",
-        "en": "Ukrainian"
+        "en": "Ukrainian",
+        "val": "65"
       },
       {
         "cn": "乌兹别克语",
-        "en": "Uzbek"
+        "en": "Uzbek",
+        "val": "66"
       },
       {
         "cn": "越南语",
-        "en": "Vietnamese"
+        "en": "Vietnamese",
+        "val": "67"
       },
       {
         "cn": "祖鲁语",
-        "en": "Zulu"
+        "en": "Zulu",
+        "val": "68"
+      }
+    ],
+    "asr_lang_from_whisper": [
+      {
+        "cn": "英文",
+        "en": "english",
+        "val": "en"
+      },
+      {
+        "cn": "中文",
+        "en": "chinese",
+        "val": "zh"
+      },
+      {
+        "cn": "德语",
+        "en": "german",
+        "val": "de"
+      },
+      {
+        "cn": "西班牙语",
+        "en": "spanish",
+        "val": "es"
+      },
+      {
+        "cn": "俄语",
+        "en": "russian",
+        "val": "ru"
+      },
+      {
+        "cn": "韩语",
+        "en": "korean",
+        "val": "ko"
+      },
+      {
+        "cn": "法语",
+        "en": "french",
+        "val": "fr"
+      },
+      {
+        "cn": "日语",
+        "en": "japanese",
+        "val": "ja"
+      },
+      {
+        "cn": "葡萄牙语",
+        "en": "portuguese",
+        "val": "pt"
+      },
+      {
+        "cn": "土耳其语",
+        "en": "turkish",
+        "val": "tr"
+      },
+      {
+        "cn": "波兰语",
+        "en": "polish",
+        "val": "pl"
+      },
+      {
+        "cn": "加泰罗尼亚语",
+        "en": "catalan",
+        "val": "ca"
+      },
+      {
+        "cn": "荷兰语",
+        "en": "dutch",
+        "val": "nl"
+      },
+      {
+        "cn": "阿拉伯语",
+        "en": "arabic",
+        "val": "ar"
+      },
+      {
+        "cn": "瑞典语",
+        "en": "swedish",
+        "val": "sv"
+      },
+      {
+        "cn": "意大利语",
+        "en": "italian",
+        "val": "it"
+      },
+      {
+        "cn": "印度尼西亚语",
+        "en": "indonesian",
+        "val": "id"
+      },
+      {
+        "cn": "印地语",
+        "en": "hindi",
+        "val": "hi"
+      },
+      {
+        "cn": "芬兰语",
+        "en": "finnish",
+        "val": "fi"
+      },
+      {
+        "cn": "越南语",
+        "en": "vietnamese",
+        "val": "vi"
+      },
+      {
+        "cn": "希伯来语",
+        "en": "hebrew",
+        "val": "he"
+      },
+      {
+        "cn": "乌克兰语",
+        "en": "ukrainian",
+        "val": "uk"
+      },
+      {
+        "cn": "希腊语",
+        "en": "greek",
+        "val": "el"
+      },
+      {
+        "cn": "马来语",
+        "en": "malay",
+        "val": "ms"
+      },
+      {
+        "cn": "捷克语",
+        "en": "czech",
+        "val": "cs"
+      },
+      {
+        "cn": "罗马尼亚语",
+        "en": "romanian",
+        "val": "ro"
+      },
+      {
+        "cn": "丹麦语",
+        "en": "danish",
+        "val": "da"
+      },
+      {
+        "cn": "匈牙利语",
+        "en": "hungarian",
+        "val": "hu"
+      },
+      {
+        "cn": "泰米尔语",
+        "en": "tamil",
+        "val": "ta"
+      },
+      {
+        "cn": "挪威语",
+        "en": "norwegian",
+        "val": "no"
+      },
+      {
+        "cn": "泰语",
+        "en": "thai",
+        "val": "th"
+      },
+      {
+        "cn": "乌尔都语",
+        "en": "urdu",
+        "val": "ur"
+      },
+      {
+        "cn": "克罗地亚语",
+        "en": "croatian",
+        "val": "hr"
+      },
+      {
+        "cn": "保加利亚语",
+        "en": "bulgarian",
+        "val": "bg"
+      },
+      {
+        "cn": "立陶宛语",
+        "en": "lithuanian",
+        "val": "lt"
+      },
+      {
+        "cn": "拉丁语",
+        "en": "latin",
+        "val": "la"
+      },
+      {
+        "cn": "毛利语",
+        "en": "maori",
+        "val": "mi"
+      },
+      {
+        "cn": "马拉雅拉姆语",
+        "en": "malayalam",
+        "val": "ml"
+      },
+      {
+        "cn": "威尔士语",
+        "en": "welsh",
+        "val": "cy"
+      },
+      {
+        "cn": "斯洛伐克语",
+        "en": "slovak",
+        "val": "sk"
+      },
+      {
+        "cn": "泰卢固语",
+        "en": "telugu",
+        "val": "te"
+      },
+      {
+        "cn": "波斯语",
+        "en": "persian",
+        "val": "fa"
+      },
+      {
+        "cn": "拉脱维亚语",
+        "en": "latvian",
+        "val": "lv"
+      },
+      {
+        "cn": "孟加拉语",
+        "en": "bengali",
+        "val": "bn"
+      },
+      {
+        "cn": "塞尔维亚语",
+        "en": "serbian",
+        "val": "sr"
+      },
+      {
+        "cn": "阿塞拜疆语",
+        "en": "azerbaijani",
+        "val": "az"
+      },
+      {
+        "cn": "斯洛文尼亚语",
+        "en": "slovenian",
+        "val": "sl"
+      },
+      {
+        "cn": "卡纳达语",
+        "en": "kannada",
+        "val": "kn"
+      },
+      {
+        "cn": "爱沙尼亚语",
+        "en": "estonian",
+        "val": "et"
+      },
+      {
+        "cn": "马其顿语",
+        "en": "macedonian",
+        "val": "mk"
+      },
+      {
+        "cn": "布列塔尼语",
+        "en": "breton",
+        "val": "br"
+      },
+      {
+        "cn": "巴斯克语",
+        "en": "basque",
+        "val": "eu"
+      },
+      {
+        "cn": "冰岛语",
+        "en": "icelandic",
+        "val": "is"
+      },
+      {
+        "cn": "亚美尼亚语",
+        "en": "armenian",
+        "val": "hy"
+      },
+      {
+        "cn": "尼泊尔语",
+        "en": "nepali",
+        "val": "ne"
+      },
+      {
+        "cn": "蒙古语",
+        "en": "mongolian",
+        "val": "mn"
+      },
+      {
+        "cn": "波斯尼亚语",
+        "en": "bosnian",
+        "val": "bs"
+      },
+      {
+        "cn": "哈萨克语",
+        "en": "kazakh",
+        "val": "kk"
+      },
+      {
+        "cn": "阿尔巴尼亚语",
+        "en": "albanian",
+        "val": "sq"
+      },
+      {
+        "cn": "斯瓦希里语",
+        "en": "swahili",
+        "val": "sw"
+      },
+      {
+        "cn": "加利西亚语",
+        "en": "galician",
+        "val": "gl"
+      },
+      {
+        "cn": "马拉地语",
+        "en": "marathi",
+        "val": "mr"
+      },
+      {
+        "cn": "旁遮普语",
+        "en": "punjabi",
+        "val": "pa"
+      },
+      {
+        "cn": "僧伽罗语",
+        "en": "sinhala",
+        "val": "si"
+      },
+      {
+        "cn": "高棉语",
+        "en": "khmer",
+        "val": "km"
+      },
+      {
+        "cn": "修纳语",
+        "en": "shona",
+        "val": "sn"
+      },
+      {
+        "cn": "约鲁巴语",
+        "en": "yoruba",
+        "val": "yo"
+      },
+      {
+        "cn": "索马里语",
+        "en": "somali",
+        "val": "so"
+      },
+      {
+        "cn": "南非荷兰语",
+        "en": "afrikaans",
+        "val": "af"
+      },
+      {
+        "cn": "奥克语",
+        "en": "occitan",
+        "val": "oc"
+      },
+      {
+        "cn": "格鲁吉亚语",
+        "en": "georgian",
+        "val": "ka"
+      },
+      {
+        "cn": "白俄罗斯语",
+        "en": "belarusian",
+        "val": "be"
+      },
+      {
+        "cn": "塔吉克语",
+        "en": "tajik",
+        "val": "tg"
+      },
+      {
+        "cn": "信德语",
+        "en": "sindhi",
+        "val": "sd"
+      },
+      {
+        "cn": "古吉拉特语",
+        "en": "gujarati",
+        "val": "gu"
+      },
+      {
+        "cn": "阿姆哈拉语",
+        "en": "amharic",
+        "val": "am"
+      },
+      {
+        "cn": "意第绪语",
+        "en": "yiddish",
+        "val": "yi"
+      },
+      {
+        "cn": "老挝语",
+        "en": "lao",
+        "val": "lo"
+      },
+      {
+        "cn": "乌兹别克语",
+        "en": "uzbek",
+        "val": "uz"
+      },
+      {
+        "cn": "法罗语",
+        "en": "faroese",
+        "val": "fo"
+      },
+      {
+        "cn": "海地克里奥尔语",
+        "en": "haitian creole",
+        "val": "ht"
+      },
+      {
+        "cn": "普什图语",
+        "en": "pashto",
+        "val": "ps"
+      },
+      {
+        "cn": "土库曼语",
+        "en": "turkmen",
+        "val": "tk"
+      },
+      {
+        "cn": "新挪威语",
+        "en": "nynorsk",
+        "val": "nn"
+      },
+      {
+        "cn": "马耳他语",
+        "en": "maltese",
+        "val": "mt"
+      },
+      {
+        "cn": "梵语",
+        "en": "sanskrit",
+        "val": "sa"
+      },
+      {
+        "cn": "卢森堡语",
+        "en": "luxembourgish",
+        "val": "lb"
+      },
+      {
+        "cn": "缅甸语",
+        "en": "myanmar",
+        "val": "my"
+      },
+      {
+        "cn": "藏语",
+        "en": "tibetan",
+        "val": "bo"
+      },
+      {
+        "cn": "他加禄语",
+        "en": "tagalog",
+        "val": "tl"
+      },
+      {
+        "cn": "马达加斯加语",
+        "en": "malagasy",
+        "val": "mg"
+      },
+      {
+        "cn": "阿萨姆语",
+        "en": "assamese",
+        "val": "as"
+      },
+      {
+        "cn": "鞑靼语",
+        "en": "tatar",
+        "val": "tt"
+      },
+      {
+        "cn": "夏威夷语",
+        "en": "hawaiian",
+        "val": "haw"
+      },
+      {
+        "cn": "林加拉语",
+        "en": "lingala",
+        "val": "ln"
+      },
+      {
+        "cn": "豪萨语",
+        "en": "hausa",
+        "val": "ha"
+      },
+      {
+        "cn": "巴什基尔语",
+        "en": "bashkir",
+        "val": "ba"
+      },
+      {
+        "cn": "爪哇语",
+        "en": "javanese",
+        "val": "jw"
+      },
+      {
+        "cn": "巽他语",
+        "en": "sundanese",
+        "val": "su"
+      },
+      {
+        "cn": "粤语",
+        "en": "cantonese",
+        "val": "yue"
       }
     ]
   }

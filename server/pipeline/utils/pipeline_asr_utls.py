@@ -4,9 +4,6 @@ import os.path
 from pathlib import Path
 from typing import Optional
 
-from numba.cuda.libdeviceimpl import args
-
-import config.config as _config
 from pipeline.transcriber.azure_asr.azure_transcriber import AzureASR
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.bytedance_asr.volcengine_transcriber import VolcengineASR
@@ -16,11 +13,9 @@ from pipeline.transcriber.tencent_asr.tencent_cloud_transcriber import TencentCl
 from pipeline.transcriber.whisper_asr.whisper_transcriber import WhisperTranscriber
 from pipeline.transcriber.whisper_remote_asr.remote_whisper_transcriber import RemoteWhisperTranscriber
 from pipeline.transcriber.xunfei_asr.xf_cloud_asr import XFCloudASR
-from pipeline.utils.pipeline_video_downloader_utils import init_downloader
 from utils import const
 from utils.exception import VPTException
 from utils.file_utils import get_subtitle_path
-from utils.video_utils import convert_video_to_mp3
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +48,11 @@ def asr_convert(
 ) -> Optional[str]:
     if not download_path.strip():
         raise VPTException(const.PIPELINE_ERR_VALUE, "download path is empty")
-    video_path = Path(download_path).expanduser().resolve()
-    if not video_path.is_file():
+    audio_path = Path(download_path).expanduser().resolve()
+    if not audio_path.is_file():
         raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "download path is not exists")
-    # 将当前的视频文件，提取音频MP3文件
-    mp3_path = Path(video_path).with_suffix(".mp3")
-    convert_video_to_mp3(video_path, mp3_path)
+    if audio_path.suffix.lower() != ".mp3":
+        raise VPTException(const.PIPELINE_ERR_FILE_NOT_AUDIO_FORMAT, "download path is not mp3 format")
     # 然后，送到ASR服务中转换成srt
     transcriber: BaseTranscriber = None
     if (audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER):
@@ -140,7 +134,7 @@ def asr_convert(
         # https://www.volcengine.com/
         app_id = args.get("app_id") or ""
         access_token = args.get("access_token") or ""
-        audio_format = args.get("audio_format") or "wav"
+        audio_format = args.get("audio_format") or "mp3"
         transcriber = VolcengineASR(
             app_id=app_id,
             access_token=access_token,
@@ -162,17 +156,7 @@ def asr_convert(
     if not transcriber:
         return None
     transcriber.config(proxy=proxy_url)
-    return transcriber.transcribe(str(mp3_path))
+    return transcriber.transcribe(download_path)
 
 
-if __name__ == "__main__":
-    _config.init_config()
-    init_downloader()
 
-    result = asr_convert(
-        "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260720215545133997.mp4",
-        audio_rewrite_type=const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER,
-        remote_whisper_type=const.TASK_CONFIG_REMOTE_WHISPER_CPP,
-        remote_server_url="http://192.168.0.105:8004/inference",
-        language="en"
-    )

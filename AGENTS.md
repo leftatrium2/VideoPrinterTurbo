@@ -58,8 +58,10 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
 
 - `vpt_tasks.task_id` 是文本类型的任务主标识，不是数字型 `id`。状态：`0` 待处理、
   `1` 进行中、`2` 已完成、`-1` 失败。任务删除为软删除（`is_deleted=1`）。
-- 当前通过 `AddTask.vue` 编辑任务实际会新建任务：页面用 `GET /tasks/get` 回填表单，
-  提交时调用 `POST /tasks/add`。
+- `AddTask.vue` 编辑任务用 `GET /tasks/get` 回填表单，提交调用 `POST /tasks/update`；
+  新建任务调用 `POST /tasks/add`。
+- 字幕提取、本地 Whisper、远程 Whisper 分别用 `asr_type=1/2/3` 获取语言列表；
+  选项显示 `lang`，将字符串 `value` 原样提交到 `subtitle_lang`。
 - 任务 store 仅在存在 `status === 1` 的任务时每五秒轮询一次。
 - 下载代理字段为 `is_use_proxy`（不要使用旧字段 `is_download_proxy`）。检查链接时将
   复选框状态以查询参数 `use_proxy=true|false` 传给 `/tasks/check`。

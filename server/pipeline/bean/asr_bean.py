@@ -6,7 +6,7 @@ class AsrBean:
     """ 当前选择的ASR类型 """
     audio_rewrite_type: int = const.TASK_CONFIG_ASR_FROM_NONE
     task_url: str = ""
-    lang: int = 0
+    lang: str = "0"
 
     """ 生成的字幕文件，绝对地址 """
     subtitle_full_path: str = ""
@@ -31,11 +31,18 @@ class AsrBean:
     def __get_subtitle_lang(self, lang: int):
         return SubTitleTranscriber.get_subtitle_lang(lang)
 
+    def __get_lang(self, asr_type: int, lang: str) -> str:
+        if asr_type == const.TASK_CONFIG_ASR_FROM_SUBTITLE:
+            return self.__get_subtitle_lang(int(lang))
+        elif asr_type == const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER or asr_type == const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER:
+            return self.lang
+        return ""
+
     def __str__(self) -> str:
         return f"""
         AsrBean(
             audio_rewrite_type: {self.__convert_asr_type_to_str(self.audio_rewrite_type)}, 
             task_url: {self.task_url}, 
-            lang: {self.__get_subtitle_lang(self.lang)}, 
+            lang: {self.__get_lang(self.audio_rewrite_type, self.lang)}, 
             subtitle_full_path: {self.subtitle_full_path})
         """

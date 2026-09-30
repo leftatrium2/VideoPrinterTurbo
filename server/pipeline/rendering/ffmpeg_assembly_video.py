@@ -237,7 +237,7 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         vsrc = "[0:v:0]"
 
         # ── 字幕 ──
-        if self.__pipeline_data.is_asr:
+        if self.__pipeline_data.is_asr and self.__pipeline_data.is_rewrite_subtitle:
             subtitle_position = self.__pipeline_data.subtitle_bean.subtitle_position
             font_full_path = os.path.join(get_resource_font_path(), self.__pipeline_data.subtitle_bean.subtitle_font)
             font_dir, font_name = get_font_params(font_full_path)
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     pipeline_data.asr_bean = AsrBean()
     pipeline_data.asr_bean.audio_rewrite_type = "BYTEDANCE"
     pipeline_data.asr_bean.task_url = "https://www.youtube.com/watch?v=DgovrfgLxYs"
-    pipeline_data.asr_bean.lang = 0
+    pipeline_data.asr_bean.lang = "0"
     pipeline_data.asr_bean.subtitle_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/20260913190132110313.srt"
     pipeline_data.is_llm = True
     pipeline_data.llm_bean = LLMBean()

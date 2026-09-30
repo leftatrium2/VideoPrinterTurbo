@@ -35,7 +35,7 @@ export interface AddTaskParams {
   // 音频转文字
   is_from_asr_or_subtitle: boolean
   audio_rewrite_type: number
-  subtitle_lang: number
+  subtitle_lang: string
   // LLM 改写
   is_llm: boolean
   llm_prompt: string
@@ -169,7 +169,7 @@ export interface TaskDetail {
   error_desc: string
   is_from_asr_or_subtitle: number
   audio_rewrite_type: number
-  subtitle_lang: number
+  subtitle_lang: string
   is_llm: number
   llm_prompt: string
   is_rewrite_to_tts: number
@@ -229,7 +229,12 @@ export function deleteTask(taskId: string): Promise<ApiResult<Record<string, unk
   return request(http.get('/tasks/del', { params: { task_id: taskId } }))
 }
 
-export function getAsrLang(asrType: number): Promise<ApiResult<string[]>> {
+export interface AsrLangOption {
+  lang: string
+  value: string
+}
+
+export function getAsrLang(asrType: number): Promise<ApiResult<AsrLangOption[]>> {
   return request(http.get('/tasks/get_asr_lang', { params: { asr_type: asrType } }))
 }
 

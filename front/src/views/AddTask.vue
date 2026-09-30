@@ -65,10 +65,10 @@
           <el-option v-for="item in taskConfig.asr" :key="item.value" :label="item.name" :value="item.value" />
         </el-select>
 
-        <div v-if="form.transcription_mode === 1" class="mt-12">
-          <div class="field-label">{{ t('addTask.subtitleLang') }}</div>
-          <el-select v-model="form.subtitle_lang" class="full-width" :placeholder="t('addTask.subtitleLangPlaceholder')">
-            <el-option v-for="(lang, index) in subtitleLangList" :key="index" :label="lang" :value="index" />
+        <div v-if="hasAsrLanguage" class="mt-12">
+          <div class="field-label">{{ t(form.transcription_mode === 1 ? 'addTask.subtitleLang' : 'addTask.asrLang') }}</div>
+          <el-select v-model="form.subtitle_lang" class="full-width" :loading="asrLangLoading" :disabled="asrLangLoading" :placeholder="t(form.transcription_mode === 1 ? 'addTask.subtitleLangPlaceholder' : 'addTask.asrLangPlaceholder')">
+            <el-option v-for="lang in asrLangList" :key="lang.value" :label="lang.lang" :value="lang.value" />
           </el-select>
         </div>
       </div>
@@ -349,7 +349,7 @@ import {
   QuestionFilled, Upload, Document, Link, VideoPlay, VideoPause, Close,
 } from '@element-plus/icons-vue'
 import { addTask, updateTask, checkTaskUrl, getTaskConfig, getTaskDetail, getTtsVoicePreview, ttsPreviewUrl, uploadBgm, uploadMaterial, uploadTaskVideo, getAsrLang } from '@/services/api'
-import type { TaskConfigData, TtsVoiceItem, BgmUploadResult, TaskDetail } from '@/services/api'
+import type { TaskConfigData, TtsVoiceItem, BgmUploadResult, TaskDetail, AsrLangOption } from '@/services/api'
 import { validateVideoMaterialKeyword } from '@/utils/videoMaterialKeyword'
 
 const router = useRouter()
@@ -398,7 +398,7 @@ const form = reactive({
   video_input_mode: 'download' as 'download' | 'upload',
   is_use_proxy: false,
   transcription_mode: 0 as number,
-  subtitle_lang: 0 as number,
+  subtitle_lang: '',
   llm_prompt: '',
   tts_service: '',
   tts_voice: '',
@@ -429,7 +429,11 @@ const TTS_ENGINE_MAP: Record<string, number> = {
   TTS_LIST_XIAOMI_MIMO_TTS: 5,
 }
 
-const subtitleLangList = ref<string[]>([])
+const asrLangList = ref<AsrLangOption[]>([])
+const asrLangLoading = ref(false)
+const hasAsrLanguage = computed(() => [1, 2, 3].includes(form.transcription_mode))
+let initializing = true
+let asrLangRequest = 0
 
 const ttsVoices = computed((): TtsVoiceItem[] => {
   const found = taskConfig.tts.find(t => t.value === form.tts_service)
@@ -455,7 +459,6 @@ onMounted(async () => {
     taskConfig.material = config.material
     if (config.asr.length > 0) {
       form.transcription_mode = config.asr[0].value
-      if (config.asr[0].value === 1) await loadSubtitleLangList()
     }
     if (config.tts.length > 0) {
       form.tts_service = config.tts[0].value
@@ -481,7 +484,11 @@ onMounted(async () => {
       ElMessage.error(t('addTask.loadTaskFailed'))
       router.push('/tasks')
     }
+  } else {
+    await loadAsrLangList()
   }
+  await nextTick()
+  initializing = false
 })
 
 watch(() => form.tts_service, () => {
@@ -491,24 +498,36 @@ watch(() => form.tts_service, () => {
   isPlaying.value = false
 })
 
-watch(() => form.transcription_mode, async (newVal) => {
-  if (newVal === 1) {
-    await loadSubtitleLangList()
-  } else {
-    subtitleLangList.value = []
-    form.subtitle_lang = 0
-  }
+watch(() => form.transcription_mode, async () => {
+  if (!initializing) await loadAsrLangList()
 })
 
-async function loadSubtitleLangList() {
+async function loadAsrLangList(savedValue?: string) {
+  const requestId = ++asrLangRequest
+  const mode = form.transcription_mode
+  asrLangList.value = []
+  form.subtitle_lang = ''
+  asrLangLoading.value = false
+  if (![1, 2, 3].includes(mode)) return
+  asrLangLoading.value = true
   try {
-    const res = await getAsrLang(1)
-    subtitleLangList.value = res.data || []
-    if (subtitleLangList.value.length > 0 && !form.subtitle_lang) {
-      form.subtitle_lang = 0
+    const res = await getAsrLang(mode)
+    if (requestId !== asrLangRequest) return
+    if (res.code !== 0) throw new Error(res.msg)
+    asrLangList.value = res.data || []
+    if (savedValue !== undefined) {
+      if (asrLangList.value.some(item => item.value === savedValue)) {
+        form.subtitle_lang = savedValue
+      } else {
+        ElMessage.warning(t('addTask.asrLangReselect'))
+      }
+    } else {
+      form.subtitle_lang = asrLangList.value[0]?.value ?? ''
     }
   } catch {
-    subtitleLangList.value = []
+    if (requestId === asrLangRequest) ElMessage.error(t('addTask.asrLangLoadFailed'))
+  } finally {
+    if (requestId === asrLangRequest) asrLangLoading.value = false
   }
 }
 
@@ -689,10 +708,7 @@ async function applyTaskDetail(detail: TaskDetail) {
 
   enabled.transcription = !!detail.is_from_asr_or_subtitle
   form.transcription_mode = detail.audio_rewrite_type
-  if (detail.audio_rewrite_type === 1) {
-    await loadSubtitleLangList()
-    form.subtitle_lang = detail.subtitle_lang ?? 0
-  }
+  await loadAsrLangList(detail.subtitle_lang)
 
   enabled.llm = !!detail.is_llm
   form.llm_prompt = detail.llm_prompt
@@ -744,6 +760,11 @@ async function applyTaskDetail(detail: TaskDetail) {
 }
 
 async function handleSubmit() {
+  if (enabled.transcription && hasAsrLanguage.value &&
+      (asrLangLoading.value || !asrLangList.value.some(item => item.value === form.subtitle_lang))) {
+    ElMessage.warning(t('addTask.asrLangRequired'))
+    return
+  }
   if (form.video_input_mode === 'download' && !form.task_url.trim()) {
     ElMessage.warning(t('addTask.enterUrl'))
     return
@@ -767,7 +788,7 @@ async function handleSubmit() {
       // 音频转文字
       is_from_asr_or_subtitle: enabled.transcription,
       audio_rewrite_type: form.transcription_mode,
-      subtitle_lang: form.transcription_mode === 1 ? form.subtitle_lang : 0,
+      subtitle_lang: hasAsrLanguage.value ? form.subtitle_lang : '0',
       // LLM 改写
       is_llm: enabled.llm,
       llm_prompt: form.llm_prompt,

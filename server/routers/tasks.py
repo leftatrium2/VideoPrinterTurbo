@@ -42,7 +42,9 @@ async def list_tasks(page: int = Query(default=1, min=1), page_size: int = Query
     result = await db.execute(select(func.count()).select_from(VptTasks).where(VptTasks.is_deleted == 0))
     total = result.scalar_one()
     offset = (page - 1) * page_size
-    result = await db.execute(select(VptTasks).where(VptTasks.is_deleted == 0).offset(offset).limit(page_size))
+    result = await db.execute(
+        select(VptTasks).where(VptTasks.is_deleted == 0).order_by(VptTasks.create_time.desc()).offset(offset).limit(
+            page_size))
     data = result.scalars().all()
     for item in data:
         del item.id
@@ -235,7 +237,18 @@ async def get_asr_lang(asr_type: int = Query(default=None), db: AsyncSession = D
     if asr_type == const.TASK_CONFIG_ASR_FROM_SUBTITLE:
         ret_list = []
         for item in _config.i18n_config['asr_lang_list']['asr_lang_subtitle']:
-            ret_list.append(item[lang])
+            ret_list.append({
+                "lang": item[lang],
+                "value": item['val']
+            })
+        return result_succ(ret_list)
+    elif asr_type == const.TASK_CONFIG_ASR_FROM_LOCAL_WHISPER or asr_type == const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER:
+        ret_list = []
+        for item in _config.i18n_config['asr_lang_list']['asr_lang_from_whisper']:
+            ret_list.append({
+                "lang": item[lang],
+                'value': item['val']
+            })
         return result_succ(ret_list)
 
     return result_failure(const.TASK_ERR_UNKNOWN, "Unknown ASR type")

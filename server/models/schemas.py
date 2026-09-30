@@ -70,7 +70,7 @@ class TaskItem(BaseModel):
     # Audio conversion method
     audio_rewrite_type: int = 0
     # Subtitle language
-    subtitle_lang: int = 0
+    subtitle_lang: str = "0"
     ### 2. LLM Rewrite
     is_llm: bool = False
     # LLM Prompt

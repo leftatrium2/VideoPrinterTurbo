@@ -59,6 +59,67 @@ describe('AddTask', () => {
     material: { source: [], splicing: [], transition: [], ratio: [] },
     })
     apiMocks.checkTaskUrl.mockResolvedValue({ code: 0, msg: 'success', data: {} })
+    apiMocks.getAsrLang.mockResolvedValue({ code: 0, msg: 'success', data: [
+      { lang: 'Auto', value: '0' }, { lang: 'English', value: 'en' },
+    ] })
+  })
+
+  it.each([1, 2, 3])('loads and submits string language values for mode %s', async (mode) => {
+    apiMocks.getTaskConfig.mockResolvedValue({
+      asr: [{ name: 'Mode', value: mode }], tts: [], subtitle: [], bgm: [],
+      material: { source: [], splicing: [], transition: [], ratio: [] },
+    })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    expect(apiMocks.getAsrLang).toHaveBeenCalledExactlyOnceWith(mode)
+    const language = wrapper.findAllComponents({ name: 'el-select' })
+      .find(item => item.attributes('modelvalue') === '0')!
+    language.vm.$emit('update:modelValue', 'en')
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).toHaveBeenCalledWith(expect.objectContaining({
+      audio_rewrite_type: mode, subtitle_lang: 'en',
+    }))
+  })
+
+  it.each([1, 2, 3])('restores and updates a saved language for mode %s', async (mode) => {
+    route.query = { task_id: 'task-language' }
+    apiMocks.getTaskDetail.mockResolvedValue({
+      task_url: 'https://example.com/video', audio_rewrite_type: mode,
+      tts_volume: 1, tts_speed: 1,
+      subtitle_lang: 'en', is_from_asr_or_subtitle: 1,
+      subtitle_font_color: 0xffffff, subtitle_border_color: 0, video_material_keyword: '',
+    })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    expect(apiMocks.getAsrLang).toHaveBeenCalledExactlyOnceWith(mode)
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.updateTask).toHaveBeenCalledWith(expect.objectContaining({
+      task_id: 'task-language', audio_rewrite_type: mode, subtitle_lang: 'en',
+    }))
+  })
+
+  it('ignores an outdated language response after switching modes', async () => {
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    let resolveFirst!: (value: unknown) => void
+    apiMocks.getAsrLang.mockImplementationOnce(() => new Promise(resolve => { resolveFirst = resolve }))
+    const modeSelect = wrapper.findAllComponents({ name: 'el-select' })
+      .find(item => item.attributes('modelvalue') === '0')!
+    modeSelect.vm.$emit('update:modelValue', 1)
+    await flushPromises()
+    modeSelect.vm.$emit('update:modelValue', 3)
+    await flushPromises()
+    resolveFirst({ code: 0, data: [{ lang: 'Stale', value: 'stale' }] })
+    await flushPromises()
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).toHaveBeenCalledWith(expect.objectContaining({
+      audio_rewrite_type: 3, subtitle_lang: '0',
+    }))
   })
 
   it.each(['top-center', 'center', 'bottom-center', 'custom'])('saves subtitle position %s when editing', async (position) => {

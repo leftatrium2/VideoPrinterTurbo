@@ -61,8 +61,6 @@ class VptTasks(Base):
     is_deleted: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     task_status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     task_id: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    error_code: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
-    error_desc: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     is_rewrite_to_tts: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     is_llm: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     is_publish: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
@@ -90,13 +88,14 @@ class VptTasks(Base):
     tts_voice: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     tts_volume: Mapped[float] = mapped_column(REAL, nullable=False, server_default=text('0'))
     subtitle_position: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    subtitle_lang: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    subtitle_lang: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     is_use_proxy: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     video_material_keyword: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_upload_video_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_original_video_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     task_message: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     pipeline_status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    output_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
 
 
 class VptTtsConfig(Base):
