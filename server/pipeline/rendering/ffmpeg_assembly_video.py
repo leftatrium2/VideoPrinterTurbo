@@ -273,6 +273,7 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
 
         # ── BGM ──
         if self.__pipeline_data.is_bgm:
+            """如果自定义了BGM，那么使用定义的"""
             bgm_idx = next_input_idx
             command.extend(["-stream_loop", "-1"])
             command.append("-i")
@@ -281,6 +282,20 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             filter_complex += (
                 f"[{bgm_idx}:a]aresample=48000,"
                 f"volume={self.__pipeline_data.bgm_bean.bgm_volume},"
+                f"atrim=duration={duration},"
+                f"asetpts=N/SR/TB[bgm];"
+            )
+            if self.__pipeline_data.is_tts:
+                filter_complex += (
+                    "[voice][bgm]"
+                    "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
+                )
+        elif self.__pipeline_data.is_need_audio_separator:
+            """如果有人、声分离设置，那么需要将原BGM配置进来"""
+            command.append("-i")
+            command.append(self.__pipeline_data.audio_separator_bean.bgm_path)
+            filter_complex += (
+                f"[0:a]aresample=48000,"
                 f"atrim=duration={duration},"
                 f"asetpts=N/SR/TB[bgm];"
             )

@@ -62,6 +62,8 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
   新建任务调用 `POST /tasks/add`。
 - 字幕提取、本地 Whisper、远程 Whisper 分别用 `asr_type=1/2/3` 获取语言列表；
   选项显示 `lang`，将字符串 `value` 原样提交到 `subtitle_lang`。
+- 音频转文字中的人声分离选项默认“否”，通过布尔字段 `is_need_audio_separator`
+  提交用户选择；编辑时兼容任务详情返回的 `0/1`。
 - 任务 store 仅在存在 `status === 1` 的任务时每五秒轮询一次。
 - 下载代理字段为 `is_use_proxy`（不要使用旧字段 `is_download_proxy`）。检查链接时将
   复选框状态以查询参数 `use_proxy=true|false` 传给 `/tasks/check`。

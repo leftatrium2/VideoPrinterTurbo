@@ -67,6 +67,8 @@ class TaskItem(BaseModel):
     is_use_proxy: bool = False
     ### 1. Audio to Text
     is_from_asr_or_subtitle: bool = False
+    # need separate audio from bgm
+    is_need_audio_separator: bool = False
     # Audio conversion method
     audio_rewrite_type: int = 0
     # Subtitle language

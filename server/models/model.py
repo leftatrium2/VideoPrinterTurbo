@@ -96,6 +96,7 @@ class VptTasks(Base):
     task_message: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     pipeline_status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     output_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    is_need_audio_separator: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
 
 
 class VptTtsConfig(Base):

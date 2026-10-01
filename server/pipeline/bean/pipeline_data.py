@@ -2,6 +2,7 @@ from sympy.abc import M
 
 from models import model
 from pipeline.bean.asr_bean import AsrBean
+from pipeline.bean.audio_separator import AudioSeparatorBean
 from pipeline.bean.bgm_bean import BgmBean
 from pipeline.bean.ffmpeg_bean import FFMPEGBean
 from pipeline.bean.llm_bean import LLMBean
@@ -18,6 +19,10 @@ class PipeLineData:
     status: int = const.PIPELINE_STATUS_INI
     is_remote_video: bool = True
     video_bean: VideoDownloaderBean = VideoDownloaderBean()
+    # 是否启用人声与背景分离
+    # 只有在ASR的时候，可用，其他时候，分离没有意义
+    is_need_audio_separator: bool = False
+    audio_separator_bean: AudioSeparatorBean = AudioSeparatorBean()
     # 是否启用ASR或者拉取字幕（从youtube.com）
     is_asr: bool = False
     asr_bean: AsrBean = AsrBean()

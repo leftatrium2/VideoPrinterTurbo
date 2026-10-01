@@ -73,6 +73,15 @@ async def get_video_to_text_path() -> Optional[str]:
     return path
 
 
+async def get_separate_vocals_path() -> Optional[str]:
+    path = _config.config['storage']['audio_separator']
+    if not path:
+        return None
+    path = os.path.join(get_current_path(), path)
+    await anyio.to_thread.run_sync(lambda: os.makedirs(path, exist_ok=True))
+    return path
+
+
 async def get_llm_rewrite_path() -> Optional[str]:
     path = _config.config['storage']['llm_rewrite']
     if not path:

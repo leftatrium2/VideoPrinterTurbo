@@ -60,10 +60,18 @@
         <HelpPopover :content="t('addTask.helpTranscription')" />
       </div>
       <div class="section-body">
-        <div class="field-label">{{ t('addTask.transcriptionMode') }}</div>
-        <el-select v-model="form.transcription_mode" class="full-width">
-          <el-option v-for="item in taskConfig.asr" :key="item.value" :label="item.name" :value="item.value" />
+        <div class="field-label">{{ t('addTask.audioSeparator') }}</div>
+        <el-select v-model="form.is_need_audio_separator" class="full-width">
+          <el-option :label="t('addTask.audioSeparatorYes')" :value="true" />
+          <el-option :label="t('addTask.audioSeparatorNo')" :value="false" />
         </el-select>
+
+        <div class="mt-12">
+          <div class="field-label">{{ t('addTask.transcriptionMode') }}</div>
+          <el-select v-model="form.transcription_mode" class="full-width">
+            <el-option v-for="item in taskConfig.asr" :key="item.value" :label="item.name" :value="item.value" />
+          </el-select>
+        </div>
 
         <div v-if="hasAsrLanguage" class="mt-12">
           <div class="field-label">{{ t(form.transcription_mode === 1 ? 'addTask.subtitleLang' : 'addTask.asrLang') }}</div>
@@ -398,6 +406,7 @@ const form = reactive({
   video_input_mode: 'download' as 'download' | 'upload',
   is_use_proxy: false,
   transcription_mode: 0 as number,
+  is_need_audio_separator: false,
   subtitle_lang: '',
   llm_prompt: '',
   tts_service: '',
@@ -707,6 +716,7 @@ async function applyTaskDetail(detail: TaskDetail) {
   }
 
   enabled.transcription = !!detail.is_from_asr_or_subtitle
+  form.is_need_audio_separator = !!detail.is_need_audio_separator
   form.transcription_mode = detail.audio_rewrite_type
   await loadAsrLangList(detail.subtitle_lang)
 
@@ -787,6 +797,7 @@ async function handleSubmit() {
       is_use_proxy: form.video_input_mode === 'download' && form.is_use_proxy,
       // 音频转文字
       is_from_asr_or_subtitle: enabled.transcription,
+      is_need_audio_separator: form.is_need_audio_separator,
       audio_rewrite_type: form.transcription_mode,
       subtitle_lang: hasAsrLanguage.value ? form.subtitle_lang : '0',
       // LLM 改写

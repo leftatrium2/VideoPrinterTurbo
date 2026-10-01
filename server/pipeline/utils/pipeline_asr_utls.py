@@ -4,6 +4,7 @@ import os.path
 from pathlib import Path
 from typing import Optional
 
+from pipeline.separate_vocals.separate_vocals import SeparateVocals
 from pipeline.transcriber.azure_asr.azure_transcriber import AzureASR
 from pipeline.transcriber.base import BaseTranscriber
 from pipeline.transcriber.bytedance_asr.volcengine_transcriber import VolcengineASR
@@ -15,9 +16,20 @@ from pipeline.transcriber.whisper_remote_asr.remote_whisper_transcriber import R
 from pipeline.transcriber.xunfei_asr.xf_cloud_asr import XFCloudASR
 from utils import const
 from utils.exception import VPTException
-from utils.file_utils import get_subtitle_path
+from utils.file_utils import get_subtitle_path, get_separate_vocals_path
 
 logger = logging.getLogger(__name__)
+
+
+def audio_separate(
+        src_mp3_path: str
+):
+    audio_separator_path = asyncio.run(get_separate_vocals_path())
+    separate_vocals = SeparateVocals(
+        src_mp3_path=src_mp3_path,
+        dst_mp3_dir=audio_separator_path if audio_separator_path else ""
+    )
+    return separate_vocals.convert()
 
 
 def subtitle_convert(
@@ -157,6 +169,3 @@ def asr_convert(
         return None
     transcriber.config(proxy=proxy_url)
     return transcriber.transcribe(download_path)
-
-
-

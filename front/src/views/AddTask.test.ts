@@ -64,6 +64,46 @@ describe('AddTask', () => {
     ] })
   })
 
+  it.each([true, false])('submits audio separation as boolean %s when creating', async (selected) => {
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    const separator = wrapper.findAllComponents({ name: 'el-select' })
+      .find(item => item.attributes('modelvalue') === 'false')!
+    expect(separator.exists()).toBe(true)
+    separator.vm.$emit('update:modelValue', selected)
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).toHaveBeenCalledWith(expect.objectContaining({
+      is_need_audio_separator: selected,
+    }))
+  })
+
+  it.each([0, 1, false, true, undefined])('restores audio separation %s and allows changing it when editing', async (saved) => {
+    route.query = { task_id: 'task-separator' }
+    apiMocks.getTaskDetail.mockResolvedValue({
+      task_url: 'https://example.com/video', audio_rewrite_type: 0,
+      is_need_audio_separator: saved, tts_volume: 1, tts_speed: 1,
+      subtitle_font_color: 0xffffff, subtitle_border_color: 0, video_material_keyword: '',
+    })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    const separator = wrapper.findAllComponents({ name: 'el-select' })
+      .find(item => item.attributes('modelvalue') === String(!!saved))!
+    expect(separator.exists()).toBe(true)
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.updateTask).toHaveBeenLastCalledWith(expect.objectContaining({
+      task_id: 'task-separator', is_need_audio_separator: !!saved,
+    }))
+    separator.vm.$emit('update:modelValue', !saved)
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.updateTask).toHaveBeenLastCalledWith(expect.objectContaining({
+      task_id: 'task-separator', is_need_audio_separator: !saved,
+    }))
+  })
+
   it.each([1, 2, 3])('loads and submits string language values for mode %s', async (mode) => {
     apiMocks.getTaskConfig.mockResolvedValue({
       asr: [{ name: 'Mode', value: mode }], tts: [], subtitle: [], bgm: [],

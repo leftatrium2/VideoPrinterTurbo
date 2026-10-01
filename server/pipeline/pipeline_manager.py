@@ -14,7 +14,7 @@ from pipeline.bean.pipeline_data import PipeLineData
 from pipeline.bean.video_downloader_bean import VideoDownloaderBean
 from pipeline.downloader.base import DownloaderContext
 from pipeline.rendering.ffmpeg_assembly_video import FFMpegAssemblyVideo
-from pipeline.utils.pipeline_asr_utls import asr_convert, subtitle_convert
+from pipeline.utils.pipeline_asr_utls import asr_convert, subtitle_convert, audio_separate
 from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_material_video_utils import video_overlay
 from pipeline.utils.pipeline_tts_utils import tts_from_subtitle
@@ -130,6 +130,7 @@ class PipelineManager:
         # asr configuration
         self.__data.is_asr = task.is_from_asr_or_subtitle == 1
         if self.__data.is_asr:
+            self.__data.is_need_audio_separator = (task.is_need_audio_separator == 1)
             self.__data.asr_bean.audio_rewrite_type = task.audio_rewrite_type
             self.__data.asr_bean.task_url = task.task_url
             self.__data.asr_bean.lang = task.subtitle_lang
@@ -312,12 +313,6 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_UNKNOWN
                 task.task_message = msg
                 return None
-            if res['status'] != 0:
-                msg = f"{self.__data.video_bean.task_url} download error, message:{res.get('message', 'unknown message')}"
-                logger.error(msg)
-                task.task_status = const.PIPELINE_ERR_UNKNOWN
-                task.task_message = msg
-                return None
             local_video_path = res.get('video_path') or ''
             if not local_video_path:
                 msg = f"BaseDownloader download error: local video path is empty"
@@ -376,12 +371,23 @@ class PipelineManager:
                         task.task_message = msg
                         self.__update_db_task(task)
                         return None
-                    res = asr_convert(
-                        str(audio_mp3_path),
-                        audio_rewrite_type=audio_rewrite_type,
-                        proxy_url=self.__proxy,
-                        **args
-                    )
+                    if self.__data.is_need_audio_separator:
+                        # 开启了背景人声分离
+                        (self.__data.audio_separator_bean.voice_path,
+                         self.__data.audio_separator_bean.bgm_path) = audio_separate(str(audio_mp3_path))
+                        res = asr_convert(
+                            self.__data.audio_separator_bean.voice_path,
+                            audio_rewrite_type=audio_rewrite_type,
+                            proxy_url=self.__proxy,
+                            **args
+                        )
+                    else:
+                        res = asr_convert(
+                            str(audio_mp3_path),
+                            audio_rewrite_type=audio_rewrite_type,
+                            proxy_url=self.__proxy,
+                            **args
+                        )
                 if not res:
                     logger.error(f"asr unknown, can't get result")
                     return None
@@ -527,7 +533,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20260930150125329927"
+    task_id = "20260930174849775386"
     database.start()
     db = database.get_sync_session()
     try:

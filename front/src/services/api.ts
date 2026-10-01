@@ -34,6 +34,7 @@ export interface AddTaskParams {
   is_use_proxy: boolean
   // 音频转文字
   is_from_asr_or_subtitle: boolean
+  is_need_audio_separator: boolean
   audio_rewrite_type: number
   subtitle_lang: string
   // LLM 改写
@@ -168,6 +169,7 @@ export interface TaskDetail {
   error_code: number
   error_desc: string
   is_from_asr_or_subtitle: number
+  is_need_audio_separator?: number | boolean
   audio_rewrite_type: number
   subtitle_lang: string
   is_llm: number

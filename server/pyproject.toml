@@ -43,6 +43,7 @@ dependencies = [
     "langgraph>=1.2.11",
     "sqlacodegen>=4.0.4",
     "fonttools>=4.66.0",
+    "audio-separator[cpu]>=0.47.0",
 ]
 
 [project.optional-dependencies]
