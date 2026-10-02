@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from pipeline.bean.asr_bean import AsrBean
+from pipeline.bean.audio_separator import AudioSeparatorBean
 from pipeline.bean.bgm_bean import BgmBean
 from pipeline.bean.llm_bean import LLMBean
 from pipeline.bean.pipeline_data import PipeLineData
@@ -292,10 +293,12 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
                 )
         elif self.__pipeline_data.is_need_audio_separator:
             """如果有人、声分离设置，那么需要将原BGM配置进来"""
+            bgm_idx = next_input_idx
             command.append("-i")
             command.append(self.__pipeline_data.audio_separator_bean.bgm_path)
+            next_input_idx += 1
             filter_complex += (
-                f"[0:a]aresample=48000,"
+                f"[{bgm_idx}:a]aresample=48000,"
                 f"atrim=duration={duration},"
                 f"asetpts=N/SR/TB[bgm];"
             )
@@ -306,16 +309,17 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
                 )
 
         # ── 映射输出流 ──
+        has_bgm_input = self.__pipeline_data.is_bgm or self.__pipeline_data.is_need_audio_separator
+        has_audio_mix = self.__pipeline_data.is_tts and has_bgm_input
         if filter_complex:
             command.extend(["-filter_complex", filter_complex])
             command.extend(["-map", "0:v:0" if vsrc == "[0:v:0]" else vsrc])
-            if self.__pipeline_data.is_tts or self.__pipeline_data.is_bgm:
-                if self.__pipeline_data.is_tts and self.__pipeline_data.is_bgm:
-                    command.extend(["-map", "[audio]"])
-                elif self.__pipeline_data.is_tts:
-                    command.extend(["-map", "[voice]"])
-                else:
-                    command.extend(["-map", "[bgm]"])
+            if has_audio_mix:
+                command.extend(["-map", "[audio]"])
+            elif self.__pipeline_data.is_tts:
+                command.extend(["-map", "[voice]"])
+            elif has_bgm_input:
+                command.extend(["-map", "[bgm]"])
 
         # ── 输出配置 ──
         output = Path(output_path)
@@ -344,54 +348,49 @@ if __name__ == "__main__":
 
     # 一个 PipeLineData 数据例子
     pipeline_data = PipeLineData()
-    pipeline_data.task_id = "20260913190132110313"
-    pipeline_data.url = "https://www.youtube.com/watch?v=DgovrfgLxYs"
+    pipeline_data.task_id = "20260930174849775386"
+    pipeline_data.url = "https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69"
     pipeline_data.status = 0
     pipeline_data.video_bean = VideoDownloaderBean()
-    pipeline_data.video_bean.task_url = "https://www.youtube.com/watch?v=DgovrfgLxYs"
+    pipeline_data.video_bean.task_url = "https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69"
     pipeline_data.video_bean.task_upload_video_path = ""
     pipeline_data.video_bean.task_original_video_path = ""
-    pipeline_data.video_bean.video_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260913190132110313.mp4"
-    pipeline_data.video_bean.metadata = {'uploader': 'Brock Mesarich | AI for Non Techies',
-                                         'description': "✅\xa0Use Higgsfield: https://higgsfield.ai/s/tauNvD\n✅\xa0Connect to 9,000+ Different Apps: https://bit.ly/46PXnZr\n📚 Join my Skool Community for all of my resources: https://bit.ly/4t2yNgG\n\nChatGPT-6 Astra is the most capable model I've ever used, and it can do things no other model has come close to. In this video I combine it with Blender and Higgsfield to generate 3D objects, full worlds, and animations that just weren't possible before. By the end you'll see how much this changes what one person can create.\n\n0:00 - ChatGPT 6 Astra\n1:24 - The one prompt that runs the whole workflow\n2:15 - Connecting Higgsfield inside ChatGPT\n4:03 - The output: 3D Lego model, exploded video, and brick PDF\n7:10 - Building a creator studio in Blender from Higgsfield images\n8:51 - Turning the 3D world into an interactive walkthrough\n9:26 - Real estate style video with Seedance 2.5",
-                                         'thumbnail': 'https://i.ytimg.com/vi/DgovrfgLxYs/maxresdefault.jpg',
-                                         'tags': ['gpt 6 astra', 'gpt 6', 'astra', 'chatgpt 6 astra use cases',
-                                                  'gpt 6 blender', 'chatgpt 6 astra blender', 'gpt-6 astra',
-                                                  'chatgpt astra', 'gpt astra tutorial', 'gpt astra review']
-                                         }
-    pipeline_data.video_bean.title = "ChatGPT 6 Astra + Blender = Endless Possibilities"
-    pipeline_data.video_bean.duration = 639
+    pipeline_data.video_bean.video_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260930174849775386.mp4"
+    pipeline_data.video_bean.metadata = {'id': 117355988386753, 'bvid': 'BV157aX6WE5m', 'cid': 42319220684,
+                                         'webpage_url': 'https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69'}
+    pipeline_data.video_bean.title = "锐评新款海鸥 “升级”点从夯到拉排名"
+    pipeline_data.video_bean.duration = 304
     pipeline_data.video_bean.width = 3840
     pipeline_data.video_bean.height = 2160
     pipeline_data.is_asr = True
     pipeline_data.asr_bean = AsrBean()
-    pipeline_data.asr_bean.audio_rewrite_type = "BYTEDANCE"
-    pipeline_data.asr_bean.task_url = "https://www.youtube.com/watch?v=DgovrfgLxYs"
-    pipeline_data.asr_bean.lang = "0"
-    pipeline_data.asr_bean.subtitle_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/20260913190132110313.srt"
+    pipeline_data.asr_bean.audio_rewrite_type = 3
+    pipeline_data.asr_bean.task_url = "https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69"
+    pipeline_data.asr_bean.lang = "zh"
+    pipeline_data.asr_bean.subtitle_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/20260930174849775386.srt"
+    pipeline_data.is_need_audio_separator = True
+    pipeline_data.audio_separator_bean = AudioSeparatorBean()
+    pipeline_data.audio_separator_bean.voice_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20260930174849775386_voice.mp3"
+    pipeline_data.audio_separator_bean.bgm_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20260930174849775386_bgm.mp3"
     pipeline_data.is_llm = True
     pipeline_data.llm_bean = LLMBean()
-    pipeline_data.llm_bean.llm_text = "翻译为中文"
-    pipeline_data.llm_bean.llm_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/llm_rewrite/20260913190132110313.srt"
+    pipeline_data.llm_bean.llm_text = "翻译为英文"
+    pipeline_data.llm_bean.llm_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/llm_rewrite/20260930174849775386.srt"
     pipeline_data.is_tts = True
     pipeline_data.tts_bean = TTSBean()
     pipeline_data.tts_bean.tts_server = "TTS_LIST_AZURE_TTS_V2"
     pipeline_data.tts_bean.tts_voice = "en-US-AvaMultilingualNeural"
     pipeline_data.tts_bean.tts_volume = 1.0
     pipeline_data.tts_bean.tts_speed = 1.0
-    pipeline_data.tts_bean.tts_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/tts_rewrite/20260913190132110313.m4a"
+    pipeline_data.tts_bean.tts_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/tts_rewrite/20260930174849775386.m4a"
     pipeline_data.is_rewrite_subtitle = True
     pipeline_data.subtitle_bean = SubtitleBean()
-    pipeline_data.subtitle_bean.subtitle_lang = 0
     pipeline_data.subtitle_bean.subtitle_font = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/server/resources/fonts/NotoSansSC-Regular.ttf"
     pipeline_data.subtitle_bean.subtitle_font_color = 16777215
     pipeline_data.subtitle_bean.subtitle_border_color = 0
     pipeline_data.subtitle_bean.subtitle_position = "bottom-center"
     pipeline_data.subtitle_bean.subtitle_size = 60
-    pipeline_data.is_bgm = True
-    pipeline_data.bgm_bean = BgmBean()
-    pipeline_data.bgm_bean.bgm_volume = 0.5
-    pipeline_data.bgm_bean.uploaded_bgm = ""
+    pipeline_data.is_bgm = False
     # pipeline_data.is_material = False
     # pipeline_data.material_video_bean = MaterialVideoBean()
     # pipeline_data.material_video_bean.video_material_type = ""
@@ -403,73 +402,73 @@ if __name__ == "__main__":
     # pipeline_data.material_video_bean.video_material_generate_count = 0
     # pipeline_data.material_video_bean.video_material_keyword = ""
     # pipeline_data.material_video_bean.video_materials = []
-    pipeline_data.is_material = True
-    pipeline_data.material_video_bean = MaterialVideoBean()
-    pipeline_data.material_video_bean.video_material_type = "pixabay"
-    pipeline_data.material_video_bean.uploaded_video_material = []
-    pipeline_data.material_video_bean.video_material_splicing_mode = 1
-    pipeline_data.material_video_bean.video_material_transition_mode = 1
-    pipeline_data.material_video_bean.video_material_video_ratio = 1
-    pipeline_data.material_video_bean.video_material_max_duration = 10
-    pipeline_data.material_video_bean.video_material_generate_count = 1
-    pipeline_data.material_video_bean.video_material_keyword = ""
-    pipeline_data.material_video_bean.video_materials = []
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-c8883244fa39f454d484b945649aa5d7ec33dce30c6bdeffc5e77945b529dd8d.mp4"
-    item.duration = 21
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2024/07/01/218954_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-913b42a073de880793dc404920097535855b273ebed88ea48fa5599ac9f129e0.mp4"
-    item.duration = 15
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2025/01/10/251763_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
-    item.duration = 10
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-db73ed1f590a627f2efed4a161f3334b9a86fdae7f0f468c4cdb330783d0c4b6.mp4"
-    item.duration = 25
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2025/08/12/296958_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
-    item.duration = 10
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-0dd6feb1d05f5a4fe2b59b803074045b1e68ff8516d4f09a292bb16383151a1d.mp4"
-    item.duration = 44
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2026/02/23/336374_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
-
-    item = MaterialVideoItem()
-    item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-473438b21d08aff75f433659d88bb5fc8d7fe631e1f5b9bd08281a7984adb2a4.mp4"
-    item.duration = 24
-    item.aspect = 1
-    item.provider = "pixabay"
-    item.url = "https://cdn.pixabay.com/video/2025/01/03/250395_large.mp4"
-    pipeline_data.material_video_bean.video_materials.append(item)
+    pipeline_data.is_material = False
+    # pipeline_data.material_video_bean = MaterialVideoBean()
+    # pipeline_data.material_video_bean.video_material_type = "pixabay"
+    # pipeline_data.material_video_bean.uploaded_video_material = []
+    # pipeline_data.material_video_bean.video_material_splicing_mode = 1
+    # pipeline_data.material_video_bean.video_material_transition_mode = 1
+    # pipeline_data.material_video_bean.video_material_video_ratio = 1
+    # pipeline_data.material_video_bean.video_material_max_duration = 10
+    # pipeline_data.material_video_bean.video_material_generate_count = 1
+    # pipeline_data.material_video_bean.video_material_keyword = ""
+    # pipeline_data.material_video_bean.video_materials = []
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-c8883244fa39f454d484b945649aa5d7ec33dce30c6bdeffc5e77945b529dd8d.mp4"
+    # item.duration = 21
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2024/07/01/218954_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-913b42a073de880793dc404920097535855b273ebed88ea48fa5599ac9f129e0.mp4"
+    # item.duration = 15
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2025/01/10/251763_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
+    # item.duration = 10
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-db73ed1f590a627f2efed4a161f3334b9a86fdae7f0f468c4cdb330783d0c4b6.mp4"
+    # item.duration = 25
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2025/08/12/296958_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-5f8f7058fd005e989ebbf51d4b480ef5f8618faa06f99099198df6c852d213c5.mp4"
+    # item.duration = 10
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2023/10/17/185341-875417497_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-0dd6feb1d05f5a4fe2b59b803074045b1e68ff8516d4f09a292bb16383151a1d.mp4"
+    # item.duration = 44
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2026/02/23/336374_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
+    #
+    # item = MaterialVideoItem()
+    # item.file_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/material/pixabay-473438b21d08aff75f433659d88bb5fc8d7fe631e1f5b9bd08281a7984adb2a4.mp4"
+    # item.duration = 24
+    # item.aspect = 1
+    # item.provider = "pixabay"
+    # item.url = "https://cdn.pixabay.com/video/2025/01/03/250395_large.mp4"
+    # pipeline_data.material_video_bean.video_materials.append(item)
 
     # FFMpegAssemblyVideo 例子
     assembly_video = FFMpegAssemblyVideo(pipeline_data=pipeline_data)

@@ -16,7 +16,7 @@ from utils import const
 class PipeLineData:
     task_id: str = ""
     url: str = ""
-    status: int = const.PIPELINE_STATUS_INI
+    status: int = const.PIPELINE_STATUS_INIT
     is_remote_video: bool = True
     video_bean: VideoDownloaderBean = VideoDownloaderBean()
     # 是否启用人声与背景分离
@@ -53,6 +53,8 @@ class PipeLineData:
         video_bean: {self.video_bean if self.video_bean else ''}, 
         is_asr: {self.is_asr},
         asr_bean: {self.asr_bean if self.asr_bean else ''},
+        is_need_audio_separator: {self.is_need_audio_separator},
+        audio_separator_bean: {self.audio_separator_bean if self.audio_separator_bean else ''},
         is_llm: {self.is_llm},
         llm_bean: {self.llm_bean if self.llm_bean else ''},
         is_tts: {self.is_tts},

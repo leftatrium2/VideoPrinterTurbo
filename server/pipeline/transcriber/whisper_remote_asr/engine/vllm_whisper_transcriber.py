@@ -25,15 +25,11 @@ class VLLMWhisperTranscriber(object):
 
     def transcribe_mp3_to_srt(self,
                               mp3_path: str,
-                              output_dir_path: str
+                              srt_full_path: str
                               ) -> Optional[str]:
         audio_path = Path(mp3_path).expanduser().resolve()
         if not audio_path.is_file():
             raise FileNotFoundError(f"找不到 MP3 文件：{mp3_path}")
-        srt_path = Path(output_dir_path).expanduser().resolve()
-        if not srt_path.is_dir():
-            srt_path.mkdir(parents=True, exist_ok=True)
-        srt_path = Path(os.path.join(output_dir_path, f"{audio_path.stem}.srt"))
 
         all_segments = []
         with convert_audio_parts(audio_path) as parts:
@@ -64,9 +60,9 @@ class VLLMWhisperTranscriber(object):
                             segment["text"],
                         ))
 
-        write_srt(srt_path, all_segments)
-        logger.info(f"已生成：{srt_path}")
-        return str(srt_path)
+        write_srt(Path(srt_full_path), all_segments)
+        logger.info(f"已生成：{srt_full_path}")
+        return srt_full_path
 
 
 if __name__ == "__main__":

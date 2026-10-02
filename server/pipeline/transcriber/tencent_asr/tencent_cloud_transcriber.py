@@ -80,7 +80,7 @@ class TencentCloudTranscriber(BaseTranscriber):
         if proxy:
             self.proxies = build_requests_proxies(proxy)
 
-    def transcribe(self, audio_path: str) -> Optional[str]:
+    def transcribe(self, audio_path: str, asr_full_path: str) -> Optional[str]:
         tmp_dir = None
         try:
             duration = get_duration_seconds(audio_path)
@@ -98,7 +98,7 @@ class TencentCloudTranscriber(BaseTranscriber):
                 raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS,
                                    f"[TencentASRTranscriber] 未识别到任何内容: {audio_path}")
             srt_content = segments_to_srt(all_segments)
-            return save_to_srt(asr_text=srt_content, audio_path=audio_path)
+            return save_to_srt(srt_content, asr_full_path, audio_path)
         except Exception as e:
             raise VPTException(const.PIPELINE_ERR_ASR_TRANSCRIBER,
                                f"[TencentASRTranscriber] 转写失败: {audio_path}, 错误: {e}", tr=e) from e

@@ -10,5 +10,5 @@ class BaseTranscriber(ABC):
 
     # Transcribe audio file into text segments with timestamps
     @abstractmethod
-    def transcribe(self, audio_path: str) -> Optional[str]:
+    def transcribe(self, audio_path: str, asr_full_path: str) -> Optional[str]:
         pass

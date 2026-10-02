@@ -53,7 +53,7 @@ class VolcengineASR(BaseTranscriber):
         if proxy:
             self.proxies = build_requests_proxies(proxy)
 
-    def transcribe(self, audio_path: str) -> Optional[str]:
+    def transcribe(self, audio_path: str, asr_full_path: str) -> Optional[str]:
         tmp_dir = None
         try:
             duration = get_duration_seconds(audio_path)
@@ -79,7 +79,7 @@ class VolcengineASR(BaseTranscriber):
                 raise VPTException(const.PIPELINE_ERR_ASR_SEGMENTS,
                                    f"[VolcengineASRTranscriber] 未识别到任何内容: {audio_path}")
             asr_text = segments_to_srt(segments)
-            return save_to_srt(asr_text, audio_path)
+            return save_to_srt(asr_text, asr_full_path, audio_path)
         except Exception as e:
             raise VPTException(const.PIPELINE_ERR_ASR_TRANSCRIBER,
                                f"[VolcengineASRTranscriber] 转写失败: {audio_path}, 错误: {str(e)}", tr=e) from e

@@ -152,17 +152,11 @@ def split_audio_by_duration(
     return chunks
 
 
-def save_to_srt(asr_text: str, audio_path: str) -> Optional[str]:
+def save_to_srt(asr_text: str, asr_full_path: str, audio_path: str) -> Optional[str]:
     try:
-        asr_path = asyncio.run(get_video_to_text_path())
-        if asr_path:
-            from pathlib import Path
-            asr_file_name = Path(audio_path).stem
-            asr_full_file_name = f"{asr_file_name}.srt"
-            asr_full_path = os.path.join(asr_path, asr_full_file_name)
-            with open(asr_full_path, "w", encoding="utf-8") as f:
-                f.write(asr_text)
-            return asr_full_path
+        with open(asr_full_path, "w", encoding="utf-8") as f:
+            f.write(asr_text)
+        return asr_full_path
     except Exception as e:
         logger.warning(f"保存 SRT 文件失败: {e}")
         return None

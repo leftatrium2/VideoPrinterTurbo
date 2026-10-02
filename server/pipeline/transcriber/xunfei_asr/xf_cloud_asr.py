@@ -85,7 +85,7 @@ class XFCloudASR(BaseTranscriber):
         if proxy:
             self.proxies = build_requests_proxies(proxy)
 
-    def transcribe(self, audio_path: str) -> Optional[str]:
+    def transcribe(self, audio_path: str, asr_full_path: str) -> Optional[str]:
         tmp_dir = None
         try:
             duration = get_duration_seconds(audio_path)
@@ -104,7 +104,7 @@ class XFCloudASR(BaseTranscriber):
                 logger.warning(f"[XunfeiASRTranscriber] 未识别到任何内容: {audio_path}")
                 return None
             asr_text = segments_to_srt(all_segments)
-            return save_to_srt(asr_text, audio_path)
+            return save_to_srt(asr_text, asr_full_path, audio_path)
         except Exception as e:
             logger.error(f"[XunfeiASRTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
             raise VPTException(code=const.TASK_ERR_UNKNOWN, message=f"讯飞转写失败: {e}") from e

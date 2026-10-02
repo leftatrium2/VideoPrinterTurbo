@@ -32,20 +32,19 @@ class RemoteWhisperTranscriber(BaseTranscriber):
         if proxy:
             self.__proxy = proxy
 
-    def transcribe(self, audio_path: str) -> Optional[str]:
+    def transcribe(self, audio_path: str, asr_full_path: str) -> Optional[str]:
         if not self.__remote_server_url:
             raise VPTException(const.PIPELINE_ERR_VALUE, "remote_server_url is empty!")
-        output_path = asyncio.run(get_video_to_text_path())
         srt_path = None
         if self.__remote_whisper_type == const.TASK_CONFIG_REMOTE_VLLM_WHISPER:
             if not self.__remote_server_model:
                 raise VPTException(const.PIPELINE_ERR_VALUE, "remote_server_model is empty!")
             vllm_whisper_transcriber = VLLMWhisperTranscriber(self.__remote_server_url, self.__remote_server_model,
                                                               self.__language)
-            srt_path = vllm_whisper_transcriber.transcribe_mp3_to_srt(audio_path, output_path)
+            srt_path = vllm_whisper_transcriber.transcribe_mp3_to_srt(audio_path, asr_full_path)
         elif self.__remote_whisper_type == const.TASK_CONFIG_REMOTE_WHISPER_CPP:
             whisper_cpp_transcriber = WhisperCppTranscriber(self.__remote_server_url, self.__language)
-            srt_path = whisper_cpp_transcriber.transcribe_mp3_to_srt(audio_path, output_path)
+            srt_path = whisper_cpp_transcriber.transcribe_mp3_to_srt(audio_path, asr_full_path)
         return srt_path
 
 
@@ -58,7 +57,8 @@ if __name__ == "__main__":
         remote_server_model="",
         language="zh"
     )
-    result = remote_whisper_transcriber.transcribe("/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/1ee55737d1454ab189a06b90e81698d6.mp3")
+    result = remote_whisper_transcriber.transcribe(
+        "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/1ee55737d1454ab189a06b90e81698d6.mp3")
     if result:
         print(result)
     else:

@@ -66,7 +66,7 @@ class WhisperTranscriber(BaseTranscriber):
     def config(self, proxy: str = None):
         self.__proxy = proxy
 
-    def transcribe(self, audio_path: str) -> Optional[str]:
+    def transcribe(self, audio_path: str, asr_full_path: str) -> Optional[str]:
         try:
             engine = self._get_engine()
             segments = engine.run(audio_path)
@@ -74,7 +74,7 @@ class WhisperTranscriber(BaseTranscriber):
                 logger.warning(f"[WhisperTranscriber] 未识别到任何内容: {audio_path}")
                 return None
             asr_text = segments_to_srt(segments)
-            return save_to_srt(asr_text, audio_path)
+            return save_to_srt(asr_text, asr_full_path, audio_path)
         except Exception as e:
             logger.error(f"[WhisperTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
             return None

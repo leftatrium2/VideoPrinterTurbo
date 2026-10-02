@@ -16,7 +16,7 @@ from pipeline.transcriber.whisper_remote_asr.remote_whisper_transcriber import R
 from pipeline.transcriber.xunfei_asr.xf_cloud_asr import XFCloudASR
 from utils import const
 from utils.exception import VPTException
-from utils.file_utils import get_subtitle_path, get_separate_vocals_path
+from utils.file_utils import get_subtitle_path, get_separate_vocals_path, get_video_to_text_path
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ def subtitle_convert(
 
 def asr_convert(
         download_path: str,
+        task_id: str,
         audio_rewrite_type: int,
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None,
@@ -89,7 +90,6 @@ def asr_convert(
             remote_server_model=remote_server_model,
             language=language
         )
-        pass
     elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_TENCENT_CLOUD:
         # tencent cloud asr service
         # https://intl.cloud.tencent.com/en/products/asr
@@ -167,5 +167,12 @@ def asr_convert(
         )
     if not transcriber:
         return None
+    asr_path = asyncio.run(get_video_to_text_path())
+    if not asr_path:
+        raise VPTException(const.PIPELINE_ERR_VALUE, f"config.yaml storage.video_to_text must be set!")
+    asr_full_path = Path(asr_path)
+    if not asr_full_path.is_dir():
+        raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "video_to_text directory is not exists!")
+    asr_full_path = asr_full_path.joinpath(f"{task_id}.srt")
     transcriber.config(proxy=proxy_url)
-    return transcriber.transcribe(download_path)
+    return transcriber.transcribe(download_path, str(asr_full_path))

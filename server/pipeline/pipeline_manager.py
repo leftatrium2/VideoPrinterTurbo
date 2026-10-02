@@ -377,6 +377,7 @@ class PipelineManager:
                          self.__data.audio_separator_bean.bgm_path) = audio_separate(str(audio_mp3_path))
                         res = asr_convert(
                             self.__data.audio_separator_bean.voice_path,
+                            task.task_id,
                             audio_rewrite_type=audio_rewrite_type,
                             proxy_url=self.__proxy,
                             **args
@@ -384,6 +385,7 @@ class PipelineManager:
                     else:
                         res = asr_convert(
                             str(audio_mp3_path),
+                            task.task_id,
                             audio_rewrite_type=audio_rewrite_type,
                             proxy_url=self.__proxy,
                             **args
@@ -525,7 +527,20 @@ class PipelineManager:
             return None
         output_path = os.path.join(output_path, f"{task.task_id}.mp4")
         assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
-        return assembly_video.assembly(output_path)
+        full_file_path = assembly_video.assembly(output_path)
+        if full_file_path:
+            task.pipeline_status = const.PIPELINE_STATUS_SUCCESS
+            task.task_status = const.PIPELINE_STATUS_FINISH
+            task.task_message = ""
+            task.output_path = full_file_path
+            PipelineManager.__update_db_task(task)
+        else:
+            task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
+            task.task_status = const.PIPELINE_STATUS_FINISH
+            task.task_message = "pipe error unknown"
+            task.output_path = ""
+            PipelineManager.__update_db_task(task)
+        return full_file_path
 
 
 pipeline = PipelineManager()
@@ -533,7 +548,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20260930174849775386"
+    task_id = "20261002201857605926"
     database.start()
     db = database.get_sync_session()
     try:

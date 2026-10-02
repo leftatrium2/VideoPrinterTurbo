@@ -30,7 +30,7 @@ class TaskManager(object):
                 try:
                     result = db.execute(
                         select(VptTasks).where(and_(
-                            VptTasks.pipeline_status == const.PIPELINE_STATUS_INI,
+                            VptTasks.pipeline_status == const.PIPELINE_STATUS_INIT,
                             VptTasks.is_deleted == 0
                         )).order_by(VptTasks.create_time.asc()).limit(1)
                     )
