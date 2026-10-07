@@ -18,7 +18,7 @@ from pipeline.bean.pipeline_data import PipeLineData
 #       字幕大小：60
 class BaseAssemblyVideo(ABC):
     @abstractmethod
-    def assembly(self) -> str:
+    def assembly(self, output_path: str) -> str:
         """
             Assemble the video with voice, bgm and subtitle.
         """

@@ -9,14 +9,47 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 
 ### VideoPrinterTurbo 能做什么？
 
-+ 视频翻译
-+ 给原视频加上字幕
-+ 全转写
++ 视频下载
+
+  + VideoPrinterTurbo 基于yt-dlp，可以支持大多数的视频网站视频下载
+  
+    具体参照：https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md
+  
+  + 对于无法下载的视频，VideoPrinterTurbo 提供方便的插件方式
+
++ 视频 AI 翻译
+
+  + 调用链：下载->ASR->LLM改写->字幕配置->输出成品
+#### 原视频：
+
+[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
+
+Click the thumbnail to watch the demo on YouTube.
+#### 增加翻译字幕后：
+
+[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://studio.youtube.com/video/AiSW3_SyaKs/edit)
+
+Click the thumbnail to watch the demo on YouTube.
+
++ 视频 AI 重配音
+
++ 视频全覆盖
+
 + 其他……
 
 ### 教程
 
++ 如何配置 VideoPrinterTurbo
++ 开始第一个任务
+
 ### 部署说明
 
++ 直接部署
++ Docker方式
+
 ### 感谢
+
++ https://github.com/yt-dlp/yt-dlp
++ https://github.com/openai/whisper
++ https://github.com/streichgeorg/python-audio-separator
 

@@ -241,18 +241,29 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         if self.__pipeline_data.is_asr and self.__pipeline_data.is_rewrite_subtitle:
             subtitle_position = self.__pipeline_data.subtitle_bean.subtitle_position
             font_full_path = os.path.join(get_resource_font_path(), self.__pipeline_data.subtitle_bean.subtitle_font)
-            font_dir, font_name = get_font_params(font_full_path)
+            font_params = get_font_params(font_full_path)
+            font_dir = font_params[0] if font_params else None
+            font_name = font_params[1] if font_params else None
             font_size = self.__pipeline_data.subtitle_bean.subtitle_size
             font_color = self.__pipeline_data.subtitle_bean.subtitle_font_color
             font_edge_color = self.__pipeline_data.subtitle_bean.subtitle_border_color
-            subtitle_style = self.__build_subtitle_style(
-                video_height=video_height,
-                position=subtitle_position,
-                font_name=font_name,
-                font_size=font_size,
-                font_color=font_color,
-                font_edge_color=font_edge_color
-            )
+            if font_name:
+                subtitle_style = self.__build_subtitle_style(
+                    video_height=video_height,
+                    position=subtitle_position,
+                    font_name=font_name,
+                    font_size=font_size,
+                    font_color=font_color,
+                    font_edge_color=font_edge_color
+                )
+            else:
+                subtitle_style = self.__build_subtitle_style(
+                    video_height=video_height,
+                    position=subtitle_position,
+                    font_size=font_size,
+                    font_color=font_color,
+                    font_edge_color=font_edge_color
+                )
             subtitle_path = self.__pipeline_data.asr_bean.subtitle_full_path
             if self.__pipeline_data.is_llm:
                 subtitle_path = self.__pipeline_data.llm_bean.llm_full_path
@@ -275,24 +286,27 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         # ── BGM ──
         if self.__pipeline_data.is_bgm:
             """如果自定义了BGM，那么使用定义的"""
-            bgm_idx = next_input_idx
-            command.extend(["-stream_loop", "-1"])
-            command.append("-i")
-            command.append(bgm_path)
-            next_input_idx += 1
-            filter_complex += (
-                f"[{bgm_idx}:a]aresample=48000,"
-                f"volume={self.__pipeline_data.bgm_bean.bgm_volume},"
-                f"atrim=duration={duration},"
-                f"asetpts=N/SR/TB[bgm];"
-            )
-            if self.__pipeline_data.is_tts:
+            if bgm_path:
+                bgm_idx = next_input_idx
+                command.extend(["-stream_loop", "-1"])
+                command.append("-i")
+                command.append(bgm_path)
+                next_input_idx += 1
                 filter_complex += (
-                    "[voice][bgm]"
-                    "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
+                    f"[{bgm_idx}:a]aresample=48000,"
+                    f"volume={self.__pipeline_data.bgm_bean.bgm_volume},"
+                    f"atrim=duration={duration},"
+                    f"asetpts=N/SR/TB[bgm];"
                 )
-        elif self.__pipeline_data.is_need_audio_separator:
-            """如果有人、声分离设置，那么需要将原BGM配置进来"""
+                if self.__pipeline_data.is_tts:
+                    """ 如果配置了TTS，那么需要将bgm与TTS一起混合 """
+                    filter_complex += (
+                        "[voice][bgm]"
+                        "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
+                    )
+        elif self.__pipeline_data.is_need_audio_separator and self.__pipeline_data.is_tts:
+            """ 如果有人、声分离设置，并且使用了tts语音，那么需要把bgm放进来 """
+            """ 但如果只有人、声分离设置，没有tts语音，那么直接将原视频放进来就可以，能增加处理速度 """
             bgm_idx = next_input_idx
             command.append("-i")
             command.append(self.__pipeline_data.audio_separator_bean.bgm_path)
@@ -301,15 +315,12 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
                 f"[{bgm_idx}:a]aresample=48000,"
                 f"atrim=duration={duration},"
                 f"asetpts=N/SR/TB[bgm];"
+                "[voice][bgm]"
+                "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
             )
-            if self.__pipeline_data.is_tts:
-                filter_complex += (
-                    "[voice][bgm]"
-                    "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
-                )
 
         # ── 映射输出流 ──
-        has_bgm_input = self.__pipeline_data.is_bgm or self.__pipeline_data.is_need_audio_separator
+        has_bgm_input = self.__pipeline_data.is_bgm or (self.__pipeline_data.is_need_audio_separator and self.__pipeline_data.is_tts)
         has_audio_mix = self.__pipeline_data.is_tts and has_bgm_input
         if filter_complex:
             command.extend(["-filter_complex", filter_complex])
@@ -320,6 +331,8 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
                 command.extend(["-map", "[voice]"])
             elif has_bgm_input:
                 command.extend(["-map", "[bgm]"])
+            else:
+                command.extend(["-map", "0:a"])
 
         # ── 输出配置 ──
         output = Path(output_path)
@@ -327,11 +340,11 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         command.extend(["-map_metadata", "-1"])
         command.extend(["-t", f"{duration:.3f}"])
         command.extend(["-c:v", "libx264"])
-        command.extend(["-preset", "ultrafast"])
-        command.extend(["-crf", "23"])
+        command.extend(["-preset", "medium"])
+        command.extend(["-crf", "26"])
         command.extend(["-pix_fmt", "yuv420p"])
         command.extend(["-c:a", "aac"])
-        command.extend(["-b:a", "192k"])
+        command.extend(["-b:a", "128k"])
         command.extend(["-movflags", "+faststart"])
         command.append(str(output))
         self.__run_ffmpeg(command, duration, "编码")
@@ -341,52 +354,57 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
 
 if __name__ == "__main__":
     _config.init_config()
-    output_path = asyncio.run(get_output_path())
-    if not output_path:
+    output_full_path = asyncio.run(get_output_path())
+    if not output_full_path:
         raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "get_output_path 为空")
-    output_path = os.path.join(output_path, "20260913190132110313.mp4")
+    output_full_path = os.path.join(output_full_path, "20261002213254577891.mp4")
 
     # 一个 PipeLineData 数据例子
     pipeline_data = PipeLineData()
-    pipeline_data.task_id = "20260930174849775386"
-    pipeline_data.url = "https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69"
+    pipeline_data.task_id = "20261002213254577891"
+    pipeline_data.url = "https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s"
     pipeline_data.status = 0
     pipeline_data.video_bean = VideoDownloaderBean()
-    pipeline_data.video_bean.task_url = "https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69"
+    pipeline_data.video_bean.task_url = "https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s"
     pipeline_data.video_bean.task_upload_video_path = ""
     pipeline_data.video_bean.task_original_video_path = ""
-    pipeline_data.video_bean.video_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260930174849775386.mp4"
-    pipeline_data.video_bean.metadata = {'id': 117355988386753, 'bvid': 'BV157aX6WE5m', 'cid': 42319220684,
-                                         'webpage_url': 'https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69'}
-    pipeline_data.video_bean.title = "锐评新款海鸥 “升级”点从夯到拉排名"
-    pipeline_data.video_bean.duration = 304
+    pipeline_data.video_bean.video_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20261002213254577891.mp4"
+    pipeline_data.video_bean.metadata = {'uploader': 'Jeff Su',
+                                         'description': 'In this video I walk you through three practical habits and one bonus system that turn tools like #ChatGPT, #Gemini, and Claude into a real AI-native workflow. You will learn how to leave AI breadcrumbs, build an AI swipe file, plan projects AI-first, and keep a living prompts database so you save time, improve quality, and stop rebuilding the same work from scratch.\n\n*TIMESTAMPS*\n00:00 How to become AI-Native\n00:37 Leave AI Breadcrumbs\n03:13 Build an AI Swipe File System\n05:20 AI-First Task Planning\n08:01 Bonus AI-Native Habit\n\n*RESOURCES MENTIONED*\nAI Course Waitlist: https://systemsacademy.ai/?utm_source=youtube&utm_medium=video&utm_campaign=194\nEssential Prompts Collection: https://www.notion.so/templates/essential-power-prompts-jeff-su\n\n*BUILD A POWERFUL WORKFLOW*\n📈\xa0The\xa0Workspace Academy - https://academy.jeffsu.org/workspace-academy?utm_source=youtube&utm_medium=video&utm_campaign=194\n✍️ My Notion Command Center - https://www.pressplay.cc/link/s/DE1C4C50\n\n*BE MY FRIEND:*\n📧 Subscribe to my newsletter - https://www.jeffsu.org/newsletter/?utm_source=youtube&utm_medium=video&utm_campaign=description\n📸 Instagram - https://instagram.com/j.sushie\n🤝 LinkedIn - https://www.linkedin.com/in/jsu05/\n\n*MY FAVORITE GEAR*\n🎬 My YouTube Gear - https://www.jeffsu.org/yt-gear/\n🎒\xa0Everyday Carry - https://www.jeffsu.org/my-edc/\n\n#ainative',
+                                         'thumbnail': 'https://i.ytimg.com/vi/E7YiKBeOneo/maxresdefault.jpg',
+                                         'tags': ['how to become ai native', 'learn ai', 'how to learn ai',
+                                                  'how to make money with ai', 'how to become better at ai',
+                                                  'ai chatgpt', 'ai gemini', 'claude ai', 'grok ai', 'jeff su ai']}
+    pipeline_data.video_bean.title = "Give Me 9 Minutes, I'll Make You AI-Native"
+    pipeline_data.video_bean.duration = 534
     pipeline_data.video_bean.width = 3840
     pipeline_data.video_bean.height = 2160
     pipeline_data.is_asr = True
     pipeline_data.asr_bean = AsrBean()
-    pipeline_data.asr_bean.audio_rewrite_type = 3
-    pipeline_data.asr_bean.task_url = "https://www.bilibili.com/video/BV157aX6WE5m/?trackid=web_pegasus_0.router-web-pegasus-2479516-sm4rx.1790761658414.130&spm_id_from=333.1007.tianma.1-1-1.click&vd_source=94814ebcf808b481389a4f02a131ed69"
-    pipeline_data.asr_bean.lang = "zh"
-    pipeline_data.asr_bean.subtitle_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/20260930174849775386.srt"
+    pipeline_data.asr_bean.audio_rewrite_type = 2
+    pipeline_data.asr_bean.task_url = "https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s"
+    pipeline_data.asr_bean.lang = "en"
+    pipeline_data.asr_bean.subtitle_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/video_to_text/20261002213254577891.srt"
     pipeline_data.is_need_audio_separator = True
     pipeline_data.audio_separator_bean = AudioSeparatorBean()
-    pipeline_data.audio_separator_bean.voice_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20260930174849775386_voice.mp3"
-    pipeline_data.audio_separator_bean.bgm_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20260930174849775386_bgm.mp3"
+    pipeline_data.audio_separator_bean.voice_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20261002213254577891_voice.mp3"
+    pipeline_data.audio_separator_bean.bgm_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20261002213254577891_bgm.mp3"
     pipeline_data.is_llm = True
     pipeline_data.llm_bean = LLMBean()
-    pipeline_data.llm_bean.llm_text = "翻译为英文"
-    pipeline_data.llm_bean.llm_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/llm_rewrite/20260930174849775386.srt"
-    pipeline_data.is_tts = True
+    pipeline_data.llm_bean.llm_text = "翻译为中文，保持与英文长度相仿"
+    pipeline_data.llm_bean.llm_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/llm_rewrite/20261002213254577891.srt"
+    pipeline_data.is_tts = False
     pipeline_data.tts_bean = TTSBean()
-    pipeline_data.tts_bean.tts_server = "TTS_LIST_AZURE_TTS_V2"
-    pipeline_data.tts_bean.tts_voice = "en-US-AvaMultilingualNeural"
-    pipeline_data.tts_bean.tts_volume = 1.0
-    pipeline_data.tts_bean.tts_speed = 1.0
-    pipeline_data.tts_bean.tts_full_path = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/tts_rewrite/20260930174849775386.m4a"
+    pipeline_data.tts_bean.tts_server = "TTS_LIST_AZURE_TTS_V1"
+    pipeline_data.tts_bean.tts_voice = ""
+    pipeline_data.tts_bean.tts_volume = 0
+    pipeline_data.tts_bean.tts_speed = 0
+    pipeline_data.tts_bean.tts_full_path = ""
     pipeline_data.is_rewrite_subtitle = True
     pipeline_data.subtitle_bean = SubtitleBean()
     pipeline_data.subtitle_bean.subtitle_font = "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/server/resources/fonts/NotoSansSC-Regular.ttf"
     pipeline_data.subtitle_bean.subtitle_font_color = 16777215
+
     pipeline_data.subtitle_bean.subtitle_border_color = 0
     pipeline_data.subtitle_bean.subtitle_position = "bottom-center"
     pipeline_data.subtitle_bean.subtitle_size = 60
@@ -472,4 +490,4 @@ if __name__ == "__main__":
 
     # FFMpegAssemblyVideo 例子
     assembly_video = FFMpegAssemblyVideo(pipeline_data=pipeline_data)
-    full_path = assembly_video.assembly(output_path)
+    full_path = assembly_video.assembly(output_full_path)

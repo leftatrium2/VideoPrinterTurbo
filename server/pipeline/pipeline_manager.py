@@ -516,6 +516,8 @@ class PipelineManager:
                 proxy_url=self.__proxy
             )
             self.__data.material_video_bean.video_materials = res_list
+        # print(self.__data)
+        # exit(0)
         # assembly video(ffmpeg)
         self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
         output_path = asyncio.run(get_output_path())
@@ -548,7 +550,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20261002201857605926"
+    task_id = "20261002213254577891"
     database.start()
     db = database.get_sync_session()
     try:
