@@ -27,7 +27,7 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 Click the thumbnail to watch the demo on YouTube.
 #### 增加翻译字幕后：
 
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://studio.youtube.com/video/AiSW3_SyaKs/edit)
+[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
 
 Click the thumbnail to watch the demo on YouTube.
 
