@@ -1,4 +1,5 @@
 import logging
+import threading
 
 from sqlalchemy import select, and_
 from tenacity import sleep
@@ -28,6 +29,10 @@ class TaskManager(object):
         try:
             while True:
                 try:
+                    # 从任务表里面，获取一个任务
+                    # 要求：
+                    # 1. pipeline_status == const.PIPELINE_STATUS_INIT（状态是INIT）
+                    # 2. is_deleted == 0 （未删除）
                     result = db.execute(
                         select(VptTasks).where(and_(
                             VptTasks.pipeline_status == const.PIPELINE_STATUS_INIT,
@@ -37,10 +42,12 @@ class TaskManager(object):
                     task = result.scalar_one_or_none()
                     if not task:
                         sleep(5)
+                        logger.info("No task to process now")
                         continue
-                    pipeline.init()
+                    logger.info(f"process task: {task.task_id}")
+                    pipeline.clear_data()
                     pipeline.process_now(task)
-                    logger.info(f"task success: {task.id}")
+                    logger.info(f"task success: {task.task_id}")
                 except Exception as e:
                     logger.exception(f"job failed: {e}")
         finally:
@@ -48,8 +55,8 @@ class TaskManager(object):
 
     async def start(self):
         logger.info("Starting TaskManager")
-        # self.processes_threading = threading.Thread(target=self.process, daemon=True)
-        # self.processes_threading.start()
+        self.processes_threading = threading.Thread(target=self.process, daemon=True)
+        self.processes_threading.start()
 
     async def stop(self):
         logger.info("Stopping TaskManager")

@@ -23,14 +23,14 @@ class DataBase(object):
         self._sync_session_factory = sessionmaker(bind=self.sync_engine)
         self._scoped_session = scoped_session(self._sync_session_factory)
 
-    def stop(self):
+    async def stop(self):
         logger.info(f"DataBase stopped")
         if self._scoped_session:
             self._scoped_session.remove()
         if self.sync_engine:
             self.sync_engine.dispose()
         if self.engine:
-            self.engine.dispose()
+            await self.engine.dispose()
 
     def get_engine(self):
         return self.engine

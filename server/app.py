@@ -39,8 +39,8 @@ async def lifespan(app: FastAPI):
         await gen_config(db=session)
         await task_manager.start()
     yield  # Server officially started, accepting requests
-    # ========== Executed on application shutdown (before server stops) ==========
-    database.stop()
+    # ========== Executed on application shutdown (after server stops) ==========
+    await database.stop()
     await task_manager.stop()
 
 

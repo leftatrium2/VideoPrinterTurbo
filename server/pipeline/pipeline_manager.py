@@ -60,7 +60,7 @@ class PipelineManager:
     def get_data(self) -> Optional[PipeLineData]:
         return self.__data
 
-    def init(self):
+    def clear_data(self):
         self.__data = PipeLineData()
 
     @staticmethod
@@ -80,6 +80,7 @@ class PipelineManager:
             item.pipeline_status = task.pipeline_status
             item.task_upload_video_path = task.task_upload_video_path
             item.task_original_video_path = task.task_original_video_path
+            item.output_path = task.output_path
             db.commit()
             db.refresh(item)
         finally:
@@ -529,15 +530,15 @@ class PipelineManager:
         assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
         full_file_path = assembly_video.assembly(output_path)
         if full_file_path:
-            task.pipeline_status = const.PIPELINE_STATUS_SUCCESS
-            task.task_status = const.PIPELINE_STATUS_FINISH
+            task.pipeline_status = const.PIPELINE_STATUS_FINISH
+            task.task_status = const.PIPELINE_STATUS_SUCCESS
             task.task_message = ""
             task.output_path = full_file_path
             PipelineManager.__update_db_task(task)
         else:
             task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
-            task.task_status = const.PIPELINE_STATUS_FINISH
-            task.task_message = "pipe error unknown"
+            task.task_status = const.PIPELINE_ERR_FILE_SAVE
+            task.task_message = "full file path is none"
             task.output_path = ""
             PipelineManager.__update_db_task(task)
         return full_file_path
