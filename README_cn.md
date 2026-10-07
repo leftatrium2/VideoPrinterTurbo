@@ -33,9 +33,19 @@ Click the thumbnail to watch the demo on YouTube.
 
 + 视频 AI 重配音
 
+#### 增加翻译字幕并重新配音：
+[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=08dmRF8JVaI)
+
+Click the thumbnail to watch the demo on YouTube.
+
 + 视频全覆盖
+#### 增加翻译字幕、重新配音并修改视频：
+[![Watch the demo](https://i9.ytimg.com/vi/321RVhF8ok8/mqdefault.jpg?sqp=CPzwl9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGDwgUSh_MA8=&rs=AOn4CLAxgYPMFpaMMoxxhWAl3HrsfGASyA)](https://www.youtube.com/watch?v=321RVhF8ok8)
+
+Click the thumbnail to watch the demo on YouTube.
 
 + 其他……
+  + 等待你发掘，有新的想法，请给我提交一下issue
 
 ### 教程
 
@@ -46,6 +56,10 @@ Click the thumbnail to watch the demo on YouTube.
 
 + 直接部署
 + Docker方式
+
+### 后续计划
++ 我的想法是，看用户的想法，要是有其他的需求，给我提交一下issue
+
 
 ### 感谢
 

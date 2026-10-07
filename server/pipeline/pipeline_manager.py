@@ -516,8 +516,6 @@ class PipelineManager:
                 proxy_url=self.__proxy
             )
             self.__data.material_video_bean.video_materials = res_list
-        # print(self.__data)
-        # exit(0)
         # assembly video(ffmpeg)
         self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
         output_path = asyncio.run(get_output_path())
