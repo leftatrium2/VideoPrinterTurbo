@@ -46,6 +46,29 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 + 其他……
   + 等待你发掘，有新的想法，请给我提交一下issue
 
+
+### 配置要求
++ 硬件要求
+| 项目 | 最低配置 | 推荐配置        | 理想配置        |
+| ---- | -------- | --------------- | --------------- |
+| CPU  | 4 核     | 6 到 8 核       | 8 核及以上      |
+| RAM  | 8 GB     | 16 GB            | 16 GB 及以上    |
+| GPU  | 非必须   | 12 GB 显存及以上 | 16 GB 显存及以上 |
++ 软件要求
+  + Windows11 或者 macOS 11.0 或者更高版本，以及各主流linux发行版本
+  + Python 3.11
+    + https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+    + 如何安装 [windows] [mac] [linux]
+  + Node.js 24
+    + https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi
+    + 如何安装 [windows] [mac] [linux]
+  + uv 0.12
+    + pip install uv
+    + 如何安装 [windows] [mac] [linux]
+  + ffmpeg v9
+    + https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z
+    + 如何安装 [windows] [mac] [linux]
+
 ### 教程
 
 + 如何配置 VideoPrinterTurbo
