@@ -3,7 +3,7 @@
 <br>
 <h3> <a href="README.md">English</a> | 简体中文</h3>
 <br>
-
+</div>
 
 ###  MoneyPrinterTurbo 姊妹篇
 ###  MoneyPrinterTurbo生成视频，VideoPrinterTurbo用来做二创
