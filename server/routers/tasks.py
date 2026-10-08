@@ -46,11 +46,19 @@ async def list_tasks(page: int = Query(default=1, min=1), page_size: int = Query
         select(VptTasks).where(VptTasks.is_deleted == 0).order_by(VptTasks.create_time.desc()).offset(offset).limit(
             page_size))
     data = result.scalars().all()
+    lang = get_current_lang()
+    task_list = []
     for item in data:
-        del item.id
+        task_dict = {c.name: getattr(item, c.name) for c in item.__table__.columns}
+        del task_dict['id']
+        if item.pipeline_status == const.PIPELINE_STATUS_FINISH:
+            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][11][lang]
+        else:
+            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][item.pipeline_status][lang]
+        task_list.append(task_dict)
     return result_succ({
         "total": total,
-        "data": data,
+        "data": task_list,
         "page": page,
         "page_size": page_size
     })

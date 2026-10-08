@@ -9,10 +9,14 @@ export interface Task {
   create_time: string
   is_deleted: number
   status: number  // 0=pending, 1=running, 2=done, -1=failed
+  pipeline_status_str?: string
+  task_status?: number
+  task_message?: string | null
   task_id: string
   error_code: number
   error_desc: string
   local_path?: string
+  output_path?: string
 }
 
 export interface TaskListResult {

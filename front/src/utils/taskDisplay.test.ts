@@ -7,10 +7,11 @@ describe('task display helpers', () => {
       task_url: 'https://example.com/video',
       task_upload_video_path: 'storage/downloads/local.mp4',
       local_path: 'storage/output/final.mp4',
+      output_path: 'storage/output/result.mp4',
     }
 
     expect(getTaskAddress(task)).toBe('https://example.com/video')
-    expect(getTaskLocalPath(task)).toBe('storage/downloads/local.mp4')
+    expect(getTaskLocalPath(task)).toBe('storage/output/result.mp4')
     expect(getTaskVideoCategory(task)).toBe('network')
   })
 
@@ -20,10 +21,22 @@ describe('task display helpers', () => {
       task_upload_video_path: 'storage/downloads/local.mp4',
       task_original_video_path: 'my-source-video.mp4',
       local_path: 'storage/output/final.mp4',
+      output_path: 'storage/output/result.mp4',
     }
 
     expect(getTaskAddress(task)).toBe('my-source-video.mp4')
-    expect(getTaskLocalPath(task)).toBe('storage/downloads/local.mp4')
+    expect(getTaskLocalPath(task)).toBe('storage/output/result.mp4')
     expect(getTaskVideoCategory(task)).toBe('local')
+  })
+
+  it('没有输出路径时不回退到上传路径或旧本地路径', () => {
+    const task = {
+      task_url: '',
+      task_upload_video_path: 'storage/downloads/local.mp4',
+      local_path: 'storage/output/final.mp4',
+    }
+
+    expect(getTaskLocalPath(task)).toBe('')
+    expect(getTaskLocalPath({ ...task, output_path: '' })).toBe('')
   })
 })

@@ -59,7 +59,7 @@
             <div class="status-cell">
               <el-tag :type="statusTagType(row.status)" size="small" class="status-tag">
                 <span class="status-dot" :class="statusDotClass(row.status)"></span>
-                {{ statusLabel(row.status) }}
+                {{ row.pipeline_status_str || statusLabel(row.status) }}
               </el-tag>
               <a
                 v-if="row.status === -1"
@@ -68,6 +68,14 @@
                 @click.prevent="openLogDialog(row)"
               >{{ t('taskList.viewLogs') }}</a>
             </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column :label="t('taskList.taskStatus')" prop="task_status" width="110" />
+
+        <el-table-column :label="t('taskList.taskMessage')" min-width="240" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.task_message?.trim() ? row.task_message : t('taskList.noMessage') }}
           </template>
         </el-table-column>
 

@@ -1,5 +1,55 @@
 {
   "task": {
+    "pipeline_status": [
+      {
+        "cn": "初始化",
+        "en": "init"
+      },
+      {
+        "cn": "开始",
+        "en": "start"
+      },
+      {
+        "cn": "检查视频",
+        "en": "check_video"
+      },
+      {
+        "cn": "下载视频",
+        "en": "download_video"
+      },
+      {
+        "cn": "ASR或者下载字幕",
+        "en": "asr_or_download_subtitles"
+      },
+      {
+        "cn": "大模型生成",
+        "en": "generate_with_large_model"
+      },
+      {
+        "cn": "TTS语音转换",
+        "en": "tts_voice_conversion"
+      },
+      {
+        "cn": "字幕处理",
+        "en": "subtitle_processing"
+      },
+      {
+        "cn": "背景音频处理",
+        "en": "background_audio_processing"
+      },
+      {
+        "cn": "视频素材处理",
+        "en": "video_material_processing"
+      },
+      {
+        "cn": "视频合成",
+        "en": "video_composition"
+      },
+      {
+        "cn": "完成",
+        "en": "complete"
+      }
+    ],
     "asr": [
       {
         "cn": "从字幕提取",
