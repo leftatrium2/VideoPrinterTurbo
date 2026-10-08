@@ -30,25 +30,18 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 
 [![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
 
-Click the thumbnail to watch the demo on YouTube.
 #### 增加翻译字幕后：
 
 [![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
-
-Click the thumbnail to watch the demo on YouTube.
 
 + 视频 AI 重配音
 
 #### 增加翻译字幕并重新配音：
 [![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
 
-Click the thumbnail to watch the demo on YouTube.
-
 + 视频全覆盖
 #### 增加翻译字幕、重新配音并修改视频：
 [![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
-
-Click the thumbnail to watch the demo on YouTube.
 
 + 其他……
   + 等待你发掘，有新的想法，请给我提交一下issue
@@ -64,7 +57,7 @@ Click the thumbnail to watch the demo on YouTube.
 + Docker方式
 
 ### 后续计划
-+ 我的想法是，看用户的想法，要是有其他的需求，给我提交一下issue
++ 有其他的需求，给我提交一下issue
 
 
 ### 感谢

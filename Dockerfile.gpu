@@ -21,7 +21,8 @@ FROM ${PYTHON_IMAGE} AS runtime
 USER root
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-    LD_LIBRARY_PATH="/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cublas/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cudnn/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64" \
+    LD_LIBRARY_PATH="/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cublas/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cudnn/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cufft/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/curand/lib:/VideoPrinterTurbo/.venv/lib/python3.11/site-packages/nvidia/cuda_nvrtc/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64" \
+    AUDIO_SEPARATOR_MODEL_DIR=/home/vpt/.cache/audio-separator \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -49,19 +50,32 @@ import tomllib
 project = tomllib.loads(pathlib.Path('/tmp/backend-pyproject.toml').read_text())
 requirements = [d for d in project['project']['dependencies']
                 if not d.startswith('mlx-whisper')]
+requirements = [d.replace('audio-separator[cpu]', 'audio-separator[gpu]') for d in requirements]
 pathlib.Path('/tmp/requirements.txt').write_text('\n'.join(requirements) + '\n')
 PY
 # Install the CUDA 12.8 PyTorch build and its NVIDIA runtime dependencies.
 # CTranslate2 uses CUDA 12 / cuDNN 9; expose those wheel libraries above.
-# Pin PyTorch so subsequent dependency resolution preserves the CUDA build.
+# Pin PyTorch and torchvision to matching CUDA builds.
+# Faster Whisper requires the CPU ORT distribution metadata; reinstall the
+# resolved GPU wheel last so the shared onnxruntime module uses CUDA.
 ARG TORCH_VERSION=2.10.0
-RUN python -m pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cu128 \
-    && python -c "from importlib.metadata import version; print('torch==' + version('torch'))" > /tmp/torch-constraints.txt \
-    && python -m pip install -c /tmp/torch-constraints.txt -r /tmp/requirements.txt "ctranslate2==4.6.0" \
+ARG TORCHVISION_VERSION=0.25.0
+# PyPI ORT 1.27+ defaults to CUDA 13; this image uses CUDA 12.8.
+ARG ONNXRUNTIME_GPU_VERSION=1.26.0
+RUN python -m pip install "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cu128 \
+    && python -c "from importlib.metadata import version; print('torch==' + version('torch')); print('torchvision==' + version('torchvision'))" > /tmp/torch-constraints.txt \
+    && python -m pip install -c /tmp/torch-constraints.txt -r /tmp/requirements.txt "ctranslate2==4.6.0" "onnxruntime==${ONNXRUNTIME_GPU_VERSION}" "onnxruntime-gpu==${ONNXRUNTIME_GPU_VERSION}" \
+    && python -m pip install --no-deps --force-reinstall "onnxruntime-gpu==${ONNXRUNTIME_GPU_VERSION}" \
     && python -m pip check \
     && python -c "import torch; assert torch.version.cuda == '12.8', 'Expected CUDA 12.8 PyTorch'" \
     && python -c "import ctypes; ctypes.CDLL('libcublas.so.12'); ctypes.CDLL('libcudnn.so.9'); import ctranslate2" \
+    && python -c "import torch; import onnxruntime as ort; ort.preload_dlls(directory=''); import ctypes; from pathlib import Path; ctypes.CDLL(str(Path(ort.__file__).parent / 'capi' / 'libonnxruntime_providers_cuda.so')); assert 'CUDAExecutionProvider' in ort.get_available_providers(), ort.get_available_providers()" \
     && rm /tmp/requirements.txt /tmp/backend-pyproject.toml /tmp/torch-constraints.txt
+
+RUN mkdir -p "$AUDIO_SEPARATOR_MODEL_DIR" \
+    && python -c "from audio_separator.separator import Separator; import soundfile; import torchvision" \
+    && audio-separator --env_info \
+    && ffmpeg -hide_banner -filters 2>&1 | grep -w subtitles
 
 # Explicit copies avoid bundling local databases, virtualenvs and credentials.
 COPY server/*.py server/pyproject.toml server/README.md ./server/
@@ -78,7 +92,7 @@ COPY downloader.json.sample.json ./downloader.json
 COPY config.yaml.sample ./config.yaml
 COPY --from=frontend /VideoPrinterTurbo/front/dist ./front/dist
 
-# The sample lacks storage settings. Supply container defaults; a bind-mounted
+# Preserve sample storage settings and fill missing container defaults; a bind-mounted
 # /VideoPrinterTurbo/config.yaml can override the complete configuration.
 RUN python - <<'PY'
 from pathlib import Path
@@ -87,13 +101,17 @@ import yaml
 path = Path('/VideoPrinterTurbo/config.yaml')
 config = yaml.safe_load(path.read_text())
 config['app']['debug'] = False
-config['storage'] = {
+storage_defaults = {
     'path': 'storage', 'upload': 'storage/upload',
     'download': 'storage/downloads', 'subtitle': 'storage/subtitle',
-    'video_to_text': 'storage/video_to_text', 'llm_rewrite': 'storage/llm_rewrite',
+    'video_to_text': 'storage/video_to_text', 'audio_separator': 'storage/audio_separator',
+    'llm_rewrite': 'storage/llm_rewrite',
     'tts_rewrite': 'storage/tts_rewrite', 'material': 'storage/material',
     'output': 'output',
 }
+storage = config.setdefault('storage', {})
+for key, value in storage_defaults.items():
+    storage.setdefault(key, value)
 path.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False))
 PY
 
@@ -165,7 +183,7 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 SUPERVISOR
 
-RUN mkdir -p server/db storage output /home/vpt /tmp/nginx_client /tmp/nginx_proxy \
+RUN mkdir -p server/db storage output /home/vpt/.cache/audio-separator /tmp/nginx_client /tmp/nginx_proxy \
     && touch /tmp/nginx.pid \
     && chown -R 10001:10001 /VideoPrinterTurbo /home/vpt \
     && chown 10001:10001 /tmp/nginx.pid /tmp/nginx_client /tmp/nginx_proxy \

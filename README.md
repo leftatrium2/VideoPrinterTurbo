@@ -1,7 +1,7 @@
 <div align="center">
 <h1 align="center">VideoPrinterTurbo<img src="doc/VideoPrinterTurbo.png"></h1>
 <br>
-<h3>English | <a href="README-cn.md">简体中文</a></h3>
+<h3>English | <a href="README_cn.md">简体中文</a></h3>
 <br>
 </div>
 
@@ -32,13 +32,9 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 
 [![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
 
-Click the thumbnail to watch the demo on YouTube.
-
 #### With translated subtitles:
 
 [![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
-
-Click the thumbnail to watch the demo on YouTube.
 
 + AI video redubbing
 
@@ -46,15 +42,11 @@ Click the thumbnail to watch the demo on YouTube.
 
 [![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
 
-Click the thumbnail to watch the demo on YouTube.
-
 + Full video footage replacement
 
 #### With translated subtitles, new dubbing, and replacement footage:
 
 [![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
-
-Click the thumbnail to watch the demo on YouTube.
 
 + And more…
   + Explore other possibilities. If you have a new idea, please open an issue.

@@ -19,6 +19,7 @@ FROM ${PYTHON_IMAGE} AS runtime
 USER root
 ENV CUDA_VISIBLE_DEVICES="" \
     NVIDIA_VISIBLE_DEVICES=void \
+    AUDIO_SEPARATOR_MODEL_DIR=/home/vpt/.cache/audio-separator \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -51,12 +52,19 @@ PY
 # Install PyTorch from the CPU-only index first, then constrain its exact build
 # so installing openai-whisper cannot replace it with a CUDA-enabled wheel.
 ARG TORCH_VERSION=2.10.0
-RUN python -m pip install "torch==${TORCH_VERSION}" --index-url https://download.pytorch.org/whl/cpu \
-    && python -c "from importlib.metadata import version; print('torch==' + version('torch'))" > /tmp/torch-constraints.txt \
+ARG TORCHVISION_VERSION=0.25.0
+RUN python -m pip install "torch==${TORCH_VERSION}" "torchvision==${TORCHVISION_VERSION}" --index-url https://download.pytorch.org/whl/cpu \
+    && python -c "from importlib.metadata import version; print('torch==' + version('torch')); print('torchvision==' + version('torchvision'))" > /tmp/torch-constraints.txt \
     && python -m pip install -c /tmp/torch-constraints.txt -r /tmp/requirements.txt \
     && python -m pip check \
     && python -c "import torch; assert torch.version.cuda is None, 'Expected CPU-only PyTorch'" \
+    && python -c "import onnxruntime as ort; assert 'CUDAExecutionProvider' not in ort.get_available_providers(), ort.get_available_providers()" \
     && rm /tmp/requirements.txt /tmp/backend-pyproject.toml /tmp/torch-constraints.txt
+
+RUN mkdir -p "$AUDIO_SEPARATOR_MODEL_DIR" \
+    && python -c "from audio_separator.separator import Separator; import soundfile; import torchvision" \
+    && audio-separator --env_info \
+    && ffmpeg -hide_banner -filters 2>&1 | grep -w subtitles
 
 # Explicit copies avoid bundling local databases, virtualenvs and credentials.
 COPY server/*.py server/pyproject.toml server/README.md ./server/
@@ -73,7 +81,7 @@ COPY downloader.json.sample.json ./downloader.json
 COPY config.yaml.sample ./config.yaml
 COPY --from=frontend /VideoPrinterTurbo/front/dist ./front/dist
 
-# The sample lacks storage settings. Supply container defaults; a bind-mounted
+# Preserve sample storage settings and fill missing container defaults; a bind-mounted
 # /VideoPrinterTurbo/config.yaml can override the complete configuration.
 RUN python - <<'PY'
 from pathlib import Path
@@ -82,13 +90,17 @@ import yaml
 path = Path('/VideoPrinterTurbo/config.yaml')
 config = yaml.safe_load(path.read_text())
 config['app']['debug'] = False
-config['storage'] = {
+storage_defaults = {
     'path': 'storage', 'upload': 'storage/upload',
     'download': 'storage/downloads', 'subtitle': 'storage/subtitle',
-    'video_to_text': 'storage/video_to_text', 'llm_rewrite': 'storage/llm_rewrite',
+    'video_to_text': 'storage/video_to_text', 'audio_separator': 'storage/audio_separator',
+    'llm_rewrite': 'storage/llm_rewrite',
     'tts_rewrite': 'storage/tts_rewrite', 'material': 'storage/material',
     'output': 'output',
 }
+storage = config.setdefault('storage', {})
+for key, value in storage_defaults.items():
+    storage.setdefault(key, value)
 path.write_text(yaml.safe_dump(config, allow_unicode=True, sort_keys=False))
 PY
 
@@ -160,7 +172,7 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 SUPERVISOR
 
-RUN mkdir -p server/db storage output /home/vpt /tmp/nginx_client /tmp/nginx_proxy \
+RUN mkdir -p server/db storage output /home/vpt/.cache/audio-separator /tmp/nginx_client /tmp/nginx_proxy \
     && touch /tmp/nginx.pid \
     && chown -R 10001:10001 /VideoPrinterTurbo /home/vpt \
     && chown 10001:10001 /tmp/nginx.pid /tmp/nginx_client /tmp/nginx_proxy \
