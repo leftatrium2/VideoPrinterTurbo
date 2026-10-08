@@ -1,4 +1,10 @@
-# VideoPrinterTurbo 
+<div align="center">
+<h1 align="center">VideoPrinterTurbo<img src="doc/VideoPrinterTurbo.png"></h1>
+<br>
+<h3> <a href="README.md">English</a> | 简体中文</h3>
+<br>
+
+
 ###  MoneyPrinterTurbo 姊妹篇
 ###  MoneyPrinterTurbo生成视频，VideoPrinterTurbo用来做二创
 ```
@@ -22,25 +28,25 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
   + 调用链：下载->ASR->LLM改写->字幕配置->输出成品
 #### 原视频：
 
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
 
 Click the thumbnail to watch the demo on YouTube.
 #### 增加翻译字幕后：
 
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
 
 Click the thumbnail to watch the demo on YouTube.
 
 + 视频 AI 重配音
 
 #### 增加翻译字幕并重新配音：
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=08dmRF8JVaI)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
 
 Click the thumbnail to watch the demo on YouTube.
 
 + 视频全覆盖
 #### 增加翻译字幕、重新配音并修改视频：
-[![Watch the demo](https://i9.ytimg.com/vi/321RVhF8ok8/mqdefault.jpg?sqp=CPzwl9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGDwgUSh_MA8=&rs=AOn4CLAxgYPMFpaMMoxxhWAl3HrsfGASyA)](https://www.youtube.com/watch?v=321RVhF8ok8)
+[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
 
 Click the thumbnail to watch the demo on YouTube.
 

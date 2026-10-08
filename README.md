@@ -1,4 +1,10 @@
-# VideoPrinterTurbo
+<div align="center">
+<h1 align="center">VideoPrinterTurbo<img src="doc/VideoPrinterTurbo.png"></h1>
+<br>
+<h3>English | <a href="README-cn.md">简体中文</a></h3>
+<br>
+
+
 ### A sister project to MoneyPrinterTurbo
 ### MoneyPrinterTurbo generates videos; VideoPrinterTurbo helps you create derivative videos
 ```
@@ -23,13 +29,13 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 
 #### Original video:
 
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
 
 Click the thumbnail to watch the demo on YouTube.
 
 #### With translated subtitles:
 
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
 
 Click the thumbnail to watch the demo on YouTube.
 
@@ -37,7 +43,7 @@ Click the thumbnail to watch the demo on YouTube.
 
 #### With translated subtitles and new dubbing:
 
-[![Watch the demo](https://i9.ytimg.com/vi/AiSW3_SyaKs/mqdefault.jpg?sqp=CPiel9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGHIgUyg9MA8=&rs=AOn4CLDGqmJFeo_uqDLPCFQ_VRSZ2B-Ksg)](https://www.youtube.com/watch?v=08dmRF8JVaI)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
 
 Click the thumbnail to watch the demo on YouTube.
 
@@ -45,7 +51,7 @@ Click the thumbnail to watch the demo on YouTube.
 
 #### With translated subtitles, new dubbing, and replacement footage:
 
-[![Watch the demo](https://i9.ytimg.com/vi/321RVhF8ok8/mqdefault.jpg?sqp=CPzwl9YG-oaymwEmCMACELQB8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGDwgUSh_MA8=&rs=AOn4CLAxgYPMFpaMMoxxhWAl3HrsfGASyA)](https://www.youtube.com/watch?v=321RVhF8ok8)
+[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
 
 Click the thumbnail to watch the demo on YouTube.
 
