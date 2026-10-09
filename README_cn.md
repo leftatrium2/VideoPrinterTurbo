@@ -76,7 +76,52 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 ### 教程
 
 + 如何配置 VideoPrinterTurbo
-  + 
+  + 关于ASR配置
+    + 什么是ASR：
+    
+       ***\*ASR技术\****（**Automatic Speech Recognition**，即**自动语音识别**）是一种利用人工智能和机器学习技术，将人类的语音信号（声音）自动转换成对应书面文本或命令的智能化处理技术。
+    
+       VideoPrinterTurbo 用ASR技术来实现将视频中的人声部分，转换为文字，为后续的LLM、TTS等处理做准备
+    
+    + 如何配置？
+    
+       + 【备注：ASR配置的所有TAG项目，只要配置好一个，后续在新建任务的时候，选择配置好的这个ASR服务即可，不需要全部配置一遍】
+	  
+	  + 什么是 *** Whisper（本地 ASR）***以及如何配置？
+		  + Whisper 是由 OpenAI 开源的用于语音识别和转录的机器学习模型，所谓 *** Whisper（本地 ASR）*** 指直接将 whisper 模型下载到本地机器
+	    + OpenAI Whisper（CPU调用）
+		    + 官方 whisper-large-v3-turbo 模型
+	      + 使用CPU方式，速度较慢，只是作为兼容性使用，不建议用到真实业务里面
+		    + 模型文件需要5GB以上硬盘空间
+      + MLX Whisper（推荐 Apple Silicon 选用）
+        + 使用：mlx-community/whisper-large-v3-mlx
+        + 模型文件需要5GB以上的硬盘空间
+        + 建议M pro系列CPU
+        + 建议16GB以上统一内存
+      + Faster Whisper（推荐 NVIDIA GPU 选用）
+        + 使用：Systran/faster-whisper-large-v3模型
+        + 建议显存12GB以上，显卡：3080以上
+        + 模型文件建议5GB以上硬盘空间
+
+ ![Watch the demo](doc/cn/asr_config_1.png)
+
+	  + 什么是 *** Whisper（远程 ASR）***以及如何配置？
+
+![Watch the demo](doc/cn/asr_config_2.png)
+
+	  + 什么是 *** 腾讯云 ASR***以及如何配置？
+
+![Watch the demo](doc/cn/asr_config_3.png)
+
+	  + 其余云服务配置，参照腾讯云ASR配置方式，不再赘述
+  + 关于LLM配置
+
+  + 关于素材配置
+
+  + 关于TTS配置
+
+  + 关于代理配置
+
 + 开始第一个任务
 
 ### 部署说明
