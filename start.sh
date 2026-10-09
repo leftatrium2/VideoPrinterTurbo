@@ -267,7 +267,7 @@ def serve(python, env, cache, args):
     try:
         front_env = env.copy()
         front_env['VITE_API_BASE_URL'] = f'http://127.0.0.1:{args.backend_port}'
-        commands = [([str(python), '-c', BACKEND, 'app:app', '--host', '127.0.0.1', '--port', str(args.backend_port)], ROOT / 'server', env, 'backend'),
+        commands = [([str(python), '-c', BACKEND, 'app:app', '--host', '0.0.0.0', '--port', str(args.backend_port)], ROOT / 'server', env, 'backend'),
                     ([shutil.which('node'), str(ROOT / 'front' / 'node_modules' / 'vite' / 'bin' / 'vite.js'), '--host', '0.0.0.0', '--port', str(args.frontend_port), '--strictPort'], ROOT / 'front', front_env, 'frontend')]
         for command, cwd, child_env, name in commands:
             log = open(cache / (name + '.log'), 'w', encoding='utf-8')
