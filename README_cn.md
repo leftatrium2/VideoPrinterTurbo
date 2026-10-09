@@ -61,17 +61,17 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 + 软件要求
   + Windows11 或者 macOS 11.0 或者更高版本，以及各主流linux发行版本
   + Python 3.11
-    + https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-    + 如何安装 [windows] [mac] [linux]
+    + [windows] https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+    + [mac homebrew] brew install python@3.11
   + Node.js 24
-    + https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi
-    + 如何安装 [windows] [mac] [linux]
+    + [windows] https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi
+    + [mac homebrew] brew install node
   + uv 0.12
     + pip install uv
-    + 如何安装 [windows] [mac] [linux]
-  + ffmpeg v9
-    + https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z
-    + 如何安装 [windows] [mac] [linux]
+  + ffmpeg ffprobe >=v7
+    + 只是用了ffmpeg以及ffprobe命令行方式，没有用太复杂的功能或者自定义的滤镜
+    + [windows] https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z
+    + [mac homebrew] brew install ffmpeg
 
 ### 教程
 
