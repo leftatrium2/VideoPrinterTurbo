@@ -358,8 +358,6 @@ def main():
         info('Acceleration will be verified after dependency installation during a normal start.')
         return
     python, env, cache = initialize(mode, args, tools['uv'], tools['npm'])
-    info("aaa")
-    sys.exit(0)
     serve(python, env, cache, args)
 
 
