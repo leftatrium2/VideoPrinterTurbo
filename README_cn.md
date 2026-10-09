@@ -5,6 +5,7 @@
 <br>
 </div>
 
+
 ###  MoneyPrinterTurbo 姊妹篇
 ###  MoneyPrinterTurbo生成视频，VideoPrinterTurbo用来做二创
 ```
@@ -68,21 +69,61 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
     + [mac homebrew] brew install node
   + uv 0.12
     + pip install uv
+  + yt-dlp
+    + pip install yt-dlp
   + ffmpeg ffprobe >=v7
     + 只是用了ffmpeg以及ffprobe命令行方式，没有用太复杂的功能或者自定义的滤镜
     + [windows] https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z
     + [mac homebrew] brew install ffmpeg
 
-### 教程
-
-+ 如何配置 VideoPrinterTurbo
-  + 
-+ 开始第一个任务
-
 ### 部署说明
 
 + 直接部署
+
+  + 如果是windows，请在完成“软件要求”中的相关软件后，直接运行根目录中的start.bat
+  + 如果是mac或者linux系统，请在完成“软件要求”中的相关软件后，直接运行根目录中的start.sh
+  + 关于 start.bat 或者 start.sh 中的参数：
+
+    + 参数列表
+```
+    start.xxx --help
+      usage: -c [-h] [--mode {auto,cpu,cuda,mac}] [--check] [--reinstall] [--host HOST] [--backend-port BACKEND_PORT] [--frontend-port FRONTEND_PORT]
+
+      Initialize and start VideoPrinterTurbo locally.
+
+      options:
+        -h, --help            show this help message and exit
+        --mode {auto,cpu,cuda,mac}
+        --check               Check prerequisites without installing or starting services.
+        --reinstall           Run dependency installation again.
+        --host HOST           IPv4 address for both services and the browser API URL (default: 127.0.0.1).
+        --backend-port BACKEND_PORT
+        --frontend-port FRONTEND_PORT
+---------------------------------------------------------------------------------------
+        --mode {auto,cpu,cuda,mac}
+          auto 让启动脚本自己选择
+          cpu 使用CPU方式启动
+          cuda 在安装了NVIDIA CUDA的机器上面运行
+          mac 在安装有 apple silicon 的系统上面运行
+        --host HOST
+          如果不使用此选项，那么默认绑定的ip地址是127.0.0.1
+          在网络环境下面使用此软件的时候，必须绑定可访问的ip地址才可以，比如：
+             我的服务器地址是：192.168.0.101，那么就可以使用 start.xxx --host 192.168.0.101，然后，然后在网络中其他机器中使用：
+             http://192.168.0.101:5173，即可打开界面
+          【备注：如果是本地部署运行，本地访问，无需在意这个选项】
+        --backend-port
+          后台的端口，默认是8080，如果需要修改，使用此选项
+        --frontend-port
+          前天的端口，默认是5173，如果需要修改，使用此选项
+```
 + Docker方式
+  + 【后续提供】
+
+### 教程 
+
++ 如何配置 VideoPrinterTurbo
+	+ 
++ 开始第一个任务
 
 ### 后续计划
 + 有其他的需求，给我提交一下issue
