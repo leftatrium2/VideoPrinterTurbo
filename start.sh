@@ -1,5 +1,5 @@
 #!/bin/sh
-# Usage: sh start.sh [--mode auto|cpu|cuda|mac] [--check] [--reinstall]
+# Usage: sh start.sh [--mode auto|cpu|cuda|mac] [--check] [--reinstall] [--host IP]
 # Python payload is shared with start.bat; keep both copies identical.
 set -eu
 cd -- "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
@@ -11,6 +11,7 @@ exec uv run --no-project --no-python-downloads --python '>=3.11,<3.13' python - 
 # VPT_PYTHON_START
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -71,14 +72,14 @@ def select_mode(requested):
     return mode
 
 
-def check_port(port):
+def check_port(host, port):
     with socket.socket() as sock:
         if not WINDOWS:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            sock.bind(('127.0.0.1', port))
+            sock.bind((host, port))
         except OSError as exc:
-            raise RuntimeError(f'Port {port} is unavailable. Stop the existing service or choose another port.') from exc
+            raise RuntimeError(f'Cannot bind {host}:{port}. Check that the IP belongs to this machine and the port is available.') from exc
 
 
 def base_env():
@@ -266,14 +267,14 @@ def serve(python, env, cache, args):
         signal.signal(signal.SIGBREAK, interrupted)
     try:
         front_env = env.copy()
-        front_env['VITE_API_BASE_URL'] = f'http://127.0.0.1:{args.backend_port}'
-        commands = [([str(python), '-c', BACKEND, 'app:app', '--host', '0.0.0.0', '--port', str(args.backend_port)], ROOT / 'server', env, 'backend'),
-                    ([shutil.which('node'), str(ROOT / 'front' / 'node_modules' / 'vite' / 'bin' / 'vite.js'), '--host', '0.0.0.0', '--port', str(args.frontend_port), '--strictPort'], ROOT / 'front', front_env, 'frontend')]
+        front_env['VITE_API_BASE_URL'] = f'http://{args.host}:{args.backend_port}'
+        commands = [([str(python), '-c', BACKEND, 'app:app', '--host', args.host, '--port', str(args.backend_port)], ROOT / 'server', env, 'backend'),
+                    ([shutil.which('node'), str(ROOT / 'front' / 'node_modules' / 'vite' / 'bin' / 'vite.js'), '--host', args.host, '--port', str(args.frontend_port), '--strictPort'], ROOT / 'front', front_env, 'frontend')]
         for command, cwd, child_env, name in commands:
             log = open(cache / (name + '.log'), 'w', encoding='utf-8')
             logs.append(log)
             children.append(subprocess.Popen(command, cwd=cwd, env=child_env, stdout=log, stderr=subprocess.STDOUT, **creation))
-        urls = [f'http://127.0.0.1:{args.backend_port}/openapi.json', f'http://127.0.0.1:{args.frontend_port}/']
+        urls = [f'http://{args.host}:{args.backend_port}/openapi.json', f'http://{args.host}:{args.frontend_port}/']
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         pending = set(urls)
         deadline = time.monotonic() + 120
@@ -313,9 +314,17 @@ def main():
     parser.add_argument('--mode', choices=('auto', 'cpu', 'cuda', 'mac'), default='auto')
     parser.add_argument('--check', action='store_true', help='Check prerequisites without installing or starting services.')
     parser.add_argument('--reinstall', action='store_true', help='Run dependency installation again.')
+    parser.add_argument('--host', default='127.0.0.1', help='IPv4 address for both services and the browser API URL (default: 127.0.0.1).')
     parser.add_argument('--backend-port', type=int, default=8080)
     parser.add_argument('--frontend-port', type=int, default=5173)
     args = parser.parse_args()
+    try:
+        address = ipaddress.IPv4Address(args.host)
+    except ipaddress.AddressValueError as exc:
+        raise RuntimeError('--host must be a valid IPv4 address.') from exc
+    if address.is_unspecified:
+        raise RuntimeError('--host must be a concrete server IP, not 0.0.0.0, because browsers use it to access the API.')
+    args.host = str(address)
     if not (3, 11) <= sys.version_info[:2] < (3, 13):
         raise RuntimeError('Python 3.11 or 3.12 is required.')
     if args.backend_port == args.frontend_port or not all(1 <= p <= 65535 for p in (args.backend_port, args.frontend_port)):
@@ -329,7 +338,7 @@ def main():
             raise RuntimeError(f'Required project file is missing: {name}')
     mode = select_mode(args.mode)
     for port in (args.backend_port, args.frontend_port):
-        check_port(port)
+        check_port(args.host, port)
     info(f'Platform: {platform.system()} {platform.machine()}; Python: {platform.python_version()}; mode: {mode}')
     info('Prerequisite checks passed.')
     if args.check:
