@@ -77,56 +77,6 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
     + [mac homebrew] brew install ffmpeg
 
 ### 部署说明
-
-+ 如何配置 VideoPrinterTurbo
-  + 关于ASR配置
-    + 什么是ASR：
-    
-       ***\*ASR技术\****（**Automatic Speech Recognition**，即**自动语音识别**）是一种利用人工智能和机器学习技术，将人类的语音信号（声音）自动转换成对应书面文本或命令的智能化处理技术。
-    
-       VideoPrinterTurbo 用ASR技术来实现将视频中的人声部分，转换为文字，为后续的LLM、TTS等处理做准备
-    
-    + 如何配置？
-    
-       + 【备注：ASR配置的所有TAG项目，只要配置好一个，后续在新建任务的时候，选择配置好的这个ASR服务即可，不需要全部配置一遍】
-	  
-	  + 什么是 *** Whisper（本地 ASR）***以及如何配置？
-		  + Whisper 是由 OpenAI 开源的用于语音识别和转录的机器学习模型，所谓 *** Whisper（本地 ASR）*** 指直接将 whisper 模型下载到本地机器
-	    + OpenAI Whisper（CPU调用）
-		    + 官方 whisper-large-v3-turbo 模型
-	      + 使用CPU方式，速度较慢，只是作为兼容性使用，不建议用到真实业务里面
-		    + 模型文件需要5GB以上硬盘空间
-      + MLX Whisper（推荐 Apple Silicon 选用）
-        + 使用：mlx-community/whisper-large-v3-mlx
-        + 模型文件需要5GB以上的硬盘空间
-        + 建议M pro系列CPU
-        + 建议16GB以上统一内存
-      + Faster Whisper（推荐 NVIDIA GPU 选用）
-        + 使用：Systran/faster-whisper-large-v3模型
-        + 建议显存12GB以上，显卡：3080以上
-        + 模型文件建议5GB以上硬盘空间
-
- ![Watch the demo](doc/cn/asr_config_1.png)
-
-	  + 什么是 *** Whisper（远程 ASR）***以及如何配置？
-
-![Watch the demo](doc/cn/asr_config_2.png)
-
-	  + 什么是 *** 腾讯云 ASR***以及如何配置？
-
-![Watch the demo](doc/cn/asr_config_3.png)
-
-	  + 其余云服务配置，参照腾讯云ASR配置方式，不再赘述
-  + 关于LLM配置
-
-  + 关于素材配置
-
-  + 关于TTS配置
-
-  + 关于代理配置
-
-+ 开始第一个任务
-
   + 如果是windows，请在完成“软件要求”中的相关软件后，直接运行根目录中的start.bat
   + 如果是mac或者linux系统，请在完成“软件要求”中的相关软件后，直接运行根目录中的start.sh
   + 关于 start.bat 或者 start.sh 中的参数：
@@ -165,12 +115,101 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 ```
 + Docker方式
   + 【后续提供】
-
-### 教程 
-
+### 教程
 + 如何配置 VideoPrinterTurbo
-	+ 
+  + 关于ASR配置
+    + 什么是ASR：
+    
+       ***\*ASR技术\****（**Automatic Speech Recognition**，即**自动语音识别**）是一种利用人工智能和机器学习技术，将人类的语音信号（声音）自动转换成对应书面文本或命令的智能化处理技术。
+    
+       VideoPrinterTurbo 用ASR技术来实现将视频中的人声部分，转换为文字，为后续的LLM、TTS等处理做准备
+    
+    + 如何配置？
+    
+       + 【备注：ASR配置的所有TAG项目，只要配置好一个，后续在新建任务的时候，选择配置好的这个ASR服务即可，不需要全部配置一遍】
+	  
+	  + 什么是 *** Whisper（本地 ASR）***以及如何配置？
+		  + Whisper 是由 OpenAI 开源的用于语音识别和转录的机器学习模型，所谓 *** Whisper（本地 ASR）*** 指直接将 whisper 模型下载到本地机器
+	    + OpenAI Whisper（CPU调用）
+		    + 官方 whisper-large-v3-turbo 模型
+	      + 使用CPU方式，速度较慢，只是作为兼容性使用，不建议用到真实业务里面
+		    + 模型文件需要5GB以上硬盘空间
+      + MLX Whisper（推荐 Apple Silicon 选用）
+        + 使用：mlx-community/whisper-large-v3-mlx
+        + 模型文件需要5GB以上的硬盘空间
+        + 建议M pro系列CPU
+        + 建议16GB以上统一内存
+      + Faster Whisper（推荐 NVIDIA GPU 选用）
+        + 使用：Systran/faster-whisper-large-v3模型
+        + 建议显存12GB以上，显卡：3080以上
+        + 模型文件建议5GB以上硬盘空间
+      
+    + ![asr_config_1](doc/cn/asr_config_1.png)
+    
+    + 什么是 *** Whisper（远程 ASR）***以及如何配置？
+    
+    + 所谓 *** Whisper（远程 ASR）***指的是，私有化部署在服务器上面的Whisper服务，本项目支持 vllm 与 whisper.cpp 两种部署方式
+    
+    + 按照部署后的地址，填写即可，比如，whisper.cpp部署在 192.168.0.1 服务器上面，端口是8004，那么地址是：http://192.168.0.1:8004/inference
+    
+    + ![asr_config_1](doc/cn/asr_config_2.png)
+    
+    + 什么是 *** 腾讯云 ASR***以及如何配置？
+    
+    + 按照各云厂商提供的id与key，填写即可
+    
+    + ![asr_config_1](doc/cn/asr_config_3.png)
+    
+    + 其余云服务配置，参照腾讯云ASR配置方式，不再赘述
+    
+  + 关于LLM配置
+  
+    + 什么是LLM配置：LLM用来改写字幕文件，并影响到后续的AI语音（TTS）等输出的内容
+    + 本项目使用的LLM配置为 openai 的兼容方式，不支持 Claude API调用方式
+    + 下面是使用Deepseek官方API的例子
+    +  ![asr_config_1](doc/cn/llm_config.png)
+  
+  + 关于素材配置
+	
+    + 什么是素材？
+      + 在一些特殊的二创场景，比如：我自己用 MoneyPrinterTurbo 做了一个短片，我希望快速复制类似的内容，那么可以使用 素材 功能
+      + 在”添加任务“的时候，选中 视频覆盖 功能，并在 视频关键词 中填写相应的关键词后，VideoPrinterTurbo 会从相应站点，按照给定的关键词搜索后，将得到的素材替换到原视频中的视频部分，以达到快速二创的目的
+      + 【备注：如果不填写关键词，那么 VideoPrinterTurbo 会使用LLM（需要有LLM配置）将当前字幕文件中的内容，提取固定数量的关键词，这可能导致关键词不准确】
+    + 如何配置
+      + 本项目支持 Pexels 与 Pixabay 两个素材站的素材 apikey 配置
+      + 在相应的网站申请 apikey 即可
+  
+  + ![asr_config_1](doc/cn/material_config.png)
+  
+  + 关于TTS配置
+  
+    + TTS是什么？
+      + ***\*TTS\**** 是 **Text-to-Speech（文本转语音）**的缩写，也叫语音合成技术。它是一种能把书面文字转换成自然、可听见的人类语音的技术。
+      + 你可以理解为ASR的相反过程，在 VideoPrinterTurbo 项目中，TTS技术用于将 ASR提取后，并经过LLM处理后的字幕，重新输出为语音，并在最后合并到输出视频中
+    + 如何配置？
+      + 在 *** TTS服务器 *** 中选择你需要的，建议选择 Azure TTS V2 服务，相对来说，速度与流畅度都不错，只是注意，在申请 Azure TTS V2云服务的时候，记得选择离你最近的 *** 服务区域*** ，并正确填写到配置里面
+  
+  + ![asr_config_1](doc/cn/tts_config_1.png)
+  
+  + 关于代理配置
+  
+    + 支持 http 代理以及 socks5 代理
+  
+    + 【备注：一旦配置后，可以在”添加任务“中选中，选中后，所有的网络部分都会走配置的代理服务】
+  
+  + ![asr_config_1](doc/cn/proxy_config.png)
+  
 + 开始第一个任务
+
+  + 全部配置完毕后，我们开始第一个最简单的任务，下载视频：
+  + 点击”添加任务“
+  + 在下载视频中填写链接，比如：https://www.youtube.com/watch?v=mUw27wG7uFA
+  + ![asr_config_1](doc/cn/add_task_1.png)
+  + 点击”检查链接“，检查链接是否可用【备注：如果你想要下载的视频，必须使用代理服务下载，那么在”检查链接“的时候，也需要选中代理服务下载】
+  + ![asr_config_1](doc/cn/add_task_2.png)
+  + 检查通过，点击最下面的：开始任务 按钮，开始下载
+  + ![asr_config_1](doc/cn/add_task_3.png)
+  + 等待任务完成，当”状态”显示完成后，在本地路径中显示的，就是下载得到的视频
 
 ### 后续计划
 + 有其他的需求，给我提交一下issue
