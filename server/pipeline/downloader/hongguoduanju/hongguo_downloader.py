@@ -45,9 +45,9 @@ def make_hook(context: DownloaderContext):
     return hook
 
 
-class YtDlpDownloader(BaseDownloader):
+class HongguoDownloader(BaseDownloader):
     def __init__(self):
-        YtDlpDownloader._check_available()
+        HongguoDownloader._check_available()
 
     @staticmethod
     def _check_available():
@@ -93,7 +93,7 @@ class YtDlpDownloader(BaseDownloader):
             context.on_create(url)
         yt_dlp_opts: dict[str, Any] = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            "outtmpl": f"{video_full_path}",
+            "outtmpl": f"{video_full_path}.mp4",
             "merge_output_format": "mp4",
             "quiet": True,
             'ignoreerrors': True,
@@ -155,7 +155,7 @@ if __name__ == "__main__":
     init_config()
     full_path = asyncio.run(get_download_path())
     full_path = os.path.join(full_path, "20261010155031954341")
-    downloader = YtDlpDownloader()
+    downloader = HongguoDownloader()
     download_url = "https://hongguoduanju.com/player/7647933774268746776"
     proxy = "http://127.0.0.1:7890"
     if downloader.check(download_url, proxy_url=proxy):

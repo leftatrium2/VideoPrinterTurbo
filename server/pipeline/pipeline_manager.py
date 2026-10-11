@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -518,7 +519,6 @@ class PipelineManager:
             )
             self.__data.material_video_bean.video_materials = res_list
         # assembly video(ffmpeg)
-        self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
         output_path = asyncio.run(get_output_path())
         if not output_path:
             msg = f"config.yaml storage.output not set! pls set storage.output first"
@@ -526,22 +526,46 @@ class PipelineManager:
             task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
             task.task_message = msg
             return None
-        output_path = os.path.join(output_path, f"{task.task_id}.mp4")
-        assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
-        full_file_path = assembly_video.assembly(output_path)
-        if full_file_path:
+        if self.__if_need_assembly():
+            # 如果只是下载，那么直接将下载的视频文件返回即可
+            full_file_path = self.__data.video_bean.video_full_path
+            output_path = os.path.join(output_path, f"{task.task_id}.mp4")
+            shutil.copy2(full_file_path, output_path)
             task.pipeline_status = const.PIPELINE_STATUS_FINISH
             task.task_status = const.PIPELINE_STATUS_SUCCESS
-            task.task_message = ""
+            task.task_message = "video is process successfully"
             task.output_path = full_file_path
             PipelineManager.__update_db_task(task)
+            return full_file_path
         else:
-            task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
-            task.task_status = const.PIPELINE_ERR_FILE_SAVE
-            task.task_message = "full file path is none"
-            task.output_path = ""
-            PipelineManager.__update_db_task(task)
-        return full_file_path
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
+            output_path = os.path.join(output_path, f"{task.task_id}.mp4")
+            assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
+            full_file_path = assembly_video.assembly(output_path)
+            if full_file_path:
+                task.pipeline_status = const.PIPELINE_STATUS_FINISH
+                task.task_status = const.PIPELINE_STATUS_SUCCESS
+                task.task_message = ""
+                task.output_path = full_file_path
+                PipelineManager.__update_db_task(task)
+            else:
+                task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_status = const.PIPELINE_ERR_FILE_SAVE
+                task.task_message = "full file path is none"
+                task.output_path = ""
+                PipelineManager.__update_db_task(task)
+            return full_file_path
+
+    def __if_need_assembly(self) -> bool:
+        if (self.__data.is_asr
+                or self.__data.is_llm
+                or self.__data.is_tts
+                or self.__data.is_rewrite_subtitle
+                or self.__data.is_bgm
+                or self.__data.is_material
+        ):
+            return False
+        return True
 
 
 pipeline = PipelineManager()
@@ -549,7 +573,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20261002213254577891"
+    task_id = "20261010155031954341"
     database.start()
     db = database.get_sync_session()
     try:
