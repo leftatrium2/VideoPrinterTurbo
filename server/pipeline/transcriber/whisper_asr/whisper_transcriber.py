@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os.path
 from typing import Optional
 
 from config.config import init_config
@@ -83,11 +84,18 @@ class WhisperTranscriber(BaseTranscriber):
 if __name__ == "__main__":
     init_config()
     path = asyncio.run(get_video_to_text_path())
+    if not path:
+        print("path is empty!")
+        exit(0)
+    asr_full_path = os.path.join(path, "20261012115116323330.srt")
     transcriber = WhisperTranscriber(
-        local_whisper_type=TASK_CONFIG_ASR_MLX_WHISPER
+        local_whisper_type=TASK_CONFIG_ASR_OPENAI_WHISPER,
+        language="ja"
     )
     transcriber.config(proxy="http://127.0.0.1:7890")
     result = transcriber.transcribe(
-        "/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/Give Me 9 Minutes, I'll Make You AI-Native.mp3")
+        audio_path="/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/audio_separator/20261012115116323330_voice.mp3",
+        asr_full_path=asr_full_path
+    )
 
     logger.info(result)

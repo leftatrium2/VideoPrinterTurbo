@@ -573,7 +573,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20261010155031954341"
+    task_id = "20261012112651686947"
     database.start()
     db = database.get_sync_session()
     try:

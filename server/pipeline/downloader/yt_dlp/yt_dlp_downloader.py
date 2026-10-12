@@ -93,7 +93,7 @@ class YtDlpDownloader(BaseDownloader):
             context.on_create(url)
         yt_dlp_opts: dict[str, Any] = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            "outtmpl": f"{video_full_path}",
+            "outtmpl": f"{video_full_path}.mp4",
             "merge_output_format": "mp4",
             "quiet": True,
             'ignoreerrors': True,
