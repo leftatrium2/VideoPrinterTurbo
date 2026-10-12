@@ -12,7 +12,7 @@ i18n_config: dict | None = None
 
 
 def get_current_path() -> str:
-    return f"{Path.cwd().parent}"
+    return os.environ.get("VPT_DATA_DIR", str(Path.cwd().parent))
 
 
 # Load yaml configuration
@@ -38,5 +38,5 @@ def init_config():
     downloader_config_path = os.path.join(get_current_path(), "downloader.json")
     downloader_config = load_json_config(downloader_config_path)
     global i18n_config
-    i18n_config_path = os.path.join(get_current_path(), "i18n.json")
+    i18n_config_path = os.path.join(os.environ.get("VPT_RESOURCE_DIR", get_current_path()), "i18n.json")
     i18n_config = load_json_config(i18n_config_path)

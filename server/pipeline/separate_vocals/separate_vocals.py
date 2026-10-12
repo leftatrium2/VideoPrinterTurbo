@@ -1,7 +1,6 @@
 import asyncio
 from pathlib import Path
 
-from audio_separator.separator import Separator, InvalidAudioDataError, AudioExportError, BatchSeparationError
 
 import config.config as _config
 from pipeline.separate_vocals.base import SeparateVocalsBase
@@ -20,6 +19,7 @@ class SeparateVocals(SeparateVocalsBase):
         self.__dst_mp3_dir = dst_mp3_dir
 
     def convert(self) -> tuple[str, str]:
+        from audio_separator.separator import Separator, InvalidAudioDataError, AudioExportError, BatchSeparationError
         src_mp3_real_path = Path(self.__src_mp3_path).resolve()
         if not src_mp3_real_path.is_file():
             raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "the src mp3 file is not exists!")

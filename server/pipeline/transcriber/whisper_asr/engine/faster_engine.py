@@ -17,8 +17,8 @@ class FasterWhisperEngine(BaseWhisperEngine):
             self,
             model_size: str = "large-v3",
             language: str = None,
-            device: str = "auto",
-            compute_type: str = "default",
+            device: str = "cpu",
+            compute_type: str = "int8",
             **kwargs,
     ):
         super().__init__(model_size=model_size, language=language, **kwargs)
@@ -35,8 +35,11 @@ class FasterWhisperEngine(BaseWhisperEngine):
 
         if self._model is None:
             logger.info(f"[FasterWhisperEngine] 加载模型: {self.model_size} (device={self.device})")
+            from service.whisper_model_manager import model_manager
+            model_path = model_manager.ensure(self.model_size)
             self._model = WhisperModel(
-                self.model_size,
+                str(model_path),
+                local_files_only=True,
                 device=self.device,
                 compute_type=self.compute_type,
             )

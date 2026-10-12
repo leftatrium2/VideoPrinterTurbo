@@ -191,6 +191,18 @@ export default {
   },
 
   asrConfig: {
+    localModel: '转录模型',
+    modelHint: '首次使用需联网下载模型。下载后可离线转录；大模型需要更多内存和时间。下载进度按已完成文件数显示。',
+    modelDownload: '下载 / 重试',
+    modelReload: '刷新状态',
+    modelLoadFailed: '无法获取模型状态，请重试',
+    modelDownloadFailed: '模型下载失败',
+    missing: '未下载',
+    downloading: '下载中',
+    verifying: '校验中',
+    ready: '已就绪',
+    failed: '下载失败',
+
     title: 'ASR 配置',
     whisperTab: 'Whisper（本地 ASR）',
     remoteWhisperTab: 'Whisper（远程 ASR）',

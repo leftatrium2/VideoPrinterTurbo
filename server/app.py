@@ -1,4 +1,7 @@
 from contextlib import asynccontextmanager
+import asyncio
+import os
+import logging
 
 import utils.logger  # noqa: F401  # 确保 logging.basicConfig 在最早执行
 
@@ -32,16 +35,29 @@ async def lifespan(app: FastAPI):
     # Database creation
     async with database.get_engine().begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # create_all does not migrate existing SQLite databases.
+        if conn.dialect.name == "sqlite":
+            from sqlalchemy import text
+            columns = (await conn.execute(text("PRAGMA table_info(vpt_asr_config)"))).fetchall()
+            if "local_whisper_model" not in {row[1] for row in columns}:
+                await conn.execute(text("ALTER TABLE vpt_asr_config ADD COLUMN local_whisper_model TEXT NOT NULL DEFAULT 'small'"))
     # Sync config
     # Start task manager
     async_session_factory = async_sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)
     async with async_session_factory() as session:
-        await gen_config(db=session)
+        if os.environ.get("VPT_DESKTOP"):
+            try:
+                await asyncio.wait_for(gen_config(db=session), timeout=8)
+            except Exception:
+                await session.rollback()
+                logging.getLogger(__name__).warning("Voice list refresh unavailable; desktop can start offline", exc_info=True)
+        else:
+            await gen_config(db=session)
         await task_manager.start()
     yield  # Server officially started, accepting requests
     # ========== Executed on application shutdown (after server stops) ==========
-    await database.stop()
     await task_manager.stop()
+    await database.stop()
 
 
 init_config()

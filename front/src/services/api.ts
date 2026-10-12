@@ -324,6 +324,7 @@ export interface AsrConfigData {
   xfyun_secret_key: string
   xfyun_web_api: string
   local_whisper_type: number
+  local_whisper_model?: string
   azure_subscription_key: string
   azure_region: string
   openai_api_key: string
@@ -519,6 +520,28 @@ export async function uploadMaterial(files: File[]): Promise<MaterialUploadItem[
   const res = await request<ApiResult<MaterialUploadItem[]>>(
     http.post('/tasks/upload_material', form, { headers: { 'Content-Type': 'multipart/form-data' } })
   )
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data
+}
+
+
+export interface LocalWhisperModelStatus {
+  model: string
+  path: string
+  state: 'missing' | 'downloading' | 'verifying' | 'ready' | 'failed'
+  completed_files: number
+  total_files: number
+  error: string
+}
+
+export async function getLocalModelList(): Promise<LocalWhisperModelStatus[]> {
+  const res = await request<ApiResult<LocalWhisperModelStatus[]>>(http.get('/asr_config/local_model_list'))
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data
+}
+
+export async function downloadLocalModel(model: string): Promise<LocalWhisperModelStatus> {
+  const res = await request<ApiResult<LocalWhisperModelStatus>>(http.post('/asr_config/local_model_download', { model }))
   if (res.code !== 0) throw new Error(res.msg)
   return res.data
 }

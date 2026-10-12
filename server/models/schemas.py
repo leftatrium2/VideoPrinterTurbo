@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Literal
 
 
 class Task(BaseModel):
@@ -22,6 +23,7 @@ class ASRConfigItem(BaseModel):
     xfyun_secret_key: str = ""
     xfyun_web_api: str = ""
     local_whisper_type: int = 3
+    local_whisper_model: Literal["tiny", "base", "small", "medium", "large-v3"] = "small"
     azure_subscription_key: str = ""
     azure_region: str = ""
     openai_api_key: str = ""

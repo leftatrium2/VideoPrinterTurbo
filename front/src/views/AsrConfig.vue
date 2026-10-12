@@ -17,6 +17,7 @@
                 />
               </el-select>
             </div>
+            <LocalWhisperModels v-if="whisperForm.model === 2" v-model="whisperForm.size" />
           </div>
         </el-tab-pane>
 
@@ -137,6 +138,8 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { getLocalWhisperList, getAsrConfig, updateAsrConfig, type AsrWhisperModel } from '@/services/api'
 
+import LocalWhisperModels from '@/components/LocalWhisperModels.vue'
+
 const { t } = useI18n()
 
 const activeTab = ref('whisper')
@@ -145,7 +148,7 @@ const submitLoading = ref(false)
 const whisperModelList = ref<AsrWhisperModel[]>([])
 const loadingWhisperList = ref(false)
 
-function defaultWhisperForm() { return { model: 0 } }
+function defaultWhisperForm() { return { model: 0, size: 'small' } }
 function defaultRemoteWhisperForm() { return { type: 1, vllmUrl: '', vllmModel: '', whisperCppUrl: '' } }
 function defaultTencentForm() { return { secretId: '', secretKey: '' } }
 function defaultXunfeiForm()  { return { appId: '', secretKey: '', webApi: '' } }
@@ -183,6 +186,10 @@ async function loadInitialData() {
     whisperForm.model =
       d.local_whisper_type ||
       (whisperModelList.value.length > 0 ? whisperModelList.value[0].value : 0)
+    whisperForm.size = d.local_whisper_model || 'small'
+    if (!whisperModelList.value.some(m => m.value === whisperForm.model)) {
+      whisperForm.model = whisperModelList.value[0]?.value || 0
+    }
     remoteWhisperForm.type = d.remote_whisper_type || defaultRemoteWhisperForm().type
     remoteWhisperForm.vllmUrl = d.remote_vllm_url || ''
     remoteWhisperForm.vllmModel = d.remote_vllm_model || ''
@@ -228,6 +235,7 @@ async function handleSubmit() {
   try {
     await updateAsrConfig({
       local_whisper_type:        whisperForm.model,
+      local_whisper_model:       whisperForm.size,
       remote_whisper_type:       remoteWhisperForm.type,
       remote_vllm_url:           remoteWhisperForm.vllmUrl,
       remote_vllm_model:         remoteWhisperForm.vllmModel,

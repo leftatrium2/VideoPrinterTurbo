@@ -1,9 +1,10 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-log_dir = Path(__file__).resolve().parent.parent / "logs"
-log_dir.mkdir(exist_ok=True)
+log_dir = Path(os.environ["VPT_DATA_DIR"]) / "logs" if "VPT_DATA_DIR" in os.environ else Path(__file__).resolve().parent.parent / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "app.log"
 
 logging.basicConfig(level=logging.INFO,

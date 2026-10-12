@@ -1,8 +1,8 @@
+import asyncio
 import logging
 import threading
 
 from sqlalchemy import select, and_
-from tenacity import sleep
 
 from config.config import init_config
 from models.model import VptTasks
@@ -24,10 +24,13 @@ logger = logging.getLogger(__name__)
 class TaskManager(object):
     processes_threading = None
 
+    def __init__(self):
+        self._stop = threading.Event()
+
     def process(self):
         db = database.get_sync_session()
         try:
-            while True:
+            while not self._stop.is_set():
                 try:
                     # 从任务表里面，获取一个任务
                     # 要求：
@@ -41,7 +44,7 @@ class TaskManager(object):
                     )
                     task = result.scalar_one_or_none()
                     if not task:
-                        sleep(5)
+                        self._stop.wait(5)
                         logger.info("No task to process now")
                         continue
                     logger.info(f"process task: {task.task_id}")
@@ -49,20 +52,25 @@ class TaskManager(object):
                     pipeline.process_now(task)
                     logger.info(f"task success: {task.task_id}")
                 except Exception as e:
+                    db.rollback()
                     logger.exception(f"job failed: {e}")
+                    self._stop.wait(5)
         finally:
             db.close()
+            database.remove_sync_session()
 
     async def start(self):
         logger.info("Starting TaskManager")
+        self._stop.clear()
         self.processes_threading = threading.Thread(target=self.process, daemon=True)
         self.processes_threading.start()
 
     async def stop(self):
         logger.info("Stopping TaskManager")
-        database.remove_sync_session()
-        if database.sync_engine:
-            database.sync_engine.dispose()
+        self._stop.set()
+        if self.processes_threading:
+            await asyncio.to_thread(self.processes_threading.join)
+
 
 
 task_manager = TaskManager()

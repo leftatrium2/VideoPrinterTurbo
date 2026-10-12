@@ -1,4 +1,7 @@
-from fastapi import APIRouter,Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+import os
+from service.whisper_model_manager import model_manager
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +29,8 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
         "xfyun_appid": "",
         "xfyun_secret_key": "",
         "xfyun_web_api": "",
-        "local_whisper_type": "",
+        "local_whisper_type": 2 if os.environ.get("VPT_DESKTOP") else 3,
+        "local_whisper_model": "small",
         "azure_subscription_key": "",
         "azure_region": "",
         "openai_api_key": "",
@@ -48,6 +52,7 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
         "xfyun_secret_key": item.xfyun_secret_key,
         "xfyun_web_api": item.xfyun_web_api,
         "local_whisper_type": item.local_whisper_type,
+        "local_whisper_model": item.local_whisper_model,
         "azure_subscription_key": item.azure_subscription_key,
         "azure_region": item.azure_region,
         "openai_api_key": item.openai_api_key,
@@ -65,6 +70,8 @@ async def get_asr_config(db: AsyncSession = Depends(database.get_db)):
 
 @router.get("/local_whisper_list")
 async def get_local_whisper_list():
+    if os.environ.get("VPT_DESKTOP"):
+        return result_succ([{"name": "faster-whisper (CPU)", "value": const.TASK_CONFIG_ASR_FASTER_WHISPER}])
     lang = get_current_lang()
     return result_succ([
         {"name": _config.i18n_config['asr_config']['local_whisper_list'][0][lang],
@@ -78,6 +85,8 @@ async def get_local_whisper_list():
 
 @router.post("/update")
 async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(database.get_db)):
+    if os.environ.get("VPT_DESKTOP") and data.local_whisper_type != const.TASK_CONFIG_ASR_FASTER_WHISPER:
+        raise HTTPException(400, "Desktop edition requires faster-whisper")
     result = await db.execute(select(VptAsrConfig).limit(1))
     item = result.scalar_one_or_none()
     if not item:
@@ -88,6 +97,7 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
             xfyun_secret_key=data.xfyun_secret_key,
             xfyun_web_api=data.xfyun_web_api,
             local_whisper_type=data.local_whisper_type,
+            local_whisper_model=data.local_whisper_model,
             azure_subscription_key=data.azure_subscription_key,
             azure_region=data.azure_region,
             openai_api_key=data.openai_api_key,
@@ -108,6 +118,7 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
         item.xfyun_secret_key = data.xfyun_secret_key
         item.xfyun_web_api = data.xfyun_web_api
         item.local_whisper_type = data.local_whisper_type
+        item.local_whisper_model = data.local_whisper_model
         item.azure_subscription_key = data.azure_subscription_key
         item.azure_region = data.azure_region
         item.openai_api_key = data.openai_api_key
@@ -122,3 +133,28 @@ async def update_asr_config(data: ASRConfigItem, db: AsyncSession = Depends(data
     await db.commit()
     await db.refresh(item)
     return result_succ({})
+
+
+class ModelDownloadRequest(BaseModel):
+    model: str
+
+
+@router.get("/local_model_list")
+async def local_model_list():
+    return result_succ([model_manager.status(name) for name in model_manager.models])
+
+
+@router.get("/local_model_status")
+async def local_model_status(model: str):
+    try:
+        return result_succ(model_manager.status(model))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@router.post("/local_model_download")
+async def local_model_download(data: ModelDownloadRequest):
+    try:
+        return result_succ(model_manager.start(data.model))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc

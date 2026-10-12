@@ -78,7 +78,7 @@ class WhisperTranscriber(BaseTranscriber):
             return save_to_srt(asr_text, asr_full_path, audio_path)
         except Exception as e:
             logger.error(f"[WhisperTranscriber] 转写失败: {audio_path}, 错误: {e}", exc_info=True)
-            return None
+            raise VPTException(message=f"本地 Whisper 转录失败: {e}", tr=e) from e
 
 
 if __name__ == "__main__":

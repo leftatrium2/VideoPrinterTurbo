@@ -191,6 +191,18 @@ export default {
   },
 
   asrConfig: {
+    localModel: 'Transcription model',
+    modelHint: 'The first use downloads the model. Transcription then works offline. Larger models need more memory and time. Progress counts completed files.',
+    modelDownload: 'Download / retry',
+    modelReload: 'Refresh status',
+    modelLoadFailed: 'Unable to load model status. Please retry.',
+    modelDownloadFailed: 'Model download failed',
+    missing: 'Not downloaded',
+    downloading: 'Downloading',
+    verifying: 'Verifying',
+    ready: 'Ready',
+    failed: 'Download failed',
+
     title: 'ASR Config',
     whisperTab: 'Whisper (Local ASR)',
     remoteWhisperTab: 'Whisper (Remote ASR)',

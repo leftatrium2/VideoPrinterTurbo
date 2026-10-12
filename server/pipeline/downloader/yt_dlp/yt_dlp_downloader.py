@@ -2,7 +2,7 @@
 import asyncio
 import logging
 import os.path
-import subprocess
+from pathlib import Path
 from typing import Any, Optional
 
 import yt_dlp
@@ -51,12 +51,10 @@ class YtDlpDownloader(BaseDownloader):
 
     @staticmethod
     def _check_available():
-        try:
-            subprocess.run(["yt-dlp", "--version"], capture_output=True, check=True)
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            logger.warning("yt-dlp not found. Install with: pip install yt-dlp")
+        # Downloads use the Python API; a separately installed CLI is unnecessary.
+        if not callable(getattr(yt_dlp, "YoutubeDL", None)):
             raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
-                               message="yt-dlp not found. Install with: pip install yt-dlp")
+                               message="Bundled yt-dlp module is unavailable")
 
     def check(
             self,
@@ -96,7 +94,7 @@ class YtDlpDownloader(BaseDownloader):
             "outtmpl": f"{video_full_path}.mp4",
             "merge_output_format": "mp4",
             "quiet": True,
-            'ignoreerrors': True,
+            'ignoreerrors': False,
             'no_warnings': True,
             "noprogress": True,
             'proxy': build_yt_dlp_proxies(proxy_url)
@@ -110,8 +108,13 @@ class YtDlpDownloader(BaseDownloader):
                 info = ydl.extract_info(
                     url=url,
                     download=True
-                ) or {}
-                ret_dict['video_path'] = f"{video_full_path}.mp4"
+                )
+                if not info:
+                    raise RuntimeError("Video download returned no information")
+                video_path = Path(f"{video_full_path}.mp4").resolve()
+                if not video_path.is_file() or video_path.stat().st_size == 0:
+                    raise FileNotFoundError(f"Download did not create a non-empty video: {video_path}")
+                ret_dict['video_path'] = str(video_path)
                 ret_dict['title'] = info.get("title", "")
                 ret_dict['duration'] = info.get("duration", 0.0)
                 ret_dict['width'] = info.get("width", 0)

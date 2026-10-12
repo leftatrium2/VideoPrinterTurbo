@@ -198,7 +198,8 @@ class PipelineManager:
             # 本地部署 本机 whisper
             args = {
                 "local_whisper_type": asr_config.local_whisper_type,
-                "language": "en"
+                "model_size": asr_config.local_whisper_model,
+                "language": task.subtitle_lang or None
             }
         elif audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_REMOTE_WHISPER:
             # 本地部署 远程 whisper
@@ -309,18 +310,22 @@ class PipelineManager:
                 task.task_message = ex.message
                 self.__update_db_task(task)
                 return None
-            if not res:
-                msg = f"{self.__data.video_bean.task_url} download error and return nothing"
-                logger.error(msg)
-                task.task_status = const.PIPELINE_ERR_UNKNOWN
-                task.task_message = msg
+            if not res or res.get('status', 0) != 0:
+                task.task_status = const.PIPELINE_ERR_YT_DLP
+                task.task_message = (res or {}).get('message') or "Video download failed or returned no result"
+                self.__update_db_task(task)
                 return None
             local_video_path = res.get('video_path') or ''
             if not local_video_path:
-                msg = f"BaseDownloader download error: local video path is empty"
-                logger.error(msg)
                 task.task_status = const.PIPELINE_ERR_DOWNLOADER_SAVE_LOCAL_PATH
-                task.task_message = msg
+                task.task_message = "Downloader returned an empty video path"
+                self.__update_db_task(task)
+                return None
+            local_video_path = get_absolute_path(local_video_path)
+            if not Path(local_video_path).is_file() or Path(local_video_path).stat().st_size == 0:
+                task.task_status = const.PIPELINE_ERR_DOWNLOADER_SAVE_LOCAL_PATH
+                task.task_message = f"Downloaded video does not exist or is empty: {local_video_path}"
+                self.__update_db_task(task)
                 return None
             # 按照以下规则进行路径过滤
             # 源路径：/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260913190132110313.mp4

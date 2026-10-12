@@ -14,9 +14,10 @@ VideoPrinterTurbo 是视频改写 AI 项目，处理流程为：下载视频、�
 ## 常用命令
 
 ```sh
-# 后端（从仓库根目录执行；启动时必须以 server/ 为工作目录）
+# 后端（依赖与启动均以 server/ 为工作目录）
+cd server
 uv sync
-cd server && uvicorn app:app --host 0.0.0.0 --port 8080
+uvicorn app:app --host 0.0.0.0 --port 8080
 
 # 前端
 cd front && npm install
@@ -26,7 +27,8 @@ cd front && npx vitest run
 cd front && npm run build
 ```
 
-目前没有后端测试。若需添加后端测试，先执行 `uv sync --extra dev`。
+后端测试位于 `server/tests/`。先在 `server/` 执行 `uv sync --extra dev`，再执行 `python -m pytest -q`。
+后端依赖配置实际位于 `server/pyproject.toml`。
 
 ## 架构说明
 
@@ -35,10 +37,21 @@ cd front && npm run build
 `{code, msg, data}`，但部分接口会直接返回数据；使用前应确认具体接口。
 `utils/const.py` 是任务及配置常量的唯一来源。
 
-流水线目前只有下载、转录/字幕提取、LLM 改写具备真实逻辑。TTS、字幕渲染、
-BGM、视频叠加、发布目前都是占位实现。`task_manager` 当前不会处理排队任务：
-工作线程未启用，且其引用的 `Pipeline.process` 方法不存在。不要假设创建任务后
-就会自动开始处理。
+任务工作线程已启用，调用 `PipelineManager.process_now` 顺序执行任务；
+视频合成、TTS、BGM 与素材相关代码已存在，具体可用性以实际验证为准。
+发布功能继续保持禁用。
+
+存储配置中的相对路径（如 `storage/downloads`）由 `utils/file_utils.py` 统一转换为本机绝对路径；
+配置文件继续使用正斜杠。下载成功必须有非空视频文件，失败时保存原始下载错误并停止后续处理。
+下载器结果中的 `status` 为可选字段：存在时 `0` 表示成功，其他值表示失败。
+
+Windows 单 EXE 启动入口为 `desktop/launcher.py`，构建脚本为 `desktop/build.ps1`。
+桌面版使用 faster-whisper CPU/int8，首次下载模型，默认 small。
+`VPT_DATA_DIR` 指定持久数据根目录，`VPT_RESOURCE_DIR` 指定只读内置资源目录，
+`VPT_MODEL_DIR` 可覆盖模型缓存目录。普通后端启动保持原目录行为。
+模型管理 API 位于 `/asr_config/local_model_list`、`local_model_download`、`local_model_status`；
+模型缓存校验完成后才允许离线加载。`local_whisper_model` 保存模型选择，SQLite 启动时补齐旧表字段。
+本次用户已临时授权后端及根目录修改；完成该需求后仍遵循原有目录权限约定。
 
 前端使用 Vue 3、Vite、TypeScript、Element Plus、Pinia、Vue Router 与 Vue I18n。
 API 处理位于 `front/src/services/api.ts`，任务轮询位于
