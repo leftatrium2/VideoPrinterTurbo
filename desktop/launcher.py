@@ -1,4 +1,4 @@
-"""Windows single-file entry point. No Node/Python installation needed at runtime."""
+"""Windows/macOS single-file entry point. No Node/Python installation needed at runtime."""
 import argparse
 import atexit
 import asyncio
@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -16,16 +17,18 @@ import webbrowser
 
 def acquire_instance(data, no_browser):
     """Hold an OS lock so double-clicks during startup cannot share a database."""
-    if os.name != "nt":
-        return True
-    import msvcrt
     handle = (data / "desktop.lock").open("a+b")
     if handle.tell() == 0:
         handle.write(b"0")
         handle.flush()
     handle.seek(0)
     try:
-        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        if os.name == "nt":
+            import msvcrt
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         handle.close()
         print("An existing instance is starting or running.", flush=True)
@@ -49,7 +52,9 @@ def acquire_instance(data, no_browser):
 
 def prepare():
     resource = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
-    data = Path(os.environ.get("VPT_DATA_DIR", Path(os.environ.get("LOCALAPPDATA", Path.home())) / "VideoPrinterTurbo"))
+    base = (Path.home() / "Library" / "Application Support" if sys.platform == "darwin"
+            else Path(os.environ.get("LOCALAPPDATA", Path.home())))
+    data = Path(os.environ.get("VPT_DATA_DIR", base / "VideoPrinterTurbo")).expanduser().resolve()
     data.mkdir(parents=True, exist_ok=True)
     os.environ.update(VPT_DESKTOP="1", VPT_DATA_DIR=str(data), VPT_RESOURCE_DIR=str(resource))
     os.environ.setdefault("VPT_MODEL_DIR", str(data / "models" / "faster_whisper"))
@@ -92,9 +97,16 @@ def build_app(resource):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--check-binaries", action="store_true", help="Verify bundled FFmpeg/ffprobe and exit")
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--port", type=int, default=18080)
     args = parser.parse_args()
+    if args.check_binaries:
+        resource = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+        suffix = ".exe" if os.name == "nt" else ""
+        for name in ("ffmpeg", "ffprobe"):
+            subprocess.run([str(resource / "bin" / (name + suffix)), "-version"], check=True)
+        return
     resource, data = prepare()
     if not acquire_instance(data, args.no_browser):
         return

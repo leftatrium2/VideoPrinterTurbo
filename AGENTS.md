@@ -46,6 +46,9 @@ cd front && npm run build
 下载器结果中的 `status` 为可选字段：存在时 `0` 表示成功，其他值表示失败。
 
 Windows 单 EXE 启动入口为 `desktop/launcher.py`，构建脚本为 `desktop/build.ps1`。
+macOS 单文件复用该启动入口和 spec，构建脚本为 `desktop/build_macos.sh`，产物为
+`dist/VideoPrinterTurbo`；默认数据目录为 `~/Library/Application Support/VideoPrinterTurbo`。
+macOS 按 arm64/x86_64 分别原生构建，构建后检查内置 FFmpeg/ffprobe。
 桌面版使用 faster-whisper CPU/int8，首次下载模型，默认 small。
 `VPT_DATA_DIR` 指定持久数据根目录，`VPT_RESOURCE_DIR` 指定只读内置资源目录，
 `VPT_MODEL_DIR` 可覆盖模型缓存目录。普通后端启动保持原目录行为。

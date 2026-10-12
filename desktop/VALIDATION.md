@@ -24,3 +24,15 @@
 浏览器权限拒绝了本地页面访问，未完成视觉检查。
 尚未在无 Python/Node 的干净 Windows 机器上验收；其他云服务、GPU、人声分离、
 全部模型和完整视频改写效果不在本次已验证范围内。
+
+## macOS arm64（2026-10-12）
+
+- 使用 Python 3.11.15、PyInstaller 6.22.3 原生构建。
+- `desktop/build_macos.sh` 的 shell 语法、启动器/spec 的 Python 语法及 diff 检查通过。
+- macOS 数据目录准备、中文与空格路径、保留已有配置、跨进程文件锁竞争及释放检查通过。
+- 前端生产构建通过。
+- 实际生成 `dist/VideoPrinterTurbo`（约 419 MiB）。
+- 产物 `--check-binaries` 检查通过，内置 FFmpeg/ffprobe 及其动态库可加载。
+- 单文件在仅含系统目录的 PATH、中文与空格临时数据路径下启动成功；健康检查、
+  SPA 页面、ASR 模型列表接口及重复启动复用检查通过，未使用个人数据。
+- 未完成 Intel、干净 macOS 机器、Finder 双击、Developer ID 签名/公证及完整视频任务验收。

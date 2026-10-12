@@ -1,5 +1,6 @@
-"""Build with desktop/build.ps1; models and user credentials are never bundled."""
+"""Build with desktop/build.ps1 or desktop/build_macos.sh; models and user credentials are never bundled."""
 import os
+import sys
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
@@ -10,7 +11,10 @@ datas = [(str(root / 'front' / 'dist'), 'front/dist'),
          (str(root / 'config.yaml.sample'), '.'),
          (str(root / 'downloader.json.sample.json'), '.'),
          (str(root / 'i18n.json'), '.')]
-binaries = [(str(ffmpeg / name), 'bin') for name in ('ffmpeg.exe', 'ffprobe.exe')]
+tool_names = ('ffmpeg.exe', 'ffprobe.exe') if sys.platform == 'win32' else ('ffmpeg', 'ffprobe')
+binaries = [(str(ffmpeg / name), 'bin') for name in tool_names]
+# Analysis follows Mach-O dependencies (including Homebrew dylibs) and rewrites
+# their install names for the extracted bundle; do not copy them as plain data.
 # Include FFmpeg shared libraries when using a shared rather than static build.
 binaries += [(str(path), 'bin') for path in ffmpeg.glob('*.dll')]
 hidden = ['app', 'aiosqlite', 'sqlalchemy.dialects.sqlite.aiosqlite',
@@ -27,4 +31,6 @@ a = Analysis([str(root / 'desktop' / 'launcher.py')], pathex=[str(root / 'server
              excludes=['mlx', 'mlx_whisper', 'whisper', 'streamlit', 'pytest', 'tkinter'])
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name='VideoPrinterTurbo',
-          debug=False, strip=False, upx=False, console=True)
+          debug=False, strip=False, upx=False, console=True,
+          **({'codesign_identity': os.environ.get('VPT_CODESIGN_IDENTITY') or None}
+             if sys.platform == 'darwin' else {}))
