@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import yt_dlp
+from yt_dlp.utils import DownloadError
 
 from config.config import init_config
 from pipeline.downloader.base import BaseDownloader, DownloaderContext
@@ -64,20 +65,21 @@ class YtDlpDownloader(BaseDownloader):
     ) -> bool:
         yt_dlp_opts = {
             'quiet': True,
-            'ignoreerrors': True,
+            'ignoreerrors': False,
             'no_warnings': True,
             'extract_flat': True,
             'skip_download': True,
+            'noplaylist': True,
             'proxy': build_yt_dlp_proxies(proxy_url)
         }
         with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]
             try:
                 result = ydl.extract_info(url, download=False)
-                if result and result.get('duration', 0) > 0:
-                    return True
+                return result is not None
+            except DownloadError:
+                return False
             except Exception as e:
                 raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), e)
-        return False
 
     def download(
             self,
