@@ -55,66 +55,52 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 | 项目 | 最低配置 | 推荐配置        | 理想配置        |
 | ---- | -------- | --------------- | --------------- |
 | CPU  | 4 核     | 6 到 8 核       | 8 核及以上      |
-| RAM  | 8 GB     | 16 GB            | 16 GB 及以上    |
+| RAM  | 12 GB  | 16 GB            | 16 GB 及以上    |
 | GPU  | 非必须   | 12 GB 显存及以上 | 16 GB 显存及以上 |
 
 
 + 软件要求
-  + Windows11 或者 macOS 11.0 或者更高版本，以及各主流linux发行版本
-  + Python 3.11
-    + [windows] https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-    + [mac homebrew] brew install python@3.11
-  + Node.js 24
-    + [windows] https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi
-    + [mac homebrew] brew install node
-  + uv 0.12
-    + pip install uv
-  + yt-dlp
-    + pip install yt-dlp
-  + ffmpeg ffprobe >=v7
-    + 只是用了ffmpeg以及ffprobe命令行方式，没有用太复杂的功能或者自定义的滤镜
-    + [windows] https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z
-    + [mac homebrew] brew install ffmpeg
 
-### 部署说明
-  + 如果是windows，请在完成“软件要求”中的相关软件后，直接运行根目录中的start.bat
-  + 如果是mac或者linux系统，请在完成“软件要求”中的相关软件后，直接运行根目录中的start.sh
-  + 关于 start.bat 或者 start.sh 中的参数：
+  + Windows 10 或更高版本（64 位，x64 架构）
+  + macOS 24 及以上版本（Apple Silicon）
++ 如何使用？
 
-    + 参数列表
-```
-    start.xxx --help
-      usage: -c [-h] [--mode {auto,cpu,cuda,mac}] [--check] [--reinstall] [--host HOST] [--backend-port BACKEND_PORT] [--frontend-port FRONTEND_PORT]
+  + 找到符合自己当前操作系统最新版本的release包
+  + 对于windows系统，直接点击 VideoPrinterTurbo-x.x.x-windows-x64.exe 
+  + 对于macOS系统，先解压 VideoPrinterTurbo-x.x.x-macos-arm64.zip，然后运行 VideoPrinterTurbo
 
-      Initialize and start VideoPrinterTurbo locally.
+### 快速开始
 
-      options:
-        -h, --help            show this help message and exit
-        --mode {auto,cpu,cuda,mac}
-        --check               Check prerequisites without installing or starting services.
-        --reinstall           Run dependency installation again.
-        --host HOST           IPv4 address for both services and the browser API URL (default: 127.0.0.1).
-        --backend-port BACKEND_PORT
-        --frontend-port FRONTEND_PORT
----------------------------------------------------------------------------------------
-        --mode {auto,cpu,cuda,mac}
-          auto 让启动脚本自己选择
-          cpu 使用CPU方式启动
-          cuda 在安装了NVIDIA CUDA的机器上面运行
-          mac 在安装有 apple silicon 的系统上面运行
-        --host HOST
-          如果不使用此选项，那么默认绑定的ip地址是127.0.0.1
-          在网络环境下面使用此软件的时候，必须绑定可访问的ip地址才可以，比如：
-             我的服务器地址是：192.168.0.101，那么就可以使用 start.xxx --host 192.168.0.101，然后，然后在网络中其他机器中使用：
-             http://192.168.0.101:5173，即可打开界面
-          【备注：如果是本地部署运行，本地访问，无需在意这个选项】
-        --backend-port
-          后台的端口，默认是8080，如果需要修改，使用此选项
-        --frontend-port
-          前天的端口，默认是5173，如果需要修改，使用此选项
-```
-+ Docker方式
-  + 【后续提供】
++ 纯下载视频
+  + 找到视频的播放页，比如：https://www.youtube.com/watch?v=LxPf_bzZXXw
+  + 拷贝此 Url，打开 VideoPrinterTurbo，点击 “添加任务”，将Url 拷贝到 视频链接 中
+	+ ![](doc/cn/quick_start_1.png)
+  + 点击“开始任务”
+  + 打开 “任务列表”，刷新并等待任务结束，红色框中就是下载后的视频
+  + ![](doc/cn/quick_start_2.png)
++ 纯下载视频（需要转接代理服务）
+	+ 配置“代理”
+	+ ![](doc/cn/quick_start_proxy_config.png)
+	+ 点击“开始任务”，其余步骤与上面一致，只是注意 打开 ”是否使用代理服务器下载“选项
+	+ ![](doc/cn/quick_start_3.png)
++ 下载视频，添加字幕翻译
+  + 用途：给视频加上字幕翻译
+  + 第一步：配置ASR
+  + ![](doc/cn/quick_start_asr_config.png)
+  + 第二步：配置LLM
+  + ![](doc/cn/quick_start_llm_config.png)
+  + 第三步：按下面方式添加任务
+  + 3.1 填写链接地址
+  + ![](doc/cn/quick_start_subtitle_1.png)
+  + 3.2 选择”音频转文字“
+  + ![](doc/cn/quick_start_subtitle_2.png)
+  + 3.3 选择 ”LLM改写“
+  + ![](doc/cn/quick_start_subtitle_3.png)
+  + 3.4 选择 ”输出到字幕“
+  + ![](doc/cn/quick_start_subtitle_4.png)
+  + 点击”开始任务“
+  + 在”任务列表“中，等待任务执行完毕，在 ”本地路径“ 中可以得到转换后的视频文件
+
 ### 教程
 + 如何配置 VideoPrinterTurbo
   + 关于ASR配置

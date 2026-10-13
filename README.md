@@ -58,67 +58,51 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 | Component | Minimum | Recommended | Ideal |
 | --------- | ------- | ----------- | ----- |
 | CPU | 4 cores | 6–8 cores | 8 cores or more |
-| RAM | 8 GB | 16 GB | 16 GB or more |
+| RAM | 12 GB | 16 GB | 16 GB or more |
 | GPU | Optional | 12 GB VRAM or more | 16 GB VRAM or more |
 
 + Software requirements
-  + Windows 11, macOS 11.0 or later, or a major Linux distribution
-  + Python 3.11
-    + [Windows] https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-    + [macOS Homebrew] `brew install python@3.11`
-  + Node.js 24
-    + [Windows] https://nodejs.org/dist/v24.21.0/node-v24.21.0-x64.msi
-    + [macOS Homebrew] `brew install node`
-  + uv 0.12
-    + `pip install uv`
-  + yt-dlp
-    + `pip install yt-dlp`
-  + ffmpeg and ffprobe >= v7
-    + The project only uses the ffmpeg and ffprobe command-line tools, without complex features or custom filters.
-    + [Windows] https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.7z
-    + [macOS Homebrew] `brew install ffmpeg`
+  + Windows 10 or later (64-bit, x64 architecture)
+  + macOS 24 or later (Apple Silicon)
 
-### Deployment Instructions
++ How to use
+  + Download the latest release package for your operating system.
+  + On Windows, run `VideoPrinterTurbo-x.x.x-windows-x64.exe` directly.
+  + On macOS, extract `VideoPrinterTurbo-x.x.x-macos-arm64.zip`, then run `VideoPrinterTurbo`.
 
-+ On Windows, install the software listed under “Software requirements”, then run `start.bat` in the project root.
-+ On macOS or Linux, install the software listed under “Software requirements”, then run `start.sh` in the project root.
-+ Options for `start.bat` and `start.sh`:
+### Quick Start
 
-```text
-start.xxx --help
-  usage: -c [-h] [--mode {auto,cpu,cuda,mac}] [--check] [--reinstall] [--host HOST] [--backend-port BACKEND_PORT] [--frontend-port FRONTEND_PORT]
++ Download a video
+  + Find the video's playback page, for example: https://www.youtube.com/watch?v=E7YiKBeOneo&t=6s
+  + Copy the URL, open VideoPrinterTurbo, click **Add Task**, and paste the URL into **Video URL**.
+  + ![Enter a video URL](doc/en/quick_start_1.png)
+  + Click **Start Task**.
+  + Open **Task List**, refresh, and wait for the task to finish. The red box highlights the downloaded video.
+  + ![Find the downloaded video](doc/en/quick_start_2.png)
 
-  Initialize and start VideoPrinterTurbo locally.
++ Download a video through a proxy
+  + Configure the proxy.
+  + ![Configure the proxy](doc/en/quick_start_proxy_config.png)
+  + Enable **Use Proxy for Download**, then click **Start Task**. The remaining steps are the same as above.
+  + ![Enable proxy downloading](doc/en/quick_start_3.png)
 
-  options:
-    -h, --help            show this help message and exit
-    --mode {auto,cpu,cuda,mac}
-    --check               Check prerequisites without installing or starting services.
-    --reinstall           Run dependency installation again.
-    --host HOST           IPv4 address for both services and the browser API URL (default: 127.0.0.1).
-    --backend-port BACKEND_PORT
-    --frontend-port FRONTEND_PORT
----------------------------------------------------------------------------------------
-    --mode {auto,cpu,cuda,mac}
-      auto  Let the startup script choose automatically.
-      cpu   Run using the CPU.
-      cuda  Run on a machine with NVIDIA CUDA installed.
-      mac   Run on an Apple Silicon system.
-    --host HOST
-      The default bind address is 127.0.0.1.
-      To access the application over a network, bind to a reachable IP address.
-      For example, if your server's address is 192.168.0.101, run:
-        start.xxx --host 192.168.0.101
-      Then open http://192.168.0.101:5173 from another machine on the network.
-      Note: You can ignore this option when running and accessing the application locally.
-    --backend-port
-      Backend port (default: 8080). Use this option to change it.
-    --frontend-port
-      Frontend port (default: 5173). Use this option to change it.
-```
-
-+ Docker deployment
-  + Coming later.
++ Download a video and add translated subtitles
+  + Use this workflow to add translated subtitles to a video.
+  + Step 1: Configure ASR.
+  + ![Configure ASR](doc/en/quick_start_asr_config.png)
+  + Step 2: Configure the LLM.
+  + ![Configure the LLM](doc/en/quick_start_llm_config.png)
+  + Step 3: Add a task as follows.
+  + 3.1 Enter the video URL.
+  + ![Enter the video URL](doc/en/quick_start_subtitle_1.png)
+  + 3.2 Select **Audio to Text**.
+  + ![Select audio transcription](doc/en/quick_start_subtitle_2.png)
+  + 3.3 Select **LLM Rewriting**.
+  + ![Select LLM rewriting](doc/en/quick_start_subtitle_3.png)
+  + 3.4 Select **Output to Subtitles**.
+  + ![Select subtitle output](doc/en/quick_start_subtitle_4.png)
+  + Click **Start Task**.
+  + Wait for the task to finish in **Task List**. The processed video file is available at the **Local Path**.
 
 ### Tutorials
 
