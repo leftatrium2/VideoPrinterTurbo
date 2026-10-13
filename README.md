@@ -6,8 +6,7 @@
 </div>
 
 
-### A sister project to MoneyPrinterTurbo
-### MoneyPrinterTurbo generates videos; VideoPrinterTurbo helps you create derivative videos
+### A free video downloader with AI subtitle translation, dubbing, and video repurposing features.
 ```
 VideoPrinterTurbo Usage Notice and Disclaimer
 

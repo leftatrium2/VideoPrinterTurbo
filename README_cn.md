@@ -6,8 +6,8 @@
 </div>
 
 
-###  MoneyPrinterTurbo 姊妹篇
-###  MoneyPrinterTurbo生成视频，VideoPrinterTurbo用来做二创
+### 免费视频下载工具，AI 字幕翻译与配音功能、二创
+
 ```
 VideoPrinterTurbo 使用须知与免责声明
 
