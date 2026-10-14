@@ -4,14 +4,15 @@
 <h3>English | <a href="README_cn.md">简体中文</a></h3>
 <br>
 </div>
+*** 🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.*** 
 
 ### Latest version
-[[macOS Apple Silicon]]
-(https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-macos-arm64.zip)
+
+[[macOS]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.1/VideoPrinterTurbo-1.0.1-macos-arm64.zip) Apple Silicon version
 
 *** After unzip, run directly. ***
 
-[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-windows-x64.exe)
+[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.1/VideoPrinterTurbo-1.0.1-windows-x64.exe)
 
 *** run directly ***
 
