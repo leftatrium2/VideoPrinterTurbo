@@ -2,6 +2,7 @@ export default {
   lang: { zh: '中文', en: 'English' },
 
   sidebar: {
+    batchDownload: '批量下载',
     managementSuite: '管理界面',
     addTask: '添加任务',
     taskList: '任务列表',
@@ -15,6 +16,7 @@ export default {
   },
 
   breadcrumb: {
+    batchDownload: '批量下载',
     addTask: '添加任务',
     addTaskNew: '添加新任务',
     editTask: '编辑任务',
@@ -27,6 +29,30 @@ export default {
     publishConfig: '发布配置',
     ttsConfig: 'TTS 配置',
     proxy: '代理配置',
+  },
+
+  batchDownload: {
+    title: '批量下载',
+    linksTab: '输入链接',
+    fileTab: '上传文件',
+    urls: '视频链接',
+    linksHint: '每行一个 HTTP/HTTPS URL，空行忽略，最多 100 条。',
+    useProxy: '是否使用代理服务器下载',
+    reset: '重填',
+    submit: '提交',
+    chooseFile: '点击或拖拽文本文件到此处',
+    fileHint: '只支持TXT或者CSV文本文件，最大100KB',
+    fileContentHint: '请使用 UTF-8 编码，每行一个 HTTP/HTTPS URL，空行忽略，最多 100 条；CSV 不支持表头或多列。',
+    removeFile: '移除',
+    empty: '请至少填写一个 URL',
+    tooMany: 'URL 数量不能超过 100 条',
+    invalidUrl: '第 {line} 行不是有效的 HTTP/HTTPS URL',
+    fileType: '只支持 TXT 或 CSV 文本文件',
+    fileSize: '文件大小不能超过 100KB',
+    fileRequired: '请先选择文本文件',
+    fileEncoding: '无法读取文件，请选择 UTF-8 编码的文本文件',
+    submitSuccess: '提交成功，已创建下载任务',
+    submitFailed: '提交失败，请重试',
   },
 
   addTask: {

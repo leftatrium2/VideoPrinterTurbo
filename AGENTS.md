@@ -72,6 +72,12 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
 
 ## 任务数据与已知行为
 
+- 批量下载页面 `/batch_download` 支持逐行输入及 UTF-8 TXT/CSV 文件；空行忽略，
+  最多 100 个 HTTP/HTTPS URL，文件最大 100KB。CSV 按逐行 URL 处理，不解析表头或多列。
+  `POST /quick_tasks/multi_download` 提交 `{task_url, is_use_proxy}` 数组；
+  `POST /quick_tasks/multi_download_upload` 使用 multipart 字段 `file`、`is_use_proxy`。
+  文件接口仅接受 `text/plain` 或 `text/csv`，前端上传时统一 MIME 类型。
+
 - `vpt_tasks.task_id` 是文本类型的任务主标识，不是数字型 `id`。状态：`0` 待处理、
   `1` 进行中、`2` 已完成、`-1` 失败。任务删除为软删除（`is_deleted=1`）。
 - `AddTask.vue` 编辑任务用 `GET /tasks/get` 回填表单，提交调用 `POST /tasks/update`；

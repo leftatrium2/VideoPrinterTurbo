@@ -14,6 +14,10 @@
     </div>
 
     <nav class="nav">
+      <RouterLink to="/batch_download" class="nav-item" active-class="nav-item--active">
+        <el-icon><Download /></el-icon>
+        <span>{{ t('sidebar.batchDownload') }}</span>
+      </RouterLink>
       <RouterLink to="/add_task" class="nav-item" active-class="nav-item--active">
         <el-icon>
           <Plus />
@@ -44,7 +48,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import {
-  Plus, List,
+  Plus, List, Download,
   Microphone, MagicStick, Picture, Promotion, Headset, Connection,
 } from '@element-plus/icons-vue'
 

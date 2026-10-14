@@ -33,6 +33,31 @@ describe('api service', () => {
     api = await import('./api')
   })
 
+  it('submits batch download items as a JSON array', async () => {
+    mockHttp.post.mockResolvedValue({ data: { code: 0 } })
+    const items = [{ task_url: 'https://example.com/video', is_use_proxy: true }]
+    await api.batchDownload(items)
+    expect(mockHttp.post).toHaveBeenCalledWith('/quick_tasks/multi_download', items)
+  })
+
+  it('submits text files as multipart with a backend-compatible MIME type and proxy flag', async () => {
+    mockHttp.post.mockResolvedValue({ data: { code: 0 } })
+    const file = new File(['https://example.com/video'], 'urls.CSV', { type: 'application/vnd.ms-excel' })
+    await api.batchDownloadUpload(file, true)
+    const [url, form] = mockHttp.post.mock.calls[0]
+    expect(url).toBe('/quick_tasks/multi_download_upload')
+    expect(form.get('is_use_proxy')).toBe('true')
+    expect(form.get('file').name).toBe('urls.CSV')
+    expect(form.get('file').type).toBe('text/csv')
+    expect(form.get('file').size).toBe(file.size)
+  })
+
+  it('propagates backend errors from both batch download endpoints', async () => {
+    mockHttp.post.mockResolvedValue({ data: { code: 1, msg: 'Download rejected' } })
+    await expect(api.batchDownload([])).rejects.toThrow('Download rejected')
+    await expect(api.batchDownloadUpload(new File([''], 'urls.txt'), false)).rejects.toThrow('Download rejected')
+  })
+
   it('getTasks 调用正确端点', async () => {
     mockHttp.get.mockResolvedValue({ data: { code: 0, msg: 'success', data: { data: [], total: 0, page: 1, page_size: 10 } } })
     const result = await api.getTasks(1, 10)

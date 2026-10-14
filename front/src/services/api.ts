@@ -240,6 +240,26 @@ export function restartTask(taskId: string): Promise<ApiResult<Record<string, un
   return request(http.get('/tasks/restart', { params: { task_id: taskId } }))
 }
 
+export interface QuickDownloadTaskItem {
+  task_url: string
+  is_use_proxy: boolean
+}
+
+export async function batchDownload(items: QuickDownloadTaskItem[]): Promise<void> {
+  const res = await request<ApiResult<unknown>>(http.post('/quick_tasks/multi_download', items))
+  if (res.code !== 0) throw new Error(res.msg)
+}
+
+export async function batchDownloadUpload(file: File, useProxy: boolean): Promise<void> {
+  const form = new FormData()
+  // The backend accepts only text/plain and text/csv; browsers may report CSV as application/vnd.ms-excel.
+  const mimeType = file.name.toLowerCase().endsWith('.csv') ? 'text/csv' : 'text/plain'
+  form.append('file', new Blob([file], { type: mimeType }), file.name)
+  form.append('is_use_proxy', String(useProxy))
+  const res = await request<ApiResult<unknown>>(http.post('/quick_tasks/multi_download_upload', form))
+  if (res.code !== 0) throw new Error(res.msg)
+}
+
 export interface AsrLangOption {
   lang: string
   value: string

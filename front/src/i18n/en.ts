@@ -2,6 +2,7 @@ export default {
   lang: { zh: '中文', en: 'English' },
 
   sidebar: {
+    batchDownload: 'Batch Download',
     managementSuite: 'Management Suite',
     addTask: 'Add Task',
     taskList: 'Task List',
@@ -15,6 +16,7 @@ export default {
   },
 
   breadcrumb: {
+    batchDownload: 'Batch Download',
     addTask: 'Add Task',
     addTaskNew: 'Add New Task',
     editTask: 'Edit Task',
@@ -27,6 +29,30 @@ export default {
     publishConfig: 'Publish Config',
     ttsConfig: 'TTS Config',
     proxy: 'Proxy Config',
+  },
+
+  batchDownload: {
+    title: 'Batch Download',
+    linksTab: 'Enter Links',
+    fileTab: 'Upload File',
+    urls: 'Video URLs',
+    linksHint: 'One HTTP/HTTPS URL per line. Blank lines are ignored. Maximum 100 URLs.',
+    useProxy: 'Use a proxy server to download',
+    reset: 'Reset',
+    submit: 'Submit',
+    chooseFile: 'Click or drag a text file here',
+    fileHint: 'TXT or CSV text files only, up to 100KB',
+    fileContentHint: 'Use UTF-8 encoding and one HTTP/HTTPS URL per line. Blank lines are ignored. Maximum 100 URLs; CSV headers and multiple columns are not supported.',
+    removeFile: 'Remove',
+    empty: 'Enter at least one URL',
+    tooMany: 'Cannot submit more than 100 URLs',
+    invalidUrl: 'Line {line} is not a valid HTTP/HTTPS URL',
+    fileType: 'Only TXT or CSV text files are supported',
+    fileSize: 'File size cannot exceed 100KB',
+    fileRequired: 'Select a text file first',
+    fileEncoding: 'Unable to read the file. Select a UTF-8 encoded text file.',
+    submitSuccess: 'Submitted successfully. Download tasks have been created.',
+    submitFailed: 'Submission failed. Please try again.',
   },
 
   addTask: {

@@ -40,6 +40,14 @@ async def get_storage_path() -> Optional[str]:
     return path
 
 
+async def get_multi_download_upload_path() -> Optional[str]:
+    path = _config.config['storage']['multi_download']
+    if not path:
+        return None
+    path = get_absolute_path(path)
+    await anyio.to_thread.run_sync(lambda: Path(path).mkdir(parents=True, exist_ok=True))
+    return path
+
 async def get_upload_path() -> Optional[str]:
     path = _config.config['storage']['upload']
     if not path:

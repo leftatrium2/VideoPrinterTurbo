@@ -22,6 +22,7 @@ from routers.material_config import router as material_config_router
 from routers.proxy_config import router as proxy_config_router
 from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
+from routers.quick_tasks import router as quick_tasks_router
 from routers.tts_config import router as tts_config_router
 from service.task_manager import task_manager
 from utils.database import database
@@ -40,7 +41,8 @@ async def lifespan(app: FastAPI):
             from sqlalchemy import text
             columns = (await conn.execute(text("PRAGMA table_info(vpt_asr_config)"))).fetchall()
             if "local_whisper_model" not in {row[1] for row in columns}:
-                await conn.execute(text("ALTER TABLE vpt_asr_config ADD COLUMN local_whisper_model TEXT NOT NULL DEFAULT 'small'"))
+                await conn.execute(
+                    text("ALTER TABLE vpt_asr_config ADD COLUMN local_whisper_model TEXT NOT NULL DEFAULT 'small'"))
     # Sync config
     # Start task manager
     async_session_factory = async_sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)
@@ -50,7 +52,8 @@ async def lifespan(app: FastAPI):
                 await asyncio.wait_for(gen_config(db=session), timeout=8)
             except Exception:
                 await session.rollback()
-                logging.getLogger(__name__).warning("Voice list refresh unavailable; desktop can start offline", exc_info=True)
+                logging.getLogger(__name__).warning("Voice list refresh unavailable; desktop can start offline",
+                                                    exc_info=True)
         else:
             await gen_config(db=session)
         await task_manager.start()
@@ -84,3 +87,4 @@ app.include_router(llm_config_router)
 app.include_router(material_config_router)
 app.include_router(publish_config_router)
 app.include_router(proxy_config_router)
+app.include_router(quick_tasks_router)

@@ -10,6 +10,11 @@ const router = createRouter({
       redirect: '/add_task',
       children: [
         {
+          path: 'batch_download',
+          component: () => import('@/views/BatchDownload.vue'),
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.batchDownload'] },
+        },
+        {
           path: 'add_task',
           component: () => import('@/views/AddTask.vue'),
           meta: { breadcrumb: ['breadcrumb.addTask', 'breadcrumb.addTaskNew'] },
