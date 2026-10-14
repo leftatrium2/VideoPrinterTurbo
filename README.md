@@ -6,10 +6,15 @@
 </div>
 
 ### Latest version
-[[macOS Apple Silicon]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-macos-arm64.zip)
+[[macOS Apple Silicon]]
+(https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-macos-arm64.zip)
+
 *** After unzip, run directly. ***
+
 [[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-windows-x64.exe)
+
 *** run directly ***
+
 
 ### A free video downloader with AI subtitle translation, dubbing, and video repurposing features.
 ```
