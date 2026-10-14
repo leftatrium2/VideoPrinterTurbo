@@ -15,6 +15,8 @@
 
 *** run directly ***
 
+*** Built with love in my spare time. If you find it useful, a free ⭐ would mean a lot! If something doesn’t work, please open an issue and let me know.* **
+
 
 ### A free video downloader with AI subtitle translation, dubbing, and video repurposing features.
 ```

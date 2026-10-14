@@ -80,7 +80,7 @@
         </el-table-column>
 
         <!-- Operations -->
-        <el-table-column :label="t('taskList.operations')" width="200" fixed="right">
+        <el-table-column :label="t('taskList.operations')" width="240" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button
@@ -105,6 +105,15 @@
                 :icon="Edit"
                 @click="handleEdit(row)"
               >{{ t('taskList.edit') }}</el-button>
+              <el-button
+                v-if="row.pipeline_status === 101"
+                size="small"
+                type="warning"
+                plain
+                :icon="Refresh"
+                :loading="restartingTaskIds.has(row.task_id)"
+                @click="handleRestart(row)"
+              >{{ t('taskList.restart') }}</el-button>
               <el-button
                 size="small"
                 type="danger"
@@ -166,7 +175,7 @@ import { useI18n } from 'vue-i18n'
 import { Plus, VideoPlay, Refresh, Edit, Delete, CircleCheckFilled, CircleCloseFilled, Loading, Clock } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTaskStore } from '@/stores/task'
-import { addTask, deleteTask, streamUrl, type Task } from '@/services/api'
+import { addTask, deleteTask, restartTask, streamUrl, type Task } from '@/services/api'
 import { getTaskAddress, getTaskLocalPath, getTaskVideoCategory } from '@/utils/taskDisplay'
 
 const router = useRouter()
@@ -176,6 +185,7 @@ const { t } = useI18n()
 const playDialogVisible = ref(false)
 const logDialogVisible = ref(false)
 const selectedTask = ref<Task | null>(null)
+const restartingTaskIds = ref(new Set<string>())
 
 onMounted(async () => {
   await store.fetchTasks()
@@ -261,6 +271,28 @@ async function handleRetry(task: Task) {
 
 function handleEdit(task: Task) {
   router.push(`/get_task?task_id=${encodeURIComponent(task.task_id)}`)
+}
+
+async function handleRestart(task: Task) {
+  if (restartingTaskIds.value.has(task.task_id)) return
+  restartingTaskIds.value.add(task.task_id)
+  try {
+    const result = await restartTask(task.task_id)
+    if (result.code !== 0) {
+      ElMessage.error(result.msg || t('taskList.restartFailed'))
+      return
+    }
+    ElMessage.success(t('taskList.restartSuccess'))
+    try {
+      await store.fetchTasks()
+    } catch (error) {
+      ElMessage.error(error instanceof Error && error.message ? error.message : t('taskList.refreshFailed'))
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error && error.message ? error.message : t('taskList.restartFailed'))
+  } finally {
+    restartingTaskIds.value.delete(task.task_id)
+  }
 }
 
 async function handleDelete(task: Task) {
@@ -399,7 +431,12 @@ async function handleDelete(task: Task) {
 .action-buttons {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.action-buttons .el-button {
+  margin-left: 0;
+  flex-shrink: 0;
 }
 
 /* Footer */

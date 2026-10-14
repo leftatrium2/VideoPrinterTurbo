@@ -60,6 +60,11 @@ class MaterialPixabayItem(BaseModel):
     pixabay_api_key: str = ""
 
 
+class QuickDownloadTaskItem(BaseModel):
+    task_url: str = ""
+    is_use_proxy: bool = False
+
+
 class TaskItem(BaseModel):
     task_id: str = ""
     task_url: str = ""

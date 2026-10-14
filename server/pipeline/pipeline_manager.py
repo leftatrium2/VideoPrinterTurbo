@@ -288,10 +288,12 @@ class PipelineManager:
                 logger.exception(f"{task.task_url} check video error")
                 task.task_status = ex.code
                 task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             if not res:
                 task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 task.task_message = f"check video return false, the url: {self.__data.video_bean.task_url} is not allowed"
                 self.__update_db_task(task)
                 return None
@@ -308,23 +310,27 @@ class PipelineManager:
                 logger.exception(f"{task.task_url} download error")
                 task.task_status = ex.code
                 task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             if not res or res.get('status', 0) != 0:
                 task.task_status = const.PIPELINE_ERR_YT_DLP
                 task.task_message = (res or {}).get('message') or "Video download failed or returned no result"
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             local_video_path = res.get('video_path') or ''
             if not local_video_path:
                 task.task_status = const.PIPELINE_ERR_DOWNLOADER_SAVE_LOCAL_PATH
                 task.task_message = "Downloader returned an empty video path"
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             local_video_path = get_absolute_path(local_video_path)
             if not Path(local_video_path).is_file() or Path(local_video_path).stat().st_size == 0:
                 task.task_status = const.PIPELINE_ERR_DOWNLOADER_SAVE_LOCAL_PATH
                 task.task_message = f"Downloaded video does not exist or is empty: {local_video_path}"
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             # 按照以下规则进行路径过滤
@@ -340,7 +346,10 @@ class PipelineManager:
             # 对于本地上传的视频，先将文件名改成 task_id.xxx 形式
             real_path = Path(get_current_path()).joinpath(task.task_upload_video_path).expanduser().resolve()
             if not real_path.is_file():
-                logger.error(f"upload video is not exists, path: {task.task_upload_video_path}")
+                task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
+                task.task_message = f"upload video is not exists, path: {task.task_upload_video_path}"
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                self.__update_db_task(task)
                 return None
             new_real_path = real_path.with_stem(task.task_id)
             real_path.rename(new_real_path)
@@ -358,8 +367,12 @@ class PipelineManager:
                 args = {}
                 if audio_rewrite_type == const.TASK_CONFIG_ASR_FROM_SUBTITLE:
                     if not self.__data.is_remote_video:
-                        logger.error(
-                            f"local video can't convert subtitle, only remote video can use yt-dlp to download subtitle!")
+                        msg = f"local video can't convert subtitle, only remote video can use yt-dlp to download subtitle!"
+                        logger.error(msg)
+                        task.task_status = const.PIPELINE_ERR_ASR_LOCAL_VIDEO_HAS_NOT_SUBTITLE_DOWNLOAD
+                        task.task_message = msg
+                        task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                        self.__update_db_task(task)
                         return None
                     res = subtitle_convert(
                         self.__data.asr_bean.task_url,
@@ -376,6 +389,7 @@ class PipelineManager:
                         msg = f"{str(audio_mp3_path)} not exists!"
                         task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                         task.task_message = msg
+                        task.pipeline_status = const.PIPELINE_STATUS_ERROR
                         self.__update_db_task(task)
                         return None
                     if self.__data.is_need_audio_separator:
@@ -398,7 +412,12 @@ class PipelineManager:
                             **args
                         )
                 if not res:
-                    logger.error(f"asr unknown, can't get result")
+                    msg = f"asr unknown, can't get result"
+                    logger.error(msg)
+                    task.task_status = const.PIPELINE_ERR_ASR_UNKNOWN
+                    task.task_message = msg
+                    task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                    self.__update_db_task(task)
                     return None
                 self.__data.asr_bean.audio_rewrite_type = audio_rewrite_type
                 self.__data.asr_bean.subtitle_full_path = res
@@ -406,6 +425,7 @@ class PipelineManager:
                 logger.exception(f"{task.task_url} download error")
                 task.task_status = ex.code
                 task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
         # llm prompt rewrite
@@ -413,13 +433,23 @@ class PipelineManager:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_LLM)
             if not self.__data.is_asr:
                 # 如果没有进行ASR处理，只有视频，那么是无法进行LLM处理的
-                logger.error(f"LLM rewrite need ASR result")
+                msg = f"LLM rewrite need ASR result"
+                logger.error(msg)
+                task.task_status = const.PIPELINE_ERR_LLM_NEED_ASR_RESULT
+                task.task_message = msg
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                self.__update_db_task(task)
                 return None
             try:
                 srt_path = Path(self.__data.asr_bean.subtitle_full_path).expanduser().resolve()
                 llm_rewrite_dir = asyncio.run(get_llm_rewrite_path())
                 if not llm_rewrite_dir:
-                    logger.error(f"llm rewrite dir is not exists")
+                    msg = f"llm rewrite dir is not exists"
+                    logger.error(msg)
+                    task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
+                    task.task_message = msg
+                    task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                    self.__update_db_task(task)
                     return None
                 llm_rewrite_path = Path(llm_rewrite_dir).joinpath(srt_path.name)
                 llm_config_item = PipelineManager.__get_llm_config()
@@ -439,6 +469,7 @@ class PipelineManager:
                     logger.exception(msg)
                     task.task_status = const.PIPELINE_ERR_FILE_SAVE
                     task.task_message = msg
+                    task.pipeline_status = const.PIPELINE_STATUS_ERROR
                     self.__update_db_task(task)
                     return None
                 self.__data.llm_bean.llm_full_path = str(llm_rewrite_path)
@@ -446,6 +477,7 @@ class PipelineManager:
                 logger.exception(f"{task.task_url} llm rewrite error")
                 task.task_status = ex.code
                 task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
         # rewrite to tts
@@ -457,6 +489,7 @@ class PipelineManager:
                 logger.error(msg)
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = msg
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             subtitle_path = self.__get_subtitle_path()
@@ -465,6 +498,7 @@ class PipelineManager:
                 logger.error(msg)
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = msg
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             tts_server = const.TTS_LIST_AZURE_TTS_V1
@@ -482,6 +516,7 @@ class PipelineManager:
                 logger.error(msg)
                 task.task_status = const.PIPELINE_ERR_TTS_CONFIG_DB
                 task.task_message = msg
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             res = tts_from_subtitle(
@@ -498,6 +533,7 @@ class PipelineManager:
                 logger.error(msg)
                 task.task_status = const.PIPELINE_ERR_TTS_RETURN
                 task.task_message = msg
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             res_path = Path(res).expanduser().resolve()
@@ -506,6 +542,7 @@ class PipelineManager:
                 logger.error(msg)
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = msg
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 self.__update_db_task(task)
                 return None
             self.__data.tts_bean.tts_full_path = str(res_path)
@@ -530,6 +567,7 @@ class PipelineManager:
             logger.error(msg)
             task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
             task.task_message = msg
+            task.pipeline_status = const.PIPELINE_STATUS_ERROR
             return None
         if self.__if_need_assembly():
             # 如果只是下载，那么直接将下载的视频文件返回即可

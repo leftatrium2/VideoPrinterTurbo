@@ -7,13 +7,15 @@
 
 
 ### 最新免安装版本
-[[macOS Apple Silicon]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-macos-arm64.zip)
+[[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-macos-arm64.zip)
 
 *** 解压后，直接运行***
 
 [[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.0/VideoPrinterTurbo-1.0.0-windows-x64.exe)
 
 *** 无需解压，直接运行 ***
+
+*** 作者为爱发电，好用给点个免费的 Star，不好用，提交一下 issue 给我***
 
 ### 免费视频下载工具，AI 字幕翻译与配音功能、二创
 

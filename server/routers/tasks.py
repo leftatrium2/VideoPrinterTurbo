@@ -10,12 +10,13 @@ from fastapi import APIRouter, Query, Depends, UploadFile, File
 from sqlalchemy import and_
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from torch import return_types
 
 import config.config as _config
 from middleware.i18n_middleware import get_current_lang
 from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig, \
     VptTasks, VptProxyConfig
-from models.schemas import TaskItem
+from models.schemas import TaskItem, QuickDownloadTaskItem
 from pipeline.utils.pipeline_video_downloader_utils import check_video
 from utils import const
 from utils.config_utils import get_subtitle_font_list
@@ -53,8 +54,11 @@ async def list_tasks(page: int = Query(default=1, min=1), page_size: int = Query
         del task_dict['id']
         if item.pipeline_status == const.PIPELINE_STATUS_FINISH:
             task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][11][lang]
+        elif item.pipeline_status == const.PIPELINE_STATUS_ERROR:
+            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][12][lang]
         else:
-            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][item.pipeline_status][lang]
+            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][item.pipeline_status][
+                lang]
         task_list.append(task_dict)
     return result_succ({
         "total": total,
@@ -139,6 +143,33 @@ async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_d
     await db.commit()
     await db.refresh(item)
     return result_succ()
+
+
+@router.post("/quick_multi_download")
+async def add_quick_download_task(items: list[QuickDownloadTaskItem], db: AsyncSession = Depends(database.get_db)):
+    if len(items) == 0:
+        return result_failure(const.TASK_MULTI_DOWNLOAD_EMPTY, "Task items empty")
+    for item in items:
+        task = VptTasks(
+            task_id=gen_task_id(),
+            task_url=item.task_url,
+            is_use_proxy=item.is_use_proxy
+        )
+        db.add(task)
+    await db.commit()
+    return result_succ({})
+
+
+@router.get("/restart")
+async def restart_task(task_id: str, db: AsyncSession = Depends(database.get_db)):
+    result = await db.execute(select(VptTasks).where(and_(VptTasks.task_id == task_id, VptTasks.is_deleted == 0)))
+    item = result.scalar_one_or_none()
+    if not item:
+        return result_failure(const.TASK_RESTART_ERR_TASK_ID_NOT_VALID, f"task id is not valid, task id: {task_id}")
+    item.pipeline_status = const.PIPELINE_STATUS_INIT
+    await db.commit()
+    await db.refresh(item)
+    return result_succ({})
 
 
 @router.post("/add")

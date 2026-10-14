@@ -10,6 +10,7 @@ export interface Task {
   is_deleted: number
   status: number  // 0=pending, 1=running, 2=done, -1=failed
   pipeline_status_str?: string
+  pipeline_status?: number
   task_status?: number
   task_message?: string | null
   task_id: string
@@ -233,6 +234,10 @@ export function checkTaskUrl(url: string, useProxy: boolean): Promise<CheckUrlRe
 
 export function deleteTask(taskId: string): Promise<ApiResult<Record<string, unknown>>> {
   return request(http.get('/tasks/del', { params: { task_id: taskId } }))
+}
+
+export function restartTask(taskId: string): Promise<ApiResult<Record<string, unknown>>> {
+  return request(http.get('/tasks/restart', { params: { task_id: taskId } }))
 }
 
 export interface AsrLangOption {
