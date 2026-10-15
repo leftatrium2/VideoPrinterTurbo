@@ -1,1 +1,3 @@
-{}
+{
+	"bilibili.com": "pipeline.downloader.bilibili.bilibili_downloader.BiliBiliDownloader"
+}
