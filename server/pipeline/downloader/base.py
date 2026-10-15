@@ -19,7 +19,7 @@ class DownloaderContext(ABC):
         pass
 
     @abstractmethod
-    def on_progress(self, url: str, codec_type: int, progress: float):
+    def on_progress(self, url: str, codec_type: int, progress: float, speed: float | None = None):
         pass
 
     @abstractmethod
@@ -28,6 +28,10 @@ class DownloaderContext(ABC):
 
     @abstractmethod
     def on_complete(self, url: str):
+        pass
+
+    @abstractmethod
+    def set_task_id(self, task_id: str):
         pass
 
 

@@ -106,7 +106,6 @@
                 @click="handleEdit(row)"
               >{{ t('taskList.edit') }}</el-button>
               <el-button
-                v-if="row.pipeline_status === 101"
                 size="small"
                 type="warning"
                 plain

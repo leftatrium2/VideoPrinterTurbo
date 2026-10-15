@@ -20,7 +20,7 @@ class DataBase(object):
         )
         sync_url = _config.config["database"]["url"].replace("+aiosqlite", "")
         self.sync_engine = create_engine(sync_url, echo=False)
-        self._sync_session_factory = sessionmaker(bind=self.sync_engine)
+        self._sync_session_factory = sessionmaker(bind=self.sync_engine, expire_on_commit=False)
         self._scoped_session = scoped_session(self._sync_session_factory)
 
     async def stop(self):

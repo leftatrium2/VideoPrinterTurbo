@@ -40,20 +40,39 @@ class PipelineManager:
 
     class InnerDownloaderContext(DownloaderContext):
 
+        def __init__(self):
+            self.__task_id = None
+
         def on_create(self, url: str):
-            logger.info(f"on_create: url: {url}")
+            msg = f"on_create: url: {url}"
+            logger.info(msg)
+            PipelineManager._update_download_progress(self.__task_id, "download create")
 
         def on_start(self, url: str):
-            logger.info(f"on_start: url: {url}")
+            msg = f"on_start: url: {url}"
+            logger.info(msg)
+            PipelineManager._update_download_progress(self.__task_id, "download start")
 
-        def on_progress(self, url: str, codec_type: int, progress: float):
-            logger.info(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}")
+        def on_progress(self, url: str, codec_type: int, progress: float, speed: float | None = None):
+            if speed:
+                msg = f"download {progress * 100:.2f}% ({speed / 1024 / 1024:.2f} MB/s)"
+            else:
+                msg = f"download {progress * 100:.2f}%"
+            logger.info(f"on_progress url:{url} codec_type:{codec_type} progress:{progress} speed:{speed}")
+            PipelineManager._update_download_progress(self.__task_id, msg)
 
         def on_complete(self, url: str):
-            logger.info(f"on_complete: url: {url}")
+            msg = f"on_complete: url: {url}"
+            logger.info(msg)
+            PipelineManager._update_download_progress(self.__task_id, "download complete")
 
         def on_error(self, url: str, error: Exception):
-            logger.info(f"on_error: url: {url}, error: {error}")
+            msg = f"on_error: url: {url}, error: {error}"
+            logger.info(msg)
+            PipelineManager._update_download_progress(self.__task_id, "download error")
+
+        def set_task_id(self, task_id: str):
+            self.__task_id = task_id
 
     def set_proxy(self, proxy: str):
         self.__proxy = proxy
@@ -65,7 +84,20 @@ class PipelineManager:
         self.__data = PipeLineData()
 
     @staticmethod
-    def __update_db_task(task: VptTasks):
+    def _update_download_progress(task_id: str, message: str):
+        db = database.get_sync_session()
+        try:
+            result = db.execute(select(VptTasks).where(VptTasks.task_id == task_id))
+            item = result.scalar_one_or_none()
+            if item:
+                item.task_message = message
+                db.commit()
+        finally:
+            db.close()
+        pass
+
+    @staticmethod
+    def _update_db_task(task: VptTasks):
         db = database.get_sync_session()
         try:
             result = db.execute(select(VptTasks).where(
@@ -83,7 +115,6 @@ class PipelineManager:
             item.task_original_video_path = task.task_original_video_path
             item.output_path = task.output_path
             db.commit()
-            db.refresh(item)
         finally:
             db.close()
 
@@ -114,7 +145,7 @@ class PipelineManager:
     def __update_pipeline_status(self, task: VptTasks, pipeline_status: int):
         self.__data.status = pipeline_status
         task.pipeline_status = pipeline_status
-        self.__update_db_task(task)
+        PipelineManager._update_db_task(task)
 
     def __process_task_info(self, task: VptTasks):
         # module status
@@ -289,13 +320,13 @@ class PipelineManager:
                 task.task_status = ex.code
                 task.task_message = ex.message
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             if not res:
                 task.task_status = const.PIPELINE_ERR_UNKNOWN
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 task.task_message = f"check video return false, the url: {self.__data.video_bean.task_url} is not allowed"
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
         # download video
         self.__update_pipeline_status(task, const.PIPELINE_STATUS_DOWNLOADER)
@@ -311,27 +342,27 @@ class PipelineManager:
                 task.task_status = ex.code
                 task.task_message = ex.message
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             if not res or res.get('status', 0) != 0:
                 task.task_status = const.PIPELINE_ERR_YT_DLP
                 task.task_message = (res or {}).get('message') or "Video download failed or returned no result"
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             local_video_path = res.get('video_path') or ''
             if not local_video_path:
                 task.task_status = const.PIPELINE_ERR_DOWNLOADER_SAVE_LOCAL_PATH
                 task.task_message = "Downloader returned an empty video path"
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             local_video_path = get_absolute_path(local_video_path)
             if not Path(local_video_path).is_file() or Path(local_video_path).stat().st_size == 0:
                 task.task_status = const.PIPELINE_ERR_DOWNLOADER_SAVE_LOCAL_PATH
                 task.task_message = f"Downloaded video does not exist or is empty: {local_video_path}"
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             # 按照以下规则进行路径过滤
             # 源路径：/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/downloads/20260913190132110313.mp4
@@ -349,7 +380,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = f"upload video is not exists, path: {task.task_upload_video_path}"
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             new_real_path = real_path.with_stem(task.task_id)
             real_path.rename(new_real_path)
@@ -372,7 +403,7 @@ class PipelineManager:
                         task.task_status = const.PIPELINE_ERR_ASR_LOCAL_VIDEO_HAS_NOT_SUBTITLE_DOWNLOAD
                         task.task_message = msg
                         task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                        self.__update_db_task(task)
+                        PipelineManager._update_db_task(task)
                         return None
                     res = subtitle_convert(
                         self.__data.asr_bean.task_url,
@@ -390,7 +421,7 @@ class PipelineManager:
                         task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                         task.task_message = msg
                         task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                        self.__update_db_task(task)
+                        PipelineManager._update_db_task(task)
                         return None
                     if self.__data.is_need_audio_separator:
                         # 开启了背景人声分离
@@ -417,7 +448,7 @@ class PipelineManager:
                     task.task_status = const.PIPELINE_ERR_ASR_UNKNOWN
                     task.task_message = msg
                     task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                    self.__update_db_task(task)
+                    PipelineManager._update_db_task(task)
                     return None
                 self.__data.asr_bean.audio_rewrite_type = audio_rewrite_type
                 self.__data.asr_bean.subtitle_full_path = res
@@ -426,7 +457,7 @@ class PipelineManager:
                 task.task_status = ex.code
                 task.task_message = ex.message
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
         # llm prompt rewrite
         if self.__data.is_llm:
@@ -438,7 +469,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_LLM_NEED_ASR_RESULT
                 task.task_message = msg
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             try:
                 srt_path = Path(self.__data.asr_bean.subtitle_full_path).expanduser().resolve()
@@ -449,7 +480,7 @@ class PipelineManager:
                     task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                     task.task_message = msg
                     task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                    self.__update_db_task(task)
+                    PipelineManager._update_db_task(task)
                     return None
                 llm_rewrite_path = Path(llm_rewrite_dir).joinpath(srt_path.name)
                 llm_config_item = PipelineManager.__get_llm_config()
@@ -470,7 +501,7 @@ class PipelineManager:
                     task.task_status = const.PIPELINE_ERR_FILE_SAVE
                     task.task_message = msg
                     task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                    self.__update_db_task(task)
+                    PipelineManager._update_db_task(task)
                     return None
                 self.__data.llm_bean.llm_full_path = str(llm_rewrite_path)
             except VPTException as ex:
@@ -478,7 +509,7 @@ class PipelineManager:
                 task.task_status = ex.code
                 task.task_message = ex.message
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
         # rewrite to tts
         if self.__data.is_tts:
@@ -490,7 +521,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = msg
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             subtitle_path = self.__get_subtitle_path()
             if not subtitle_path:
@@ -499,7 +530,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = msg
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             tts_server = const.TTS_LIST_AZURE_TTS_V1
             if self.__data.tts_bean.tts_server == const.TTS_LIST_AZURE_TTS_V1_VAL:
@@ -517,7 +548,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_TTS_CONFIG_DB
                 task.task_message = msg
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             res = tts_from_subtitle(
                 tts_engine=self.__data.tts_bean.tts_server,
@@ -534,7 +565,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_TTS_RETURN
                 task.task_message = msg
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             res_path = Path(res).expanduser().resolve()
             if not res_path.is_file():
@@ -543,7 +574,7 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
                 task.task_message = msg
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
-                self.__update_db_task(task)
+                PipelineManager._update_db_task(task)
                 return None
             self.__data.tts_bean.tts_full_path = str(res_path)
         # material video
@@ -578,7 +609,7 @@ class PipelineManager:
             task.task_status = const.PIPELINE_STATUS_SUCCESS
             task.task_message = "video is process successfully"
             task.output_path = full_file_path
-            PipelineManager.__update_db_task(task)
+            PipelineManager._update_db_task(task)
             return full_file_path
         else:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
@@ -590,13 +621,13 @@ class PipelineManager:
                 task.task_status = const.PIPELINE_STATUS_SUCCESS
                 task.task_message = ""
                 task.output_path = full_file_path
-                PipelineManager.__update_db_task(task)
+                PipelineManager._update_db_task(task)
             else:
                 task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
                 task.task_status = const.PIPELINE_ERR_FILE_SAVE
                 task.task_message = "full file path is none"
                 task.output_path = ""
-                PipelineManager.__update_db_task(task)
+                PipelineManager._update_db_task(task)
             return full_file_path
 
     def __if_need_assembly(self) -> bool:

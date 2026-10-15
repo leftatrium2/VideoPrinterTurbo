@@ -29,6 +29,7 @@ def make_hook(context: DownloaderContext):
                 downloaded = progress.get('downloaded_bytes', 0) or 0
                 total = progress.get('total_bytes') or progress.get('total_bytes_estimate') or 0
                 progress_ratio = downloaded / total if total > 0 else 0.0
+                speed = progress.get('speed') or None
                 vcodec = info.get("vcodec", "none")
                 acodec = info.get("acodec", "none")
                 if vcodec != "none" and acodec == "none":
@@ -37,7 +38,7 @@ def make_hook(context: DownloaderContext):
                     stream_type = DOWNLOADER_CODEC_AUDIO_TYPE
                 else:
                     stream_type = DOWNLOADER_CODEC_MUXER_TYPE
-                context.on_progress(original_url, stream_type, progress_ratio)
+                context.on_progress(original_url, stream_type, progress_ratio, speed)
             case 'finished':
                 context.on_complete(original_url)
             case 'error':
@@ -146,14 +147,18 @@ class InnerDownloaderContext(DownloaderContext):
     def on_start(self, url: str):
         logger.info(f"on_start: url: {url}")
 
-    def on_progress(self, url: str, codec_type: int, progress: float):
-        logger.info(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}")
+    def on_progress(self, url: str, codec_type: int, progress: float, speed: float | None = None):
+        speed_str = f"{speed / 1024 / 1024:.2f} MB/s" if speed else "N/A"
+        logger.info(f"on_progress: url: {url}, codec_type: {codec_type}, progress: {progress}, speed: {speed_str}")
 
     def on_complete(self, url: str):
         logger.info(f"on_complete: url: {url}")
 
     def on_error(self, url: str, error: Exception):
         logger.info(f"on_error: url: {url}, error: {error}")
+
+    def set_task_id(self, task_id: str):
+        pass
 
 
 if __name__ == "__main__":

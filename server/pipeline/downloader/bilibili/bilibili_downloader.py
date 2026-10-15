@@ -265,8 +265,9 @@ if __name__ == "__main__":
         def on_start(self, url: str):
             logger.info(f"on_start: {url}")
 
-        def on_progress(self, url: str, codec_type: int, progress: float):
-            logger.info(f"on_progress: codec={codec_type}, progress={progress:.1%}")
+        def on_progress(self, url: str, codec_type: int, progress: float, speed: float | None = None):
+            speed_str = f"{speed / 1024 / 1024:.2f} MB/s" if speed else "N/A"
+            logger.info(f"on_progress: codec={codec_type}, progress={progress:.1%}, speed: {speed_str}")
 
         def on_error(self, url: str, error: Exception):
             logger.info(f"on_error: {url}: {error}")

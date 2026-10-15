@@ -52,6 +52,8 @@ def download_video(
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None
 ) -> Optional[dict]:
+    if ctx and task_id:
+        ctx.set_task_id(task_id=task_id)
     if not url or not url.strip():
         raise VPTException(const.PIPELINE_ERR_VALUE, "url is empty!")
     if not task_id:
