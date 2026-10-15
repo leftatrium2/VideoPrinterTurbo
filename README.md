@@ -188,6 +188,18 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
   + ![Start the download task](doc/en/add_task_3.png)
   + Wait for the task to finish. When its status shows that it is completed, the local path points to the downloaded video.
 
++ How to uninstall
+  + For downloaded binary releases:
+    + Step 1: Delete the downloaded executable or extracted application.
+    + Step 2: Delete the application data directory for your operating system:
+      + macOS: `~/Library/Application Support/VideoPrinterTurbo`
+        + Open Finder, choose **Go** from the menu bar, then click **Go to Folder…**.
+        + Paste `~/Library/Application Support/VideoPrinterTurbo` into the dialog.
+        + The folder contains all files created by VideoPrinterTurbo.
+        + The `output` folder contains downloaded videos and final processed MP4 files.
+      + Windows: `C:\Users\[your username]\AppData\Local\VideoPrinterTurbo`
+        + The `output` folder also contains downloaded videos and final processed MP4 files.
+
 ### Future Plans
 
 + If you have other needs, please open an issue.

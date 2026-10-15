@@ -212,6 +212,20 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
   + 检查通过，点击最下面的：开始任务 按钮，开始下载
   + ![asr_config_1](doc/cn/add_task_3.png)
   + 等待任务完成，当”状态”显示完成后，在本地路径中显示的，就是下载得到的视频
+  
++ 如何卸载？
+	+ 对于直接下载的二进制包：
+		+ 第一步：删掉下载的文件
+		+ 第二步：
+    	+ macOS系统中：~/Library/Application Support/VideoPrinterTurbo，将此目录删掉
+        + 打开 访达 ，点击顶部菜单中的 前往，再点击 前往文件夹... 
+		    + 将 ~/Library/Application Support/VideoPrinterTurbo 粘贴进去
+			  + 在打开的窗口中，可以查看 VideoPrinterTurbo 所有创建的文件
+			  + 其中 output 文件夹是下载以及最后处理完成的MP4文件
+			+ windows系统中：C:\Users\[你的用户名]\AppData\Local\VideoPrinterTurbo，将此目录删掉
+			  + 同样，在output 文件夹是下载以及最后处理完成的MP4文件
+		
+		
 
 ### 后续计划
 + 有其他的需求，给我提交一下issue
