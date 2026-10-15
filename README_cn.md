@@ -8,6 +8,8 @@
 
 *** 🎉 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交 **
 
+*** 1.0.2 版本紧急发布，修复bilibili.com的下载问题 **
+
 ### 最新免安装版本
 
 [[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.1/VideoPrinterTurbo-1.0.1-macos-arm64.zip)

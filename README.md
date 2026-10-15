@@ -4,7 +4,9 @@
 <h3>English | <a href="README_cn.md">简体中文</a></h3>
 <br>
 </div>
-*** 🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.*** 
+***  🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file. ** 
+
+*** Urgent release v1.0.2: Fixes download issues with bilibili.com **
 
 ### Latest version
 
