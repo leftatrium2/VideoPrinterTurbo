@@ -12,11 +12,11 @@
 
 ### 最新免安装版本
 
-[[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.1/VideoPrinterTurbo-1.0.1-macos-arm64.zip)
+[[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.2/VideoPrinterTurbo-1.0.2-macos-arm64.zip)
 
 *** 解压后，直接运行***
 
-[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.1/VideoPrinterTurbo-1.0.1-windows-x64.exe)
+[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.2/VideoPrinterTurbo-1.0.2-windows-x64.exe)
 
 *** 无需解压，直接运行 ***
 
