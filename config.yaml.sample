@@ -2,7 +2,7 @@ app:
   name: VideoPrinterTurbo
   port: 8080
   debug: true
-  version: 1.0.2
+  version: 1.0.0
 
 storage:
   path: storage
