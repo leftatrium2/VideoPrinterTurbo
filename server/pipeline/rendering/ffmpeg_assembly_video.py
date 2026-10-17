@@ -267,6 +267,8 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             subtitle_path = self.__pipeline_data.asr_bean.subtitle_full_path
             if self.__pipeline_data.is_llm:
                 subtitle_path = self.__pipeline_data.llm_bean.llm_full_path
+            if self.__pipeline_data.is_tts and self.__pipeline_data.tts_bean.final_subtitle_path:
+                subtitle_path = self.__pipeline_data.tts_bean.final_subtitle_path
             subtitle_file = self.__escape_filter_path(subtitle_path)
             subtitle_filter = f"subtitles=filename='{subtitle_file}'"
             if font_dir:

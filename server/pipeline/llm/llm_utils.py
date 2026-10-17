@@ -10,7 +10,7 @@ class LLMUtils:
     @staticmethod
     def build_rewrite_prompt(texts, user_instruction):
         """构造让 LLM 严格按 JSON 数组返回、且数量必须一致的 prompt"""
-        numbered_input = "\n".join(
+        numbered_input = ",\n".join(
             f"{{\"id\": {i}, \"text\": {json.dumps(t, ensure_ascii=False)}}}"
             for i, t in enumerate(texts)
         )
@@ -22,7 +22,8 @@ class LLMUtils:
             "2. 每个元素的 id 必须与输入一一对应，不能改变顺序。\n"
             "3. 只改写 text 字段内容，不要添加解释、注释或其他文字。\n"
             "4. 直接输出合法 JSON 数组，不要包含 ```json 代码块标记，不要有多余文字。\n"
-            "5. 保留字幕原有的换行风格（如果原文有多行，可根据需要保留多行）。"
+            "5. 保留字幕原有的换行风格（如果原文有多行，可根据需要保留多行）。\n"
+            "6. 上下文只帮助理解，不得把其他条目的信息加入当前条目，不得提前补全相邻条目的内容。"
         )
 
         user_prompt = (
@@ -53,14 +54,20 @@ class LLMUtils:
 
             try:
                 result = json.loads(raw)
+                if not isinstance(result, list):
+                    raise ValueError("返回值必须为 JSON 数组")
                 if len(result) != len(texts):
                     raise ValueError(
                         f"返回数量不匹配：期望 {len(texts)} 条，实际 {len(result)} 条"
                     )
+                if sorted(item["id"] for item in result) != list(range(len(texts))):
+                    raise ValueError("字幕 id 必须唯一且与输入一致")
+                if any(not isinstance(item.get("text"), str) or not item["text"].strip() for item in result):
+                    raise ValueError("字幕文本不能为空")
                 # 按 id 排序，确保顺序正确
                 result.sort(key=lambda x: x["id"])
                 return [item["text"] for item in result]
-            except (json.JSONDecodeError, ValueError, KeyError) as e:
+            except (json.JSONDecodeError, ValueError, KeyError, TypeError) as e:
                 logger.warning(f"[警告] 第 {attempt + 1} 次尝试解析失败：{e}，重试中...")
                 time.sleep(1)
 
@@ -73,6 +80,7 @@ class LLMUtils:
             subtitles,
             user_instruction,
             batch_size=50,
+            dubbing=False,
     ):
         """分批改写所有字幕文本，返回改写后的 subtitles（时间轴不变）"""
         new_subtitles = []
@@ -83,7 +91,19 @@ class LLMUtils:
             texts = [s["text"] for s in batch]
 
             logger.info(f"正在处理第 {start + 1} ~ {start + len(batch)} 条字幕（共 {total} 条）...")
-            new_texts = LLMUtils.rewrite_batch(client, model, texts, user_instruction)
+            instruction = user_instruction
+            if dubbing:
+                timing = [{"id": i, "start": sub["start"], "end": sub["end"]}
+                          for i, sub in enumerate(batch)]
+                adjacent = {"previous": subtitles[start - 1]["text"] if start else "",
+                            "next": subtitles[start + len(batch)]["text"]
+                            if start + len(batch) < total else ""}
+                instruction += ("\n用于视频配音，请结合上下文使用自然简洁的口语。以下时间窗口是软约束，"
+                                "不要为缩短时长删去事实、数字、名称或关键含义。目标语言遵循用户指令。\n"
+                                + json.dumps(timing, ensure_ascii=False)
+                                + "\n批次外上下文（仅供参考，不输出）："
+                                + json.dumps(adjacent, ensure_ascii=False))
+            new_texts = LLMUtils.rewrite_batch(client, model, texts, instruction)
 
             for sub, new_text in zip(batch, new_texts):
                 new_subtitles.append({

@@ -186,6 +186,9 @@ VIDEO_MATERIAL_TRANSITION_SLIDE_OUT = 7
 # Video overlay - Video aspect ratio
 VIDEO_MATERIAL_SCREEN_RATIO_9_16 = 1
 VIDEO_MATERIAL_SCREEN_RATIO_16_9 = 2
+# video tts dubbing_strategy
+DUBBING_STRATEGY_TIMELINE_FIRST = 1
+DUBBING_STRATEGY_NATURAL_FIRST = 2
 # Video overlay - Max clip duration (seconds)
 # Video overlay - Number of videos to generate
 # error code for successful

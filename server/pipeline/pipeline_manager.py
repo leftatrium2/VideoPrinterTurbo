@@ -285,6 +285,8 @@ class PipelineManager:
         return args
 
     def __get_subtitle_path(self):
+        if self.__data.tts_bean.final_subtitle_path:
+            return self.__data.tts_bean.final_subtitle_path
         if self.__data.is_llm:
             return self.__data.llm_bean.llm_full_path
         else:
@@ -306,6 +308,7 @@ class PipelineManager:
         :param task: 任务信息
         :return: 生成的最终视频文件全路径
         """
+        self.clear_data()
         self.__process_task_info(task)
         # set status to start
         self.__update_pipeline_status(task, const.PIPELINE_STATUS_START)
@@ -370,7 +373,7 @@ class PipelineManager:
             # 过滤后的相对路径：storage/downloads/20260913190132110313.mp4
             self.__data.video_bean.video_full_path = local_video_path
             self.__data.video_bean.title = res.get('title') or ''
-            self.__data.video_bean.duration = int(res.get('duration') or 0)
+            self.__data.video_bean.duration = float(res.get('duration') or 0)
             self.__data.video_bean.width = int(res.get('width') or 0)
             self.__data.video_bean.height = int(res.get('height') or 0)
             self.__data.video_bean.metadata = res.get('metadata') or {}
@@ -494,7 +497,8 @@ class PipelineManager:
                     dst_path=str(llm_rewrite_path),
                     api_key=api_key,
                     base_url=base_url,
-                    model=model
+                    model=model,
+                    dubbing=self.__data.is_tts
                 )
                 if not llm_rewrite_path.is_file():
                     msg = f"{task.task_url} llm rewrite error, llm rewrite path is None"
@@ -551,15 +555,58 @@ class PipelineManager:
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
                 return None
-            res = tts_from_subtitle(
-                tts_engine=self.__data.tts_bean.tts_server,
-                subtitle_path=subtitle_path,
-                voice=self.__data.tts_bean.tts_voice,
-                lang=get_lang_from_voice(self.__data.tts_bean.tts_voice),
-                api_key=tts_config_item.tts_apikey,
-                region=tts_config_item.tts_area,
-                proxy_url=self.__proxy
-            )
+            try:
+                from pipeline.tts.dubbing_segments import group_subtitles
+                from utils.tts_utils import TTSUtils
+                sources, mappings = group_subtitles(
+                    TTSUtils.parse_srt(self.__data.asr_bean.subtitle_full_path))
+                shorten = None
+                if self.__data.is_llm:
+                    from openai import OpenAI
+                    from pipeline.llm.llm_utils import LLMUtils
+                    from utils.tts_utils import TTSUtils
+                    cfg = PipelineManager.__get_llm_config()
+                    client = OpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
+
+                    def shorten(index, text, actual_ms, target_ms):
+                        source = sources[index].content
+                        context = " ".join(s.content for s in sources[max(0, index - 1):index + 2])
+                        instruction = (f"{self.__data.llm_bean.llm_text}\n"
+                                       f"精简当前配音，保持当前语言及原意，不得删去事实、数字、名称和关键含义。"
+                                       f"实际时长 {actual_ms}ms，目标 {target_ms}ms，时长只是软约束。"
+                                       f"只改写当前原文对应的内容，禁止加入相邻片段的信息，即使当前原文是半句话。"
+                                       f"上下文仅帮助理解，不是本片段需要朗读的内容。"
+                                       f"当前原文：{source}\n参考上下文：{context}")
+                        return LLMUtils.rewrite_batch(client, cfg.llm_model_name, [text], instruction)[0]
+
+                final_srt = str(Path(tts_rewrite_dir) / f"{self.__data.task_id}_final.srt")
+                res = tts_from_subtitle(
+                    tts_engine=self.__data.tts_bean.tts_server,
+                    dubbing_strategy=const.DUBBING_STRATEGY_TIMELINE_FIRST,
+                    subtitle_path=subtitle_path,
+                    voice=self.__data.tts_bean.tts_voice,
+                    lang=get_lang_from_voice(self.__data.tts_bean.tts_voice),
+                    api_key=tts_config_item.tts_apikey,
+                    region=tts_config_item.tts_area,
+                    proxy_url=self.__proxy,
+                    shorten=shorten,
+                    rewrite_context=self.__data.llm_bean.llm_text if self.__data.is_llm else "",
+                    source_subs=sources,
+                    source_subtitle_ids=mappings,
+                    group_for_dubbing=not self.__data.is_llm,
+                    cache_dir=str(Path(tts_rewrite_dir) / "segments" / str(self.__data.task_id)),
+                    video_duration_ms=round((self.__data.video_bean.duration or
+                                             get_video_or_audio_duration(get_absolute_path(
+                                                 self.__data.video_bean.video_full_path))) * 1000),
+                    final_subtitle_path=final_srt,
+                )
+            except Exception as ex:
+                logger.exception("TTS alignment failed for task %s: %s", task.task_id, ex)
+                task.task_status = const.PIPELINE_ERR_TTS_CONVERT
+                task.task_message = str(ex) if isinstance(ex, ValueError) else "TTS synthesis failed; check provider configuration and connectivity"
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
             if not res:
                 msg = f"tts return empty!"
                 logger.error(msg)
@@ -578,6 +625,7 @@ class PipelineManager:
                 PipelineManager._update_db_task(task)
                 return None
             self.__data.tts_bean.tts_full_path = str(res_path)
+            self.__data.tts_bean.final_subtitle_path = final_srt
         # material video
         if self.__data.is_material:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_OVERLAY)
@@ -648,7 +696,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20261012112651686947"
+    task_id = "20261017095139206438"
     database.start()
     db = database.get_sync_session()
     try:

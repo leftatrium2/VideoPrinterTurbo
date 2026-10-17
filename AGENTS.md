@@ -113,6 +113,36 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
   涉及此区域时请核实该行为。其试听接口还要求 `vpt_tts_config` 中存在
   `tts_server=1` 的记录，即使 V1 不需要凭据。
 
+## 配音时长控制
+
+配音启用时，首次 LLM 改写前由 `server/pipeline/tts/dubbing_segments.py`
+按源字幕分组：只合并近乎连续、未遇句末标点或显式说话人标记的字幕，
+间隔最多 150ms，每组最多 10 秒、6 条；单条本身超长时保持原样。
+这些规则是保守启发式，不代替说话人识别。未启用 LLM 时在 TTS 前执行同样分组。
+LLM 精简使用分组后的完整原文和上下文，最终字幕按配音片段输出；
+`alignment.json` 的 `source_subtitle_ids` 保留原字幕映射。调整分组时运行
+`server/tests/test_dubbing_segments.py`。
+
+配音启用时，LLM 改写接收片段时间窗口作为软约束；实际对齐由
+`server/pipeline/tts/duration_controller.py` 统一处理。偏短保留原速和静音，
+`tts_from_subtitle()` 接收整数 `dubbing_strategy`，复用 `utils/const.py` 的
+`DUBBING_STRATEGY_TIMELINE_FIRST=1`（默认）和 `DUBBING_STRATEGY_NATURAL_FIRST=2`，
+未知值直接报错；当前 `PipelineManager` 显式选择时间对齐优先。
+两种策略均先尝试最多两次精简，保留更短的完整候选，再尝试借用后方最多 500ms 空白。
+自然度优先以 1.1 倍为常规上限，允许调速后 30ms 容差和最高 1.2 倍兜底；
+仍超限则检查完全部片段后汇总失败。时间对齐优先对剩余超限片段强制适配窗口，
+记录 `forced_speedup` 和 WARNING，不因时长超限停止任务。非法时间轴、空音频及合成失败
+仍报错；两种策略都按绝对时间定位，音频不顺延到下一片段。
+`alignment.json` 包含整数策略、候选选择、最终文本、原始时长、窗口和倍率；
+切换策略复用原始音频，但重新执行适配判断。有超限片段时自然度优先不导出最终字幕和音轨。
+未启用 LLM 的任务不调用自动精简。
+
+最终配音字幕保存在 TTS 输出目录的 `<task_id>_final.srt`，视频烧录及素材步骤
+使用该路径，初次 LLM 字幕保持独立。片段音频和测时记录保存在
+`<tts_rewrite>/segments/<task_id>/`；缓存不包含密钥，文本、音色或参数变化后重新合成。
+调整此流程时运行 `server/tests/test_dubbing_duration.py`，并对真实配音另行试听。
+本阶段处理时长对齐，尚未修改视频嘴部画面。
+
 ## 常用 API 接口
 
 基础地址：`http://localhost:8080`。Vite 开发代理会将 `/api/*` 映射到后端，

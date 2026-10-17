@@ -35,7 +35,7 @@ class AzureTTSV1(TTSBase):
 
         asyncio.run(_run())
 
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str, **options) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             logger.error(f"File {subtitle_path} does not exist")
             return None
@@ -50,7 +50,7 @@ class AzureTTSV1(TTSBase):
         if self.__proxy_url:
             synth_kwargs["proxy"] = self.__proxy_url
         with tempfile.TemporaryDirectory() as tmp_dir:
-            timeline = TTSUtils.build_timeline(subs, AzureTTSV1.synthesize, synth_kwargs, tmp_dir)
+            timeline = TTSUtils.build_timeline(subs, AzureTTSV1.synthesize, synth_kwargs, tmp_dir, **options)
 
             timeline.export(
                 tts_file_path,

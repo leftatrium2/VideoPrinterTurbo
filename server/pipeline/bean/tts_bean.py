@@ -10,6 +10,7 @@ class TTSBean:
     tts_volume: float = 0
     tts_speed: float = 0
     tts_full_path: str = ""
+    final_subtitle_path: str = ""
 
     def __str__(self) -> str:
         return f"""

@@ -79,34 +79,10 @@ class TTSUtils:
         stretched.export(out_path, format="wav")
 
     @staticmethod
-    def build_timeline(subs, synth_fn, synth_kwargs, tmp_dir):
-        """
-        subs: parse_srt() 得到的字幕列表
-        synth_fn: 形如 synth_fn(text, out_path=..., **synth_kwargs) 的合成函数，
-                  由调用方根据所选 TTS provider 传入
-        """
-        total_end_ms = TTSUtils.timedelta_to_ms(subs[-1].end) if subs else 0
-        timeline = AudioSegment.silent(duration=total_end_ms)
-
-        for i, sub in enumerate(subs):
-            start_ms = TTSUtils.timedelta_to_ms(sub.start)
-            end_ms = TTSUtils.timedelta_to_ms(sub.end)
-            target_ms = max(end_ms - start_ms, 1)
-
-            raw_audio = os.path.join(tmp_dir, f"raw_{i}.audio")
-            fit_wav = os.path.join(tmp_dir, f"fit_{i}.wav")
-
-            text = sub.content.strip()
-            logger.info(f"[{i + 1}/{len(subs)}] {text[:24]!r}  "
-                        f"{start_ms}ms -> {end_ms}ms (目标 {target_ms}ms)")
-
-            synth_fn(text, out_path=raw_audio, **synth_kwargs)
-            TTSUtils.stretch_to_duration(raw_audio, fit_wav, target_ms)
-
-            clip = AudioSegment.from_file(fit_wav)
-            timeline = timeline.overlay(clip, position=start_ms)
-
-        return timeline
+    def build_timeline(subs, synth_fn, synth_kwargs, tmp_dir, **options):
+        from pipeline.tts.duration_controller import build_dubbing_timeline
+        cache_dir = options.pop("cache_dir", tmp_dir)
+        return build_dubbing_timeline(subs, synth_fn, synth_kwargs, cache_dir, **options)
 
     @staticmethod
     def export_timeline(timeline, output_path, bitrate="128k"):
