@@ -5,5 +5,5 @@ from typing import Optional
 class TTSBase(ABC):
 
     @abstractmethod
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str, **options) -> Optional[str]:
         pass
