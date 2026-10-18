@@ -10,10 +10,6 @@ build/
 venv/
 env/
 
-# Config
-config.yaml
-downloader.json
-
 # Storage
 storage/
 output/
