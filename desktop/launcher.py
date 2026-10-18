@@ -60,9 +60,9 @@ def prepare():
     os.environ.setdefault("VPT_MODEL_DIR", str(data / "models" / "faster_whisper"))
     for directory in ("db", "logs", "storage", "output"):
         (data / directory).mkdir(exist_ok=True)
-    for source, target in (("config.yaml.sample", "config.yaml"), ("downloader.json.sample.json", "downloader.json")):
-        if not (data / target).exists():
-            shutil.copyfile(resource / source, data / target)
+    for name in ("config.yaml", "downloader.json"):
+        if not (data / name).exists():
+            shutil.copyfile(resource / name, data / name)
     os.environ["PATH"] = str(resource / "bin") + os.pathsep + os.environ.get("PATH", "")
     # Legacy relative SQLite URLs resolve here; application storage uses VPT_DATA_DIR.
     os.chdir(data)

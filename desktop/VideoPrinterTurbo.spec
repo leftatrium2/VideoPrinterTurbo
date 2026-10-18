@@ -8,8 +8,8 @@ root = Path(SPECPATH).parent
 ffmpeg = Path(os.environ['VPT_FFMPEG_DIR'])
 datas = [(str(root / 'front' / 'dist'), 'front/dist'),
          (str(root / 'server' / 'resources'), 'server/resources'),
-         (str(root / 'config.yaml.sample'), '.'),
-         (str(root / 'downloader.json.sample.json'), '.'),
+         (str(root / 'config.yaml'), '.'),
+         (str(root / 'downloader.json'), '.'),
          (str(root / 'i18n.json'), '.')]
 tool_names = ('ffmpeg.exe', 'ffprobe.exe') if sys.platform == 'win32' else ('ffmpeg', 'ffprobe')
 binaries = [(str(ffmpeg / name), 'bin') for name in tool_names]

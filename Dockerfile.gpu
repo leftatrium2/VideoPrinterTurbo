@@ -88,11 +88,11 @@ COPY server/routers ./server/routers
 COPY server/service ./server/service
 COPY server/utils ./server/utils
 COPY i18n.json ./i18n.json
-COPY downloader.json.sample.json ./downloader.json
-COPY config.yaml.sample ./config.yaml
+COPY downloader.json ./downloader.json
+COPY config.yaml ./config.yaml
 COPY --from=frontend /VideoPrinterTurbo/front/dist ./front/dist
 
-# Preserve sample storage settings and fill missing container defaults; a bind-mounted
+# Preserve repository storage settings and fill missing container defaults; a bind-mounted
 # /VideoPrinterTurbo/config.yaml can override the complete configuration.
 RUN python - <<'PY'
 from pathlib import Path
