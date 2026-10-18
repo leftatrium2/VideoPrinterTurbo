@@ -24,8 +24,9 @@
 - `config.yaml`、`downloader.json`：用户配置。
 - `logs`、`storage`、`output`：日志、素材和结果。
 
-EXE 内只包含默认配置、程序依赖、前端、FFmpeg/ffprobe 和资源，不包含个人 API 密钥、
-数据库或 Whisper 模型。单文件启动会解压依赖到临时目录，首次启动可能较慢。
+EXE 内包含仓库中的 `config.yaml`、`downloader.json`、程序依赖、前端、FFmpeg/ffprobe 和资源，
+不包含数据库或 Whisper 模型。首次运行将内置配置复制到持久数据目录；已有配置不会被覆盖。
+仓库配置会随桌面版和 Docker 镜像一起分发，应只保存可公开的默认值，不要写入个人 API 密钥。单文件启动会解压依赖到临时目录，首次启动可能较慢。
 本机默认端口 18080；已有同端口桌面实例时打开现有实例，端口被其他程序占用时使用空闲端口。
 
 ## Windows 构建
