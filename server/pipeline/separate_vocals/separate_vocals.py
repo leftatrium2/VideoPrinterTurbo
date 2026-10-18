@@ -36,7 +36,8 @@ class SeparateVocals(SeparateVocalsBase):
         separator = Separator(
             model_file_dir=model_dir,
             output_dir=str(dst_mp3_dir_path),
-            output_format="mp3"
+            output_format="mp3",
+            use_native_fp16=True
         )
         try:
             separator.load_model()
