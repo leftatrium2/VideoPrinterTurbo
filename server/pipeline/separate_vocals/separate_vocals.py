@@ -1,12 +1,11 @@
 import asyncio
 from pathlib import Path
 
-
 import config.config as _config
 from pipeline.separate_vocals.base import SeparateVocalsBase
 from utils import const
 from utils.exception import VPTException
-from utils.file_utils import get_separate_vocals_path
+from utils.file_utils import get_separate_vocals_path, get_model_path
 
 
 class SeparateVocals(SeparateVocalsBase):
@@ -27,7 +26,15 @@ class SeparateVocals(SeparateVocalsBase):
             raise VPTException(const.PIPELINE_ERR_VALUE, "when separate vocals, the target mp3 path is empty!")
         dst_mp3_dir_path = Path(self.__dst_mp3_dir)
         dst_mp3_dir_path.mkdir(parents=True, exist_ok=True)
+        model_root = asyncio.run(get_model_path())
+        if not model_root:
+            raise VPTException(
+                const.PIPELINE_ERR_VALUE,
+                "config.yaml not set storage.models!",
+            )
+        model_dir = Path(model_root) / "audio_separator"
         separator = Separator(
+            model_file_dir=model_dir,
             output_dir=str(dst_mp3_dir_path),
             output_format="mp3"
         )

@@ -40,6 +40,15 @@ async def get_storage_path() -> Optional[str]:
     return path
 
 
+async def get_model_path() -> Optional[str]:
+    path = _config.config['storage']['models']
+    if not path:
+        return None
+    path = get_absolute_path(path)
+    await anyio.to_thread.run_sync(lambda: Path(path).mkdir(parents=True, exist_ok=True))
+    return path
+
+
 async def get_multi_download_upload_path() -> Optional[str]:
     path = _config.config['storage']['multi_download']
     if not path:
@@ -47,6 +56,7 @@ async def get_multi_download_upload_path() -> Optional[str]:
     path = get_absolute_path(path)
     await anyio.to_thread.run_sync(lambda: Path(path).mkdir(parents=True, exist_ok=True))
     return path
+
 
 async def get_upload_path() -> Optional[str]:
     path = _config.config['storage']['upload']
@@ -130,12 +140,14 @@ async def get_output_path() -> Optional[str]:
 
 
 def get_resource_font_path() -> str:
-    fonts_path = Path(os.environ.get("VPT_RESOURCE_DIR", get_current_path())).resolve() / "server" / "resources" / "fonts"
+    fonts_path = Path(
+        os.environ.get("VPT_RESOURCE_DIR", get_current_path())).resolve() / "server" / "resources" / "fonts"
     return str(fonts_path)
 
 
 def get_resource_bgm_path() -> str:
-    fonts_path = Path(os.environ.get("VPT_RESOURCE_DIR", get_current_path())).resolve() / "server" / "resources" / "songs"
+    fonts_path = Path(
+        os.environ.get("VPT_RESOURCE_DIR", get_current_path())).resolve() / "server" / "resources" / "songs"
     return str(fonts_path)
 
 
