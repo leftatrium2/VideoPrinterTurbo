@@ -55,7 +55,12 @@ macOS 单文件复用该启动入口和 spec，构建脚本为 `desktop/build_ma
 macOS 按 arm64/x86_64 分别原生构建，构建后检查内置 FFmpeg/ffprobe。
 桌面版使用 faster-whisper CPU/int8，首次下载模型，默认 small。
 `VPT_DATA_DIR` 指定持久数据根目录，`VPT_RESOURCE_DIR` 指定只读内置资源目录，
-`VPT_MODEL_DIR` 可覆盖模型缓存目录。普通后端启动保持原目录行为。
+macOS 桌面版默认模型缓存目录为
+`/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/models/faster_whisper`；
+`VPT_MODEL_DIR` 可覆盖模型缓存目录。macOS 桌面启动取得实例锁后、启动后端前，
+将当前用户主目录下旧的 `Library/Application Support/VideoPrinterTurbo/models` 内容递归复制到
+`/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/models/`，保留原目录和目标已有文件；
+复制失败中止启动，后续启动可重试。普通后端启动保持原目录行为。
 模型管理 API 位于 `/asr_config/local_model_list`、`local_model_download`、`local_model_status`；
 模型缓存校验完成后才允许离线加载。`local_whisper_model` 保存模型选择，SQLite 启动时补齐旧表字段。
 本次用户已临时授权后端及根目录修改；完成该需求后仍遵循原有目录权限约定。
