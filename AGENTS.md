@@ -141,7 +141,9 @@ LLM 精简使用分组后的完整原文和上下文，最终字幕按配音片�
 使用该路径，初次 LLM 字幕保持独立。片段音频和测时记录保存在
 `<tts_rewrite>/segments/<task_id>/`；缓存不包含密钥，文本、音色或参数变化后重新合成。
 调整此流程时运行 `server/tests/test_dubbing_duration.py`，并对真实配音另行试听。
-本阶段处理时长对齐，尚未修改视频嘴部画面。
+对口型基类为 `server/pipeline/lip_sync/base.py` 的 `LipSyncBase.lip_sync()`。
+Sync Labs 实现位于 `sync_labs.py`，直接处理本地视频和最终配音，尚未接入任务流水线。
+调用方式、时长约束及 HTTP 模拟测试见 `server/pipeline/lip_sync/README.md`。
 
 ## 常用 API 接口
 
