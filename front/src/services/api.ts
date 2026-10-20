@@ -33,6 +33,7 @@ interface TaskListApiData {
 }
 
 export interface AddTaskParams {
+  format_id: string
   task_url: string
   task_upload_video_path: string
   task_original_video_path: string
@@ -79,7 +80,7 @@ export interface AddTaskParams {
 export interface CheckUrlResult {
   code: number
   msg: string
-  data: Record<string, unknown>
+  data: Record<string, string>[] | null
 }
 
 export interface TaskConfigAsrItem {
@@ -163,6 +164,7 @@ export async function getTasks(page: number, pageSize: number): Promise<TaskList
 }
 
 export interface TaskDetail {
+  format_id?: string
   task_url: string
   task_upload_video_path: string
   task_original_video_path: string

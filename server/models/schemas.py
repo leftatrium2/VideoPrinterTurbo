@@ -132,3 +132,5 @@ class TaskItem(BaseModel):
     is_publish: bool = False
     # Video material keyword (English)
     video_material_keyword: str = ""
+    # video download format id (from yt-dlp)
+    format_id: str = ""

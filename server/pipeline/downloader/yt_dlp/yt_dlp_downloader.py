@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import os.path
+import re
 from pathlib import Path
 from typing import Any, Optional
 
@@ -58,27 +59,68 @@ class YtDlpDownloader(BaseDownloader):
             raise VPTException(code=const.GLOBAL_ERR_YT_DLP_NOT_INSTALLED,
                                message="Bundled yt-dlp module is unavailable")
 
+    def _priority(self, fmt: dict[str, Any]) -> tuple:
+        codec = (fmt.get('vcodec') or 'none').lower()
+        families = (
+            ('avc1', 'avc3', 'h.264', 'h264'),
+            ('hev1', 'hvc1', 'hevc', 'h.265', 'h265'),
+            ('vp08', 'vp8'),
+            ('vp09', 'vp9'),
+            ('av01', 'av1'),
+        )
+        rank = 0
+        suffix = ''
+        for index, aliases in enumerate(families):
+            prefix = next((alias for alias in aliases if codec.startswith(alias)), None)
+            if prefix is not None:
+                rank = len(families) - index
+                suffix = codec[len(prefix):].lstrip('.')
+                break
+        # AVC 的六位十六进制后缀依次为 profile、约束标志和 level。
+        if rank == 5 and re.fullmatch(r'[0-9a-f]{6}', suffix):
+            version = (int(suffix[:2], 16), int(suffix[4:], 16))
+        else:
+            version = tuple(int(part) for part in re.findall(r'\d+', suffix))
+        return ((fmt.get('acodec') or 'none') == 'none', rank, version,
+                fmt.get('vbr') if fmt.get('vbr') is not None else -1,
+                fmt.get('fps') if fmt.get('fps') is not None else -1)
+
     def check(
             self,
             url: str,
             proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
             proxy_url: Optional[str] = None
-    ) -> bool:
+    ) -> Optional[list]:
         yt_dlp_opts = {
             'quiet': True,
-            'ignoreerrors': False,
             'no_warnings': True,
+            'ignoreerrors': False,
             'extract_flat': True,
             'skip_download': True,
-            'noplaylist': True,
-            'proxy': build_yt_dlp_proxies(proxy_url)
+            'noplaylist': True
         }
+        if proxy_url:
+            yt_dlp_opts['proxy'] = build_yt_dlp_proxies(proxy_url)
         with yt_dlp.YoutubeDL(yt_dlp_opts) as ydl:  # type: ignore[arg-type]
             try:
-                result = ydl.extract_info(url, download=False)
-                return result is not None
+                info = ydl.extract_info(url, download=False)
+                if not info:
+                    return False
+                selected: dict[str, dict[str, Any]] = {}
+                labels = {1440: '2K', 2160: '4K', 4320: '8K'}
+                for fmt in info.get('formats') or []:
+                    width = fmt.get('width') or 0
+                    height = fmt.get('height') or 0
+                    if ((fmt.get('vcodec') or 'none') == 'none' or not fmt.get('format_id')
+                            or width <= 0 or height <= 0):
+                        continue
+                    short_side = min(width, height)
+                    label = labels.get(short_side, f'{short_side}p')
+                    if label not in selected or self._priority(fmt) > self._priority(selected[label]):
+                        selected[label] = fmt
+                return [{f'{label} 分辨率': str(fmt['format_id'])} for label, fmt in selected.items()]
             except DownloadError:
-                return False
+                return None
             except Exception as e:
                 raise VPTException(const.PIPELINE_ERR_YT_DLP, str(e), e)
 
@@ -86,14 +128,22 @@ class YtDlpDownloader(BaseDownloader):
             self,
             url: str,
             video_full_path: str,
+            format_id: str | None = None,
             context: Optional[DownloaderContext] = None,
             proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
             proxy_url: Optional[str] = None
     ) -> Optional[dict]:
         if context:
             context.on_create(url)
+        if format_id:
+            selected_format = f'{format_id}+bestaudio/{format_id}'
+        else:
+            selected_format = (
+                'bestvideo[ext=mp4]+bestaudio/best[ext=mp4]/'
+                'bestvideo+bestaudio/best'
+            )
         yt_dlp_opts: dict[str, Any] = {
-            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'format': selected_format,
             "outtmpl": f"{video_full_path}.mp4",
             "merge_output_format": "mp4",
             "quiet": True,
@@ -166,7 +216,14 @@ if __name__ == "__main__":
     full_path = asyncio.run(get_download_path())
     full_path = os.path.join(full_path, "20261010155031954341")
     downloader = YtDlpDownloader()
-    download_url = "https://hongguoduanju.com/player/7647933774268746776"
+    download_url = "https://www.youtube.com/watch?v=jutjybStLws"
     proxy = "http://127.0.0.1:7890"
-    if downloader.check(download_url, proxy_url=proxy):
-        downloader.download(download_url, video_full_path=full_path, context=InnerDownloaderContext(), proxy_url=proxy)
+    res = downloader.check(download_url, proxy_url=proxy)
+    print(res)
+    if res:
+        # downloader.download(download_url, video_full_path=full_path, format_id=269, context=InnerDownloaderContext(),
+        #                     proxy_url=proxy)
+        downloader.download(download_url,
+                            video_full_path=full_path,
+                            context=InnerDownloaderContext(),
+                            proxy_url=proxy)

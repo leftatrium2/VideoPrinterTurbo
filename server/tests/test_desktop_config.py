@@ -2,6 +2,7 @@ import asyncio
 import sqlite3
 from unittest.mock import AsyncMock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -10,15 +11,21 @@ from models.model import Base
 from service.whisper_model_manager import WhisperModelManager
 
 
-def test_old_sqlite_database_is_migrated_idempotently(tmp_path, monkeypatch):
+@pytest.mark.parametrize('legacy', [True, False])
+def test_sqlite_database_is_migrated_idempotently(tmp_path, monkeypatch, legacy):
     import app as application
     target = tmp_path / 'legacy.db'
     engine = create_engine(f'sqlite:///{target.as_posix()}')
     Base.metadata.create_all(engine)
     engine.dispose()
     with sqlite3.connect(target) as db:
-        db.execute('ALTER TABLE vpt_asr_config DROP COLUMN local_whisper_model')
+        if legacy:
+            db.execute('ALTER TABLE vpt_asr_config DROP COLUMN local_whisper_model')
+            db.execute('ALTER TABLE vpt_tasks DROP COLUMN format_id')
         db.execute('INSERT INTO vpt_asr_config DEFAULT VALUES')
+        db.execute("INSERT INTO vpt_tasks (task_id, task_url) VALUES ('existing-task', 'https://example.com/video')")
+        if not legacy:
+            db.execute("UPDATE vpt_tasks SET format_id = '270' WHERE task_id = 'existing-task'")
     monkeypatch.setitem(application._config.config['database'], 'url', f'sqlite+aiosqlite:///{target.as_posix()}')
     monkeypatch.setattr(application, 'gen_config', AsyncMock())
     monkeypatch.setattr(application.task_manager, 'start', AsyncMock())
@@ -32,6 +39,11 @@ def test_old_sqlite_database_is_migrated_idempotently(tmp_path, monkeypatch):
     asyncio.run(boot_twice())
     with sqlite3.connect(target) as db:
         assert db.execute('SELECT local_whisper_model FROM vpt_asr_config').fetchone() == ('small',)
+        assert db.execute('SELECT task_id, task_url, format_id FROM vpt_tasks').fetchone() == (
+            'existing-task', 'https://example.com/video', '' if legacy else '270',
+        )
+        db.execute("INSERT INTO vpt_tasks (task_id, task_url) VALUES ('new-task', 'https://example.com/new')")
+        assert db.execute("SELECT format_id FROM vpt_tasks WHERE task_id = 'new-task'").fetchone() == ('',)
 
 
 def test_model_api_validates_input_and_returns_status(tmp_path, monkeypatch):
