@@ -5,12 +5,11 @@
 <br>
 </div>
 
-
-**🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.** 
+**Version 1.0.3 is released: You can now select the video resolution for downloads.**
 
 **Urgent release v1.0.2: Fixes download issues with bilibili.com**
 
-**Version 1.0.3 is released: You can now select the video resolution for downloads.**
+**🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.** 
 
 ### Latest version
 
