@@ -57,17 +57,45 @@ def prepare():
     data = Path(os.environ.get("VPT_DATA_DIR", base / "VideoPrinterTurbo")).expanduser().resolve()
     data.mkdir(parents=True, exist_ok=True)
     os.environ.update(VPT_DESKTOP="1", VPT_DATA_DIR=str(data), VPT_RESOURCE_DIR=str(resource))
-    os.environ.setdefault("VPT_MODEL_DIR", str(data / "models" / "faster_whisper"))
+    model_dir = (Path("/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/models/faster_whisper")
+                 if sys.platform == "darwin" else data / "models" / "faster_whisper")
+    os.environ.setdefault("VPT_MODEL_DIR", str(model_dir))
     for directory in ("db", "logs", "storage", "output"):
         (data / directory).mkdir(exist_ok=True)
-    for source, target in (("config.yaml.sample", "config.yaml"), ("downloader.json.sample.json", "downloader.json")):
-        if not (data / target).exists():
-            shutil.copyfile(resource / source, data / target)
+    for name in ("config.yaml", "downloader.json"):
+        if not (data / name).exists():
+            shutil.copyfile(resource / name, data / name)
     os.environ["PATH"] = str(resource / "bin") + os.pathsep + os.environ.get("PATH", "")
     # Legacy relative SQLite URLs resolve here; application storage uses VPT_DATA_DIR.
     os.chdir(data)
     sys.path.insert(0, str(resource / "server"))
     return resource, data
+
+
+
+def migrate_legacy_models():
+    """Copy the old macOS model cache while preserving source and existing files."""
+    if sys.platform != "darwin":
+        return
+    legacy = Path.home() / "Library" / "Application Support" / "VideoPrinterTurbo" / "models"
+    if not legacy.is_dir():
+        return
+    destination = Path("/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/models")
+
+    def copy_missing(source, target):
+        target = Path(target)
+        if target.exists() or target.is_symlink():
+            return str(target)
+        try:
+            return shutil.copy2(source, target)
+        except Exception:
+            # A failed copy must not be mistaken for a complete file on retry.
+            target.unlink(missing_ok=True)
+            raise
+
+    print(f"Copying legacy models: {legacy} -> {destination}", flush=True)
+    shutil.copytree(legacy, destination, dirs_exist_ok=True, copy_function=copy_missing)
+    print("Legacy model copy complete; source files preserved.", flush=True)
 
 
 def build_app(resource):
@@ -110,6 +138,7 @@ def main():
     resource, data = prepare()
     if not acquire_instance(data, args.no_browser):
         return
+    migrate_legacy_models()
     # Keep the socket reserved through server startup, preventing port races.
     listener = socket.socket()
     try:

@@ -2,6 +2,7 @@ export default {
   lang: { zh: '中文', en: 'English' },
 
   sidebar: {
+    currentVersion: '当前版本：v{version}',
     batchDownload: '批量下载',
     managementSuite: '管理界面',
     addTask: '添加任务',
@@ -69,7 +70,10 @@ export default {
     localUpload: '本地上传',
     videoUrl: '视频链接',
     videoUrlPlaceholder: '请输入抖音/Bilibili/Youtube视频链接',
-    checkLink: '检查链接',
+    checkLink: '获取视频信息',
+    resolution: '视频分辨率',
+    autoResolution: '自动选择分辨率',
+    savedFormat: '已保存的格式（{id}）',
     downloadUseProxy: '是否使用代理服务器下载？',
     transcriptionMode: '选择音频转换方式',
     audioSeparator: '是否分离人声与背景音乐？',
@@ -147,9 +151,9 @@ export default {
 
     enterUrlFirst: '请先输入视频链接',
     featureInDev: '功能开发中',
-    checkLinkSuccess: '链接可用',
-    checkLinkFailed: '链接检查失败：{msg}（错误码：{code}）',
-    checkLinkError: '检查失败，请稍后重试',
+    checkLinkSuccess: '视频信息获取成功',
+    checkLinkFailed: '获取视频信息失败：{msg}（错误码：{code}）',
+    checkLinkError: '获取视频信息失败，请稍后重试',
     enterUrl: '请输入视频链接',
     uploadTaskVideoRequired: '请先上传本地视频文件',
     taskVideoUploadSuccess: '视频上传成功',
@@ -162,7 +166,7 @@ export default {
     loadTaskFailed: '任务加载失败，请重试',
     testVoiceFailed: '试听失败，请重试',
 
-    helpDownload: '可选择填写视频播放页链接并检查链接，或直接上传本地视频文件。链接无法下载时，可以在 GitHub 上向作者提交 issue。',
+    helpDownload: '可选择填写视频播放页链接并获取视频信息，或直接上传本地视频文件。链接无法下载时，可以在 GitHub 上向作者提交 issue。',
     helpTranscription: '有两种方式将视频中的语音转换为文字：「从字幕提取」适合 YouTube 等带有自动字幕的视频网站；「从ASR转换」直接提取视频中的语音并转为文字（除非是 YouTube 视频，否则建议使用 ASR 方式，避免出错）。',
     helpLlm: '选择 LLM 改写，并将提示词填入，会将当前提取到的文字经过 LLM 改写后重新输出。注意：选择LLM改写，必须勾选 音频转文字',
     helpVoice: '「输出到语音」将把处理好的文字通过 TTS 方式转换为语音，并合并到新的视频中。注意：选择输出到语音，必须勾选 音频转文字',

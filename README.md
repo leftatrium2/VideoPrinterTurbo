@@ -8,6 +8,8 @@
 
 *** Urgent release v1.0.2: Fixes download issues with bilibili.com **
 
+**Version 1.0.3 is released: You can now select the video resolution for downloads.**
+
 ### Latest version
 
 [[macOS]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.2/VideoPrinterTurbo-1.0.2-macos-arm64.zip) Apple Silicon version

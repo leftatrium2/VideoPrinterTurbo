@@ -46,7 +46,7 @@ const ElCheckboxStub = defineComponent({
 })
 
 const stubs = {
-  'el-select': true, 'el-option': true, 'el-input': ElInputStub, 'el-checkbox': ElCheckboxStub,
+  'el-select': defineComponent({ name: 'el-select', props: ['modelValue'], emits: ['update:modelValue'], template: '<div :modelvalue="modelValue"><slot /></div>' }), 'el-option': true, 'el-input': ElInputStub, 'el-checkbox': ElCheckboxStub,
   'el-button': { template: '<button><slot /></button>' }, 'el-slider': true, 'el-upload': true, 'el-icon': true,
 }
 
@@ -58,10 +58,64 @@ describe('AddTask', () => {
     asr: [], tts: [], subtitle: [], bgm: [],
     material: { source: [], splicing: [], transition: [], ratio: [] },
     })
-    apiMocks.checkTaskUrl.mockResolvedValue({ code: 0, msg: 'success', data: {} })
+    apiMocks.checkTaskUrl.mockResolvedValue({ code: 0, msg: 'success', data: [] })
     apiMocks.getAsrLang.mockResolvedValue({ code: 0, msg: 'success', data: [
       { lang: 'Auto', value: '0' }, { lang: 'English', value: 'en' },
     ] })
+  })
+
+  it('loads resolution labels and submits the selected format ID', async () => {
+    apiMocks.checkTaskUrl.mockResolvedValue({ code: 0, msg: 'success', data: [
+      { '144p 分辨率': '269' }, { '1080p 分辨率': '270' },
+    ] })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    const select = wrapper.findAllComponents({ name: 'el-select' }).find(item => item.classes().includes('resolution-select'))!
+    expect(select.attributes('modelvalue')).toBe('')
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.findAll('button').find(button => button.text() === 'addTask.checkLink')!.trigger('click')
+    await flushPromises()
+    expect(apiMocks.checkTaskUrl).toHaveBeenCalledWith('https://example.com/video', false)
+    expect(wrapper.findAll('el-option-stub').some(option => option.attributes('label') === '1080p 分辨率' && option.attributes('value') === '270')).toBe(true)
+    select.vm.$emit('update:modelValue', '270')
+    await wrapper.findAll('input[type="checkbox"]')[0].setValue(true)
+    expect(select.attributes('modelvalue')).toBe('270')
+    expect(wrapper.findAll('el-option-stub').some(option => option.attributes('value') === '270')).toBe(true)
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).toHaveBeenLastCalledWith(expect.objectContaining({ format_id: '270', is_use_proxy: true }))
+    await wrapper.findAll('input')[0].setValue('https://example.com/other')
+    expect(select.attributes('modelvalue')).toBe('')
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).toHaveBeenLastCalledWith(expect.objectContaining({ format_id: '' }))
+  })
+
+  it('ignores video information returned for a previous URL', async () => {
+    let resolve!: (value: unknown) => void
+    apiMocks.checkTaskUrl.mockReturnValue(new Promise(done => { resolve = done }))
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    await wrapper.findAll('input')[0].setValue('https://example.com/first')
+    await wrapper.findAll('button').find(button => button.text() === 'addTask.checkLink')!.trigger('click')
+    await wrapper.findAll('input')[0].setValue('https://example.com/second')
+    resolve({ code: 0, msg: 'success', data: [{ '1080p 分辨率': '270' }] })
+    await flushPromises()
+    expect(wrapper.findAll('el-option-stub').some(option => option.attributes('value') === '270')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('keeps automatic resolution when video information fails', async () => {
+    apiMocks.checkTaskUrl.mockResolvedValue({ code: 1101, msg: 'failed', data: null })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.findAll('button').find(button => button.text() === 'addTask.checkLink')!.trigger('click')
+    await flushPromises()
+    expect(wrapper.getComponent('.resolution-select').attributes('modelvalue')).toBe('')
+    const { ElMessage } = await import('element-plus')
+    expect(ElMessage.error).toHaveBeenCalledWith('addTask.checkLinkFailed')
+    wrapper.unmount()
   })
 
   it.each([true, false])('submits audio separation as boolean %s when creating', async (selected) => {

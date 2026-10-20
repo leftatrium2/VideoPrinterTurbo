@@ -43,6 +43,10 @@ async def lifespan(app: FastAPI):
             if "local_whisper_model" not in {row[1] for row in columns}:
                 await conn.execute(
                     text("ALTER TABLE vpt_asr_config ADD COLUMN local_whisper_model TEXT NOT NULL DEFAULT 'small'"))
+            columns = (await conn.execute(text("PRAGMA table_info(vpt_tasks)"))).fetchall()
+            if "format_id" not in {row[1] for row in columns}:
+                await conn.execute(
+                    text("ALTER TABLE vpt_tasks ADD COLUMN format_id TEXT NOT NULL DEFAULT ''"))
     # Sync config
     # Start task manager
     async_session_factory = async_sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)

@@ -2,11 +2,12 @@ app:
   name: VideoPrinterTurbo
   port: 8080
   debug: true
-  version: 1.0.0
+  version: 1.0.1
 
 storage:
   path: storage
   upload: storage/upload
+  models: storage/models
   download: storage/downloads
   subtitle: storage/subtitle
   video_to_text: storage/video_to_text

@@ -37,6 +37,10 @@ cd front && npm run build
 `{code, msg, data}`，但部分接口会直接返回数据；使用前应确认具体接口。
 `utils/const.py` 是任务及配置常量的唯一来源。
 
+根目录的 `config.yaml` 与 `downloader.json` 纳入版本控制，作为源码启动、Docker 镜像和
+桌面版的默认配置来源。源码启动要求两个文件存在；桌面版仅在用户配置不存在时复制内置配置。
+配置只保存可公开的默认值，个人密钥通过运行环境或本机配置管理。
+
 任务工作线程已启用，调用 `PipelineManager.process_now` 顺序执行任务；
 视频合成、TTS、BGM 与素材相关代码已存在，具体可用性以实际验证为准。
 发布功能继续保持禁用。
@@ -51,7 +55,12 @@ macOS 单文件复用该启动入口和 spec，构建脚本为 `desktop/build_ma
 macOS 按 arm64/x86_64 分别原生构建，构建后检查内置 FFmpeg/ffprobe。
 桌面版使用 faster-whisper CPU/int8，首次下载模型，默认 small。
 `VPT_DATA_DIR` 指定持久数据根目录，`VPT_RESOURCE_DIR` 指定只读内置资源目录，
-`VPT_MODEL_DIR` 可覆盖模型缓存目录。普通后端启动保持原目录行为。
+macOS 桌面版默认模型缓存目录为
+`/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/models/faster_whisper`；
+`VPT_MODEL_DIR` 可覆盖模型缓存目录。macOS 桌面启动取得实例锁后、启动后端前，
+将当前用户主目录下旧的 `Library/Application Support/VideoPrinterTurbo/models` 内容递归复制到
+`/Users/sunxiao5/opensource/agent/VideoPrinterTurbo/storage/models/`，保留原目录和目标已有文件；
+复制失败中止启动，后续启动可重试。普通后端启动保持原目录行为。
 模型管理 API 位于 `/asr_config/local_model_list`、`local_model_download`、`local_model_status`；
 模型缓存校验完成后才允许离线加载。`local_whisper_model` 保存模型选择，SQLite 启动时补齐旧表字段。
 本次用户已临时授权后端及根目录修改；完成该需求后仍遵循原有目录权限约定。

@@ -215,10 +215,6 @@ def initialize(mode, args, uv, npm):
     if args.reinstall or not (ROOT / 'front' / 'node_modules' / 'vite').is_dir() or not npm_stamp.exists() or npm_stamp.read_text() != npm_signature:
         run(npm_command + ['ci', '--no-audit', '--no-fund'], cwd=ROOT / 'front', env=env)
         npm_stamp.write_text(npm_signature)
-    for target, source in [('config.yaml', 'config.yaml.sample'), ('downloader.json', 'downloader.json.sample.json')]:
-        if not (ROOT / target).exists():
-            shutil.copyfile(ROOT / source, ROOT / target)
-            info(f'Created {target} from the sample.')
     for folder in ('server/db', 'storage', 'output', 'storage/models/audio_separator'):
         (ROOT / folder).mkdir(parents=True, exist_ok=True)
     return python, env, cache
@@ -333,7 +329,7 @@ def main():
     missing = [name for name, path in tools.items() if not path]
     if missing:
         raise RuntimeError('Missing required commands: ' + ', '.join(missing) + '. Install them and add them to PATH.')
-    for name in ('server/pyproject.toml', 'front/package.json', 'front/package-lock.json', 'config.yaml.sample', 'downloader.json.sample.json'):
+    for name in ('server/pyproject.toml', 'front/package.json', 'front/package-lock.json', 'config.yaml', 'downloader.json'):
         if not (ROOT / name).is_file():
             raise RuntimeError(f'Required project file is missing: {name}')
     mode = select_mode(args.mode)

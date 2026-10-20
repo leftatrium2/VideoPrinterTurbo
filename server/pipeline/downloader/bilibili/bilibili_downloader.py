@@ -187,20 +187,48 @@ class BiliBiliDownloader(BaseDownloader):
             url: str,
             proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
             proxy_url: Optional[str] = None
-    ) -> bool:
+    ) -> Optional[list]:
         if not _is_bilibili_video_url(url):
-            return False
+            return None
         try:
             bvid, info, cid = _get_video_info(url, proxy_url)
-            return bool(info.get("duration", 0) > 0 and _get_mp4_segments(bvid, cid, proxy_url))
+            if (info.get("duration") or 0) <= 0:
+                return None
+            play_info = _request_json(
+                "/x/player/playurl",
+                {"bvid": bvid, "cid": cid, "qn": 64, "fnval": 0, "fnver": 0, "fourk": 1},
+                proxy_url,
+            )
+            if not any(
+                    item.get("url") or any(item.get("backup_url") or [])
+                    for item in play_info.get("durl") or []
+            ):
+                return None
+            quality = play_info.get("quality")
+            if quality is None:
+                return None
+            labels = {
+                6: "240p", 16: "360p", 32: "480p", 64: "720p", 74: "720p",
+                80: "1080p", 112: "1080p", 116: "1080p", 120: "4K", 127: "8K",
+            }
+            label = labels.get(quality)
+            if label is None:
+                qualities = play_info.get("accept_quality") or []
+                descriptions = play_info.get("accept_description") or []
+                label = next(
+                    (description for value, description in zip(qualities, descriptions) if value == quality),
+                    str(quality),
+                )
+            return [{f"{label} 分辨率": str(quality)}]
         except Exception as error:
-            logger.warning("Unable to inspect Bilibili video {}: {}", url, error)
-            return False
+            logger.warning("Unable to inspect Bilibili video %s: %s", url, error)
+            return None
 
     def download(
             self,
             url: str,
             video_full_path: str,
+            format_id: str | None = None,
             context: Optional[DownloaderContext] = None,
             proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
             proxy_url: Optional[str] = None
