@@ -45,6 +45,7 @@ class BaseDownloader(ABC):
             self,
             url: str,
             video_full_path: str,
+            format_id: str | None = None,
             context: Optional[DownloaderContext] = None,
             proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
             proxy_url: Optional[str] = None
@@ -60,7 +61,7 @@ class BaseDownloader(ABC):
             url: str,
             proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
             proxy_url: Optional[str] = None
-    ) -> bool:
+    ) -> Optional[list]:
         """
         check video url is valid.
         """

@@ -33,7 +33,7 @@ def check_video(
         url: str,
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None
-) -> bool:
+) -> Optional[list]:
     """
     检查视频是否可用
     """
@@ -48,6 +48,7 @@ def check_video(
 def download_video(
         url: Optional[str],
         task_id: Optional[str],
+        format_id: Optional[str],
         ctx: Optional[DownloaderContext] = None,
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None
@@ -65,7 +66,10 @@ def download_video(
     if not video_full_path:
         raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "download path is empty!")
     video_full_path = os.path.join(video_full_path, task_id)
-    return downloader.download(url, video_full_path, context=ctx, proxy_type=proxy_type, proxy_url=proxy_url)
+    if not format_id:
+        return downloader.download(url, video_full_path, context=ctx, proxy_type=proxy_type, proxy_url=proxy_url)
+    return downloader.download(url, video_full_path, format_id=format_id, context=ctx, proxy_type=proxy_type,
+                               proxy_url=proxy_url)
 
 
 def _get_downloader(url: str) -> Optional[BaseDownloader]:

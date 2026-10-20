@@ -2,6 +2,7 @@ export default {
   lang: { zh: '中文', en: 'English' },
 
   sidebar: {
+    currentVersion: 'Current version: v{version}',
     batchDownload: 'Batch Download',
     managementSuite: 'Management Suite',
     addTask: 'Add Task',
@@ -69,7 +70,10 @@ export default {
     localUpload: 'Local Upload',
     videoUrl: 'Video URL',
     videoUrlPlaceholder: 'Enter TikTok / Bilibili / YouTube video URL',
-    checkLink: 'Check Link',
+    checkLink: 'Get Video Info',
+    resolution: 'Video resolution',
+    autoResolution: 'Automatically select resolution',
+    savedFormat: 'Saved format ({id})',
     downloadUseProxy: 'Use proxy server for download?',
     transcriptionMode: 'Transcription Method',
     audioSeparator: 'Separate vocals from background music?',
@@ -147,9 +151,9 @@ export default {
 
     enterUrlFirst: 'Please enter the video URL first',
     featureInDev: 'Feature under development',
-    checkLinkSuccess: 'Link is valid',
-    checkLinkFailed: 'Link check failed: {msg} (code: {code})',
-    checkLinkError: 'Check failed, please try again later',
+    checkLinkSuccess: 'Video information retrieved',
+    checkLinkFailed: 'Failed to get video information: {msg} (code: {code})',
+    checkLinkError: 'Failed to get video information, please try again later',
     enterUrl: 'Please enter a video URL',
     uploadTaskVideoRequired: 'Please upload a local video file first',
     taskVideoUploadSuccess: 'Video uploaded successfully',
@@ -162,7 +166,7 @@ export default {
     loadTaskFailed: 'Failed to load task, please try again',
     testVoiceFailed: 'Voice preview failed, please try again',
 
-    helpDownload: 'Choose either a video page URL and check the link, or upload a local video file directly. If a link cannot be downloaded, please submit an issue on GitHub.',
+    helpDownload: 'Choose either a video page URL and get video information, or upload a local video file directly. If a link cannot be downloaded, please submit an issue on GitHub.',
     helpTranscription: 'Two methods available: "Extract from Subtitles" works for YouTube and similar sites with auto-captions; "Convert via ASR" extracts audio directly (recommended for non-YouTube videos).',
     helpLlm: 'If you select "LLM Rewrite" and enter a prompt, the extracted text will be rewritten by the LLM and output again. Note: To use "LLM Rewrite," you must select the "Audio to Text" option.',
     helpVoice: '"Output to Speech" converts the processed text into audio using TTS and merges it into the new video. Note: To select "Output to Speech," you must also check "Audio to Text."',

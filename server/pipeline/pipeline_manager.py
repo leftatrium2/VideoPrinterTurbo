@@ -335,6 +335,7 @@ class PipelineManager:
                 res = download_video(
                     url=(self.__data.video_bean if self.__data.video_bean else VideoDownloaderBean()).task_url,
                     task_id=self.__data.task_id,
+                    format_id=task.format_id,
                     ctx=self.inner_downloader_context,
                     proxy_url=self.__proxy)
             except VPTException as ex:
