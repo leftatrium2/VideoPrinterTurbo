@@ -21,7 +21,7 @@ from utils import const
 from utils.config_utils import get_subtitle_font_list
 from utils.database import database
 from utils.exception import VPTException
-from utils.file_utils import get_upload_path
+from utils.file_utils import get_upload_path, remove_download_video
 from utils.result import result_succ, result_failure
 from utils.task_utils import gen_task_id
 
@@ -105,6 +105,8 @@ async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_d
     item = result.scalar_one_or_none()
     if not item:
         return result_failure(const.TASK_ERR_TASK_NOT_FOUND, "Task not found")
+    if item.format_id != task.format_id:
+        await remove_download_video(task.task_id)
     item.task_url = task.task_url
     item.task_upload_video_path = task.task_upload_video_path
     item.task_original_video_path = task.task_original_video_path
@@ -139,6 +141,8 @@ async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_d
     item.video_material_generate_count = task.video_material_generate_count
     item.is_publish = task.is_publish
     item.video_material_keyword = task.video_material_keyword
+    item.format_id = task.format_id
+    item.pipeline_status = const.PIPELINE_STATUS_INIT
     await db.commit()
     await db.refresh(item)
     return result_succ()
@@ -194,7 +198,8 @@ async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db))
         video_material_max_duration=task.video_material_max_duration,
         video_material_generate_count=task.video_material_generate_count,
         is_publish=task.is_publish,
-        video_material_keyword=task.video_material_keyword
+        video_material_keyword=task.video_material_keyword,
+        format_id=task.format_id
     )
     db.add(item)
     await db.commit()
@@ -441,4 +446,4 @@ async def check_task_url(
         result = await asyncio.to_thread(check_video, url)
     if not result:
         return result_failure(const.TASK_ERR_CHECK_URL, f"Task URL check failed, {url}")
-    return result_succ()
+    return result_succ(result)

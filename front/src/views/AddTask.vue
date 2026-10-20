@@ -24,6 +24,11 @@
               <el-button :icon="Link" :loading="checkingLink" @click="handleCheckLink">{{ t('addTask.checkLink') }}</el-button>
             </template>
           </el-input>
+          <div class="field-label mt-12">{{ t('addTask.resolution') }}</div>
+          <el-select v-model="form.format_id" :empty-values="[null, undefined]" class="full-width resolution-select" :aria-label="t('addTask.resolution')">
+            <el-option :label="t('addTask.autoResolution')" value="" />
+            <el-option v-for="option in resolutionOptions" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
           <el-checkbox v-model="form.is_use_proxy" class="mt-12">{{ t('addTask.downloadUseProxy') }}</el-checkbox>
         </template>
 
@@ -403,6 +408,7 @@ const enabled = reactive({
 /* -------- form state -------- */
 const form = reactive({
   task_url: '',
+  format_id: '',
   video_input_mode: 'download' as 'download' | 'upload',
   is_use_proxy: false,
   transcription_mode: 0 as number,
@@ -559,20 +565,41 @@ const taskVideoFileList = ref<UploadFile[]>([])
 const taskUploadVideoPath = ref('')
 const taskOriginalVideoPath = ref('')
 
+const resolutionOptions = ref<{ label: string; value: string }[]>([])
+let videoInfoRequest = 0
+
+watch(() => [form.task_url, form.video_input_mode], () => {
+  ++videoInfoRequest
+  checkingLink.value = false
+  resolutionOptions.value = []
+  form.format_id = ''
+}, { flush: 'sync' })
+
+watch(() => form.is_use_proxy, () => {
+  ++videoInfoRequest
+  checkingLink.value = false
+}, { flush: 'sync' })
+
 async function handleCheckLink() {
   if (!form.task_url.trim()) { ElMessage.warning(t('addTask.enterUrlFirst')); return }
+  const requestId = ++videoInfoRequest
   checkingLink.value = true
+  resolutionOptions.value = []
+  form.format_id = ''
   try {
     const res = await checkTaskUrl(form.task_url, form.is_use_proxy)
+    if (requestId !== videoInfoRequest) return
     if (res.code === 0) {
+      resolutionOptions.value = (res.data || []).flatMap(item =>
+        Object.entries(item).map(([label, value]) => ({ label, value })))
       ElMessage.success(t('addTask.checkLinkSuccess'))
     } else {
       ElMessage.error(t('addTask.checkLinkFailed', { msg: res.msg, code: res.code }))
     }
   } catch {
-    ElMessage.error(t('addTask.checkLinkError'))
+    if (requestId === videoInfoRequest) ElMessage.error(t('addTask.checkLinkError'))
   } finally {
-    checkingLink.value = false
+    if (requestId === videoInfoRequest) checkingLink.value = false
   }
 }
 
@@ -715,6 +742,11 @@ async function applyTaskDetail(detail: TaskDetail) {
     form.video_input_mode = 'download'
   }
 
+  if (form.video_input_mode === 'download' && detail.format_id) {
+    form.format_id = detail.format_id
+    resolutionOptions.value = [{ label: t('addTask.savedFormat', { id: detail.format_id }), value: detail.format_id }]
+  }
+
   enabled.transcription = !!detail.is_from_asr_or_subtitle
   form.is_need_audio_separator = !!detail.is_need_audio_separator
   form.transcription_mode = detail.audio_rewrite_type
@@ -791,6 +823,7 @@ async function handleSubmit() {
   try {
     submitting.value = true
     const payload = {
+      format_id: form.video_input_mode === 'download' ? form.format_id : '',
       task_url: form.video_input_mode === 'download' ? form.task_url.trim() : '',
       task_upload_video_path: form.video_input_mode === 'upload' ? taskUploadVideoPath.value : '',
       task_original_video_path: form.video_input_mode === 'upload' ? taskOriginalVideoPath.value : '',

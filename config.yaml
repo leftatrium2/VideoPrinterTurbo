@@ -8,7 +8,6 @@ storage:
   path: storage
   upload: storage/upload
   models: storage/models
-  multi_download: storage/multi_download
   download: storage/downloads
   subtitle: storage/subtitle
   video_to_text: storage/video_to_text

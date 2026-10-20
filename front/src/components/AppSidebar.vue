@@ -42,11 +42,13 @@
         <span>{{ t(item.labelKey) }}</span>
       </RouterLink>
     </nav>
+    <div class="sidebar-version">{{ t('sidebar.currentVersion', { version }) }}</div>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { version } from '../../package.json'
 import {
   Plus, List, Download,
   Microphone, MagicStick, Picture, Promotion, Headset, Connection,
@@ -66,6 +68,8 @@ const configItems = [
 
 <style scoped>
 .sidebar {
+  display: flex;
+  flex-direction: column;
   position: fixed;
   left: 0;
   top: 0;
@@ -78,6 +82,7 @@ const configItems = [
 }
 
 .logo {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -111,6 +116,15 @@ const configItems = [
 
 .nav {
   padding-bottom: 24px;
+  flex-shrink: 0;
+}
+
+.sidebar-version {
+  margin-top: auto;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 12px;
 }
 
 .nav-section-label {

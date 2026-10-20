@@ -15,7 +15,6 @@ class VptAsrConfig(Base):
     xfyun_secret_key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     xfyun_web_api: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     local_whisper_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('3'))
-    local_whisper_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'small'"))
     azure_subscription_key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     azure_region: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     openai_api_key: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
@@ -27,6 +26,7 @@ class VptAsrConfig(Base):
     remote_vllm_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     remote_vllm_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     remote_whisper_cpp_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    local_whisper_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'small'"))
 
 
 class VptLlmConfig(Base):
@@ -98,6 +98,7 @@ class VptTasks(Base):
     pipeline_status: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     output_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     is_need_audio_separator: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    format_id: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
 
 
 class VptTtsConfig(Base):
