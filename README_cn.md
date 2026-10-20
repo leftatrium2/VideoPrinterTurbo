@@ -5,23 +5,23 @@
 <br>
 </div>
 
-*** 1.0.3 版本发布，增加下载视频的分辨率下载功能 **
+**1.0.3 版本发布，增加下载视频的分辨率下载功能**
 
-*** 1.0.2 版本紧急发布，修复bilibili.com的下载问题 **
+**1.0.2 版本紧急发布，修复bilibili.com的下载问题**
 
-*** 🎉 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交 **
+**🎉 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交**
 
 ### 最新免安装版本
 
 [[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-macos-arm64.zip)
 
-*** 解压后，直接运行***
+***解压后，直接运行***
 
 [[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-windows-x64.exe)
 
-*** 无需解压，直接运行 ***
+***无需解压，直接运行***
 
-*** 作者为爱发电，好用给点个免费的 Star，不好用，提交一下 issue 给我***
+***作者为爱发电，好用给点个免费的 Star，不好用，提交一下 issue 给我***
 
 ### 免费视频下载工具，AI 字幕翻译与配音功能、二创
 
