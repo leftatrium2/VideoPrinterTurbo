@@ -572,3 +572,20 @@ export async function downloadLocalModel(model: string): Promise<LocalWhisperMod
   if (res.code !== 0) throw new Error(res.msg)
   return res.data
 }
+
+export interface LipSyncConfigData {
+  sync_labs_apikey: string
+  fal_latent_sync_apikey: string
+  hey_gen_apikey: string
+}
+
+export async function getLipSyncConfig(): Promise<LipSyncConfigData> {
+  const res = await request<ApiResult<LipSyncConfigData>>(http.get('/lip_sync/'))
+  if (res.code !== 0) throw new Error(res.msg)
+  return res.data
+}
+
+export async function updateLipSyncConfig(params: LipSyncConfigData): Promise<void> {
+  const res = await request<ApiResult<Record<string, unknown>>>(http.post('/lip_sync/update', params))
+  if (res.code !== 0) throw new Error(res.msg)
+}

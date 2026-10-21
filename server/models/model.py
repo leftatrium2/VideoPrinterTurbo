@@ -29,6 +29,15 @@ class VptAsrConfig(Base):
     local_whisper_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'small'"))
 
 
+class VptLipSyncConfig(Base):
+    __tablename__ = 'vpt_lip_sync_config'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sync_labs_apikey: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    fal_latent_sync_apikey: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    hey_gen_apikey: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+
+
 class VptLlmConfig(Base):
     __tablename__ = 'vpt_llm_config'
 
