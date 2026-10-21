@@ -65,6 +65,12 @@ class QuickDownloadTaskItem(BaseModel):
     is_use_proxy: bool = False
 
 
+class LipSyncConfigItem(BaseModel):
+    sync_labs_apikey: str = ""
+    fal_latent_sync_apikey: str = ""
+    hey_gen_apikey: str = ""
+
+
 class TaskItem(BaseModel):
     task_id: str = ""
     task_url: str = ""

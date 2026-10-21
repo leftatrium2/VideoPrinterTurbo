@@ -57,6 +57,7 @@ import {
 const { t } = useI18n()
 
 const configItems = [
+  { to: '/settings/lip_sync', labelKey: 'sidebar.lipSyncConfig', icon: Connection },
   { to: '/settings/asr', labelKey: 'sidebar.asrConfig', icon: Microphone },
   { to: '/settings/llm', labelKey: 'sidebar.llmConfig', icon: MagicStick },
   { to: '/settings/material', labelKey: 'sidebar.materialConfig', icon: Picture },

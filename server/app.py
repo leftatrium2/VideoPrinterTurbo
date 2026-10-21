@@ -24,6 +24,7 @@ from routers.publish_config import router as publish_config_router
 from routers.tasks import router as tasks_router
 from routers.quick_tasks import router as quick_tasks_router
 from routers.tts_config import router as tts_config_router
+from routers.lip_sync_config import router as lib_sync_router
 from service.task_manager import task_manager
 from utils.database import database
 from utils.gen_config import gen_config
@@ -33,10 +34,13 @@ from utils.gen_config import gen_config
 async def lifespan(app: FastAPI):
     # ========== Executed on application startup (run once only) ==========
     database.start()
-    # Database creation
+    # Create missing tables on both fresh installs and upgrades. All models in
+    # models.model (including VptLipSyncConfig) are registered in Base.metadata.
+    # checkfirst preserves existing tables and their saved configuration.
     async with database.get_engine().begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        # create_all does not migrate existing SQLite databases.
+        await conn.run_sync(Base.metadata.create_all, checkfirst=True)
+        # create_all adds missing tables (e.g. vpt_lip_sync_config), but not missing
+        # columns on existing tables; keep the column migrations below.
         if conn.dialect.name == "sqlite":
             from sqlalchemy import text
             columns = (await conn.execute(text("PRAGMA table_info(vpt_asr_config)"))).fetchall()
@@ -92,3 +96,4 @@ app.include_router(material_config_router)
 app.include_router(publish_config_router)
 app.include_router(proxy_config_router)
 app.include_router(quick_tasks_router)
+app.include_router(lib_sync_router)
