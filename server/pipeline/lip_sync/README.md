@@ -119,3 +119,56 @@ postman simulation run server/tests/lip_sync_mock/heygen.sim.yaml --port 4909 --
 # 另一终端，从 server/ 执行
 VPT_HEYGEN_SIM_URL=http://127.0.0.1:4909/heygen .venv/bin/python -m pytest -q tests/test_heygen.py
 ```
+
+
+## 自建 CUDA 服务（断点续传）
+
+`RemoteLipSync` 调用 VideoPrinterTurbo_LipSync 后台，仍实现 `LipSyncBase.lip_sync()`。
+服务及模型部署方式见相邻仓库 `VideoPrinterTurbo_LipSync/README.md`，接口见其 `API.md`。
+
+```python
+from pipeline.lip_sync.remote import RemoteLipSync
+
+service = RemoteLipSync(base_url="http://192.168.1.100:8081", api_key="your-key",
+                        timeline="strict", readiness_timeout=600, job_timeout=7200)
+result = service.lip_sync("speaker.mp4", "final_voice.wav", "speaker_synced.mp4")
+```
+
+- 构造函数配置 `request_timeout`、`poll_interval`、`job_timeout`、`chunk_size`、`retries`、`retry_delay`。
+  直接连接服务，不读取环境代理；单实例不并发调用。
+- 视频和音频跨机器上传，分块默认 8 MiB，服务端偏移为准。提交幂等，同一会话只生成一个任务。
+- 输出旁保存 `.lipsync.json` 和 `.lipsync.part`；相同输入和输出路径再次调用即可续传，检查点不含密钥。
+  服务端重启丢失状态时自动重新上传，失败任务不自动重提；手动删除检查点或换输出路径可重试。
+- 支持 Range/If-Range 结果续传；成功前检查 SHA-256、时长、音视频流及完整解码，原子发布新 MP4。
+  保留轻量 `.lipsync.lock` 文件用于跨进程互斥；锁在退出时自动释放，不必手动删除。
+- 默认 strict 模式要求输入共享时间起点且时长差不超过 150ms；显式 `timeline="audio"`
+  时允许不等长素材，按完整音频长度输出，视频不足时使用 MuseTalk 正放/倒放循环，较短音频则提前结束输出。
+  两种模式均保留输入文件、不覆盖已有输出，检查视频和完整配音时长、哈希与解码。
+  本地超时保留检查点，`last_job_id` 可查询远端原任务，超时不意味着取消。
+- 配置显式传入，未新增数据库、前端入口或任务流水线行为。
+- 测试位于相邻仓库 `VideoPrinterTurbo_LipSync/tests/test_transfer.py`，需同时保留两个仓库。
+
+客户端会先访问 `/health` 等待模型就绪，音频模式还要求服务器明确声明 audio 支持。
+模型恢复导致的 503 使用独立 `readiness_timeout`（默认 600 秒），不受短暂网络错误的三次重试次数限制；
+重复 503 也有等待上限。401/403/422 等明确错误立即失败。已有任务恢复时直接查询原 ID，失败任务不会重做。
+`request_timeout` 是单次 HTTP 请求超时；`job_timeout` 从输入预检和哈希完成后开始，涵盖就绪等待、
+上传、排队、推理等待、下载与最终验证。客户端超时保留检查点，不取消远程工作。
+
+模式保存在 `.lipsync.json` 的身份信息中；模式改变新建会话。旧版无模式字段的检查点仅在 strict 下迁移复用。
+旧 strict 服务和旧调用仍兼容；audio 模式需要同步更新客户端及服务端，不能单独取消客户端时长检查。
+
+Windows NTFS 优先硬链接发布；文件系统明确不支持硬链接时，使用系统独占重命名。Linux/macOS 使用
+对应的原子“不替换”接口；若系统或文件系统不能保证不覆盖则报错并保留下载文件。权限不足、磁盘满和
+文件已存在不会静默降级，最终文件在完整校验之前不会出现。
+
+真实 HTTP/GPU 验收，在本项目 `server/` 使用可用的 Python 环境和 FFmpeg/ffprobe：
+
+```bash
+python -m pipeline.lip_sync.check_remote \
+  --base-url http://192.168.1.100:8081 \
+  --video /absolute/path/speaker.mp4 --audio /absolute/path/voice.wav \
+  --output /absolute/path/new_synced.mp4 --timeline audio
+```
+
+开启鉴权时在运行环境设置 `LIPSYNC_API_KEY`。工具生成 `.remote-verification.json`（无密钥），
+记录模式、任务 ID、耗时、音视频时长和 SHA-256；播放输出验收口型和脸部融合。strict 验收应使用已对齐素材。

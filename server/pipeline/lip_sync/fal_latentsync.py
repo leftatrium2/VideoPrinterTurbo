@@ -10,6 +10,7 @@ import tempfile
 import time
 from pathlib import Path
 from urllib.parse import quote, urlsplit
+import config.config as _config
 
 import requests
 
@@ -55,7 +56,7 @@ class FalLatentSync(LipSyncBase):
             raise ValueError("fal.ai returned an invalid URL")
         parsed = urlsplit(url)
         if (parsed.scheme != "https" and not
-                (parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1"))):
+        (parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1"))):
             raise ValueError("fal.ai URLs require HTTPS (HTTP allowed only for local testing)")
         if not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
             raise ValueError("Invalid fal.ai URL")
@@ -112,7 +113,8 @@ class FalLatentSync(LipSyncBase):
         return value
 
     def _upload(self, session, path):
-        content_type = "audio/wav" if path.suffix.lower() == ".wav" else (mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+        content_type = "audio/wav" if path.suffix.lower() == ".wav" else (
+                mimetypes.guess_type(path.name)[0] or "application/octet-stream")
         # Same storage initiation contract as the official Python client's GCS repository.
         upload = self._json(session, "POST", f"{self._storage_base_url}/storage/upload/initiate",
                             params={"storage_type": "gcs"},
@@ -169,8 +171,9 @@ class FalLatentSync(LipSyncBase):
     @staticmethod
     def _probe(path, kind):
         try:
-            result = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
-                                    check=True, capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", str(path)],
+                check=True, capture_output=True, text=True, timeout=60)
             data = json.loads(result.stdout)
             stream = next(s for s in data["streams"] if s.get("codec_type") == kind)
             duration = float(stream.get("duration") or data["format"]["duration"])
@@ -217,7 +220,8 @@ class FalLatentSync(LipSyncBase):
             raise ValueError(f"LatentSync inputs must share a timeline and audio must not exceed video duration: "
                              f"video={duration:.3f}s, audio={audio_duration:.3f}s")
         output.parent.mkdir(parents=True, exist_ok=True)
-        with requests.Session() as session, tempfile.TemporaryDirectory(prefix="fal_lip_sync_", dir=output.parent) as tmp:
+        with requests.Session() as session, tempfile.TemporaryDirectory(prefix="fal_lip_sync_",
+                                                                        dir=output.parent) as tmp:
             session.trust_env = False
             if self._proxy_url:
                 session.proxies.update(http=self._proxy_url, https=self._proxy_url)
@@ -246,3 +250,8 @@ class FalLatentSync(LipSyncBase):
             except FileExistsError:
                 raise ValueError("Lip sync output already exists") from None
         return str(output)
+
+
+if __name__ == "__main__":
+    _config.init_config()
+

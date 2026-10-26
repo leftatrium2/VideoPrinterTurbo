@@ -146,6 +146,17 @@ Sync Labs 实现位于 `sync_labs.py`，fal.ai LatentSync 实现位于 `fal_late
 HeyGen 实现位于 `heygen.py`（默认 precision，关闭动态时长调整）；
 均直接处理本地视频和最终配音，尚未接入任务流水线。
 调用方式、时长约束及 HTTP 模拟测试见 `server/pipeline/lip_sync/README.md`。
+自建 CUDA 服务客户端为 `server/pipeline/lip_sync/remote.py` 的 `RemoteLipSync`，
+配置通过构造函数显式传入，未接入任务流水线或前端。输出旁的 `.lipsync.json`/`.lipsync.part`
+用于上传、任务和下载恢复，`.lipsync.lock` 为保留的进程锁文件。服务端重启使会话失效时重新上传；
+失败任务不自动重新推理。后台及跨仓库测试位于相邻 `VideoPrinterTurbo_LipSync`，测试需两个仓库同级。
+`RemoteLipSync` 默认 `timeline="strict"`；显式 `audio` 模式通过 HTTP 提交，按完整音频长度
+生成结果，允许正放/倒放循环画面。模式属于任务与检查点身份，切换模式新建会话。
+就绪等待由 `readiness_timeout` 控制，受 `job_timeout` 总预算限制；既有任务优先查询原 ID。
+结果发布逻辑位于 `_publish.py`，不支持硬链接时使用系统独占重命名，保持完整文件原子发布及不覆盖。
+修改协议、恢复或发布逻辑时运行相邻仓库的 `tests/test_transfer.py`、`test_remote_modes.py`、
+`test_remote_readiness.py`、`test_result_publication.py`；真实 HTTP 验收使用
+`python -m pipeline.lip_sync.check_remote`，凭据仅通过 `LIPSYNC_API_KEY` 环境变量提供。
 
 ## 常用 API 接口
 
