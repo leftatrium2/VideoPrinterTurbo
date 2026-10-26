@@ -10,7 +10,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, urljoin, urlsplit
 
 import requests
 
@@ -48,7 +48,8 @@ class SyncLabs(LipSyncBase):
         if not isinstance(url, str):
             raise ValueError("Sync Labs returned an invalid media URL")
         parsed = urlsplit(url)
-        if parsed.scheme != "https" and not (parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1")):
+        if parsed.scheme != "https" and not (
+                parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1")):
             raise ValueError("Sync Labs URLs require HTTPS (HTTP allowed only for local testing)")
         if not parsed.hostname or parsed.username or parsed.password:
             raise ValueError("Invalid Sync Labs URL")
@@ -70,12 +71,41 @@ class SyncLabs(LipSyncBase):
         if not 200 <= response.status_code < 300:
             try:
                 body = response.json()
-                detail = self._error_text(body.get("errorCode", body.get("message", ""))) if isinstance(body, dict) else ""
+                detail = self._error_text(body.get("errorCode", body.get("message", ""))) if isinstance(body,
+                                                                                                        dict) else ""
             except ValueError:
                 detail = "non-JSON response"
             response.close()
             raise RuntimeError(f"Sync Labs {method} HTTP {response.status_code}: {detail}")
         return response
+
+    def _download_request(self, session, url):
+        # Follow CDN redirects explicitly so every target passes URL validation.
+        # API requests and signed uploads retain their no-redirect policy.
+        for hop in range(6):
+            self._check_url(url)
+            try:
+                response = session.get(url, stream=True, allow_redirects=False,
+                                       timeout=self._request_timeout)
+            except requests.RequestException as exc:
+                raise RuntimeError(f"Sync Labs GET request failed ({type(exc).__name__})") from None
+            if response.status_code in (301, 302, 303, 307, 308):
+                location = response.headers.get("Location")
+                response.close()
+                if not location:
+                    raise RuntimeError("Sync Labs download redirect missing Location")
+                if hop == 5:
+                    raise RuntimeError("Sync Labs download exceeded 5 redirects")
+                target = urljoin(url, location)
+                self._check_url(target)
+                if urlsplit(url).scheme == "https" and urlsplit(target).scheme != "https":
+                    raise RuntimeError("Sync Labs download redirect requires HTTPS")
+                url = target
+                continue
+            if not 200 <= response.status_code < 300:
+                response.close()
+                raise RuntimeError(f"Sync Labs download HTTP {response.status_code}")
+            return response
 
     def _api(self, session, method, path, **kwargs):
         with self._request(session, method, f"{self._base_url}/{path}", authenticated=True, **kwargs) as response:
@@ -177,7 +207,8 @@ class SyncLabs(LipSyncBase):
         audio_duration = self._probe(audio, "audio")
         # Allow only encoding/frame rounding, never a genuine timing adjustment.
         if abs(video_duration - audio_duration) > 0.15:
-            raise ValueError(f"Lip sync inputs must share a timeline: video={video_duration:.3f}s, audio={audio_duration:.3f}s")
+            raise ValueError(
+                f"Lip sync inputs must share a timeline: video={video_duration:.3f}s, audio={audio_duration:.3f}s")
         if output.suffix.lower() != ".mp4":
             raise ValueError("Lip sync output_path must end with .mp4")
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -191,12 +222,12 @@ class SyncLabs(LipSyncBase):
                 "model": self._model,
                 "input": [{"type": "video", "assetId": video_id}, {"type": "audio", "assetId": audio_id}],
                 "options": {"sync_mode": "silence"}},
-                headers={"Idempotency-Key": uuid.uuid4().hex})
+                                   headers={"Idempotency-Key": uuid.uuid4().hex})
             url = self._wait(session, generation)
             downloaded = Path(temp) / "download.mp4"
             # Separate unauthenticated request: never leak the API key to storage/CDN.
             try:
-                with self._request(session, "GET", url, stream=True) as response, downloaded.open("wb") as target:
+                with self._download_request(session, url) as response, downloaded.open("wb") as target:
                     deadline = time.monotonic() + self._upload_timeout
                     for chunk in response.iter_content(1024 * 1024):
                         if time.monotonic() > deadline:

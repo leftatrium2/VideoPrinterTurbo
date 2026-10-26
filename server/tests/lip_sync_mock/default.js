@@ -18,6 +18,12 @@ http.createServer(async (req, res) => {
     return send(200, {ok:true});
   }
   if (path === '/state') return send(200, state);
+  if (path === '/redirect.mp4') {
+    if (req.headers['x-api-key']) return send(400, {errorCode:'credential_leak'});
+    const locations = {redirect: './output.mp4', loop: './redirect.mp4', unsafe: 'file:///tmp/output.mp4'};
+    res.writeHead(302, state.mode === 'missing_location' ? {} : {Location: locations[state.mode] || './output.mp4'});
+    return res.end();
+  }
   if (path.startsWith('/storage/') || path === '/output.mp4') {
     if (req.headers['x-api-key']) return send(400, {errorCode:'credential_leak'});
     if (path === '/output.mp4') {
@@ -57,7 +63,7 @@ http.createServer(async (req, res) => {
     if (state.mode === 'failed' || state.mode === 'rejected')
       return send(200, {id:'job-1',status:state.mode.toUpperCase(),error:'face not found',errorCode:'no_face'});
     if (state.mode === 'pending' || state.jobs['job-1'].polls === 1) return send(200, {id:'job-1',status:'PROCESSING'});
-    return send(200, {id:'job-1',status:'COMPLETED',outputUrl:`${origin}/output.mp4`});
+    return send(200, {id:'job-1',status:'COMPLETED',outputUrl:`${origin}/${['redirect', 'loop', 'unsafe', 'missing_location'].includes(state.mode) ? 'redirect.mp4' : 'output.mp4'}`});
   }
   return send(501, {errorCode:'endpoint_not_modeled'});
 }).listen(process.env.PORT);

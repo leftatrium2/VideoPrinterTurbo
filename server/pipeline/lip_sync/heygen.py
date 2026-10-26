@@ -46,7 +46,8 @@ class HeyGen(LipSyncBase):
         if not isinstance(url, str):
             raise ValueError("HeyGen returned an invalid media URL")
         parsed = urlsplit(url)
-        if parsed.scheme != "https" and not (parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1")):
+        if parsed.scheme != "https" and not (
+                parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1")):
             raise ValueError("HeyGen URLs require HTTPS (HTTP allowed only for local testing)")
         if not parsed.hostname or parsed.username or parsed.password:
             raise ValueError("Invalid HeyGen URL")
@@ -189,7 +190,8 @@ class HeyGen(LipSyncBase):
         audio_duration = self._probe(audio, "audio")
         # Allow only encoding/frame rounding, never a genuine timing adjustment.
         if abs(video_duration - audio_duration) > 0.15:
-            raise ValueError(f"Lip sync inputs must share a timeline: video={video_duration:.3f}s, audio={audio_duration:.3f}s")
+            raise ValueError(
+                f"Lip sync inputs must share a timeline: video={video_duration:.3f}s, audio={audio_duration:.3f}s")
         if output.suffix.lower() != ".mp4":
             raise ValueError("Lip sync output_path must end with .mp4")
         if video.suffix.lower() not in (".mp4", ".webm"):
@@ -197,7 +199,8 @@ class HeyGen(LipSyncBase):
         if video.stat().st_size > 200 * 1024 ** 2:
             raise ValueError("HeyGen video exceeds the 200 MiB direct-upload limit")
         output.parent.mkdir(parents=True, exist_ok=True)
-        with requests.Session() as session, tempfile.TemporaryDirectory(prefix="heygen_lip_sync_", dir=output.parent) as temp:
+        with requests.Session() as session, tempfile.TemporaryDirectory(prefix="heygen_lip_sync_",
+                                                                        dir=output.parent) as temp:
             session.trust_env = False
             if self._proxy_url:
                 session.proxies.update(http=self._proxy_url, https=self._proxy_url)
@@ -211,7 +214,8 @@ class HeyGen(LipSyncBase):
             if upload_audio.stat().st_size > int(1.5 * 1024 ** 3):
                 raise ValueError("HeyGen audio exceeds the 1.5 GiB direct-upload limit")
             video_id = self._upload(session, video, "video/mp4" if video.suffix.lower() == ".mp4" else "video/webm")
-            audio_id = self._upload(session, upload_audio, "audio/wav" if upload_audio.suffix.lower() == ".wav" else "audio/mpeg")
+            audio_id = self._upload(session, upload_audio,
+                                    "audio/wav" if upload_audio.suffix.lower() == ".wav" else "audio/mpeg")
             # No automatic retries: a lost response may hide an accepted paid job.
             generation = self._api(session, "POST", "lipsyncs", json={
                 "video": {"type": "asset_id", "asset_id": video_id},

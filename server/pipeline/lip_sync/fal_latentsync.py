@@ -10,9 +10,9 @@ import tempfile
 import time
 from pathlib import Path
 from urllib.parse import quote, urlsplit
-import config.config as _config
 
 import requests
+from yt_dlp.extractor import libsyn
 
 from pipeline.lip_sync.base import LipSyncBase
 
@@ -250,8 +250,3 @@ class FalLatentSync(LipSyncBase):
             except FileExistsError:
                 raise ValueError("Lip sync output already exists") from None
         return str(output)
-
-
-if __name__ == "__main__":
-    _config.init_config()
-

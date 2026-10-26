@@ -112,3 +112,25 @@ def test_remote_duration_change_is_rejected(simulation, media, tmp_path):
     with pytest.raises(ValueError, match="changed the video duration"):
         service(url).lip_sync(*map(str, media), str(tmp_path / "output.mp4"))
     assert not (tmp_path / "output.mp4").exists()
+
+
+def test_redirected_output_download(simulation, media, tmp_path):
+    url, client, reset = simulation
+    reset("redirect")
+    output = tmp_path / "redirected.mp4"
+    adapter = service(url)
+    assert adapter.lip_sync(*map(str, media), str(output)) == str(output)
+    assert output.stat().st_size > 0
+    assert len(client.get(f"{url}/state", timeout=5).json()["jobs"]) == 1
+
+
+@pytest.mark.parametrize("mode,message", [("loop", "exceeded 5 redirects"),
+                                         ("unsafe", "require HTTPS"),
+                                         ("missing_location", "missing Location")])
+def test_redirected_output_rejects_invalid_redirects(simulation, media, tmp_path, mode, message):
+    url, _, reset = simulation
+    reset(mode)
+    output = tmp_path / "rejected.mp4"
+    with pytest.raises((RuntimeError, ValueError), match=message):
+        service(url).lip_sync(*map(str, media), str(output))
+    assert not output.exists()
