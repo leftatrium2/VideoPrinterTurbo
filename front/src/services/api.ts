@@ -52,6 +52,7 @@ export interface AddTaskParams {
   tts_voice: string
   tts_volume: number
   tts_speed: number
+  tts_dubbing_strategy: number
   // 输出到字幕
   is_rewrite_to_subtitle: boolean
   subtitle_font: string
@@ -59,6 +60,8 @@ export interface AddTaskParams {
   subtitle_font_color: number
   subtitle_border_color: number
   subtitle_size: number
+  is_lip_sync: boolean
+  lip_sync_type: number
   // 背景音乐
   is_bgm: boolean
   uploaded_bgm: Record<string, unknown>
@@ -109,7 +112,9 @@ export interface TaskConfigMaterialData {
 export interface TaskConfigData {
   asr: TaskConfigAsrItem[]
   tts: TaskConfigTtsItem[]
+  tts_dubbing_strategy: { name: string; value: number }[]
   subtitle: TaskConfigOptionItem[]
+  lip_sync: { name: string; value: number }[]
   bgm: TaskConfigOptionItem[]
   material: TaskConfigMaterialData
 }
@@ -186,12 +191,15 @@ export interface TaskDetail {
   tts_voice: string
   tts_volume: number
   tts_speed: number
+  tts_dubbing_strategy: number
   is_rewrite_to_subtitle: number
   subtitle_font: string
   subtitle_position: string
   subtitle_font_color: number
   subtitle_border_color: number
   subtitle_size: number
+  is_lip_sync: number | boolean
+  lip_sync_type: number
   is_bgm: number
   uploaded_bgm: string
   bgm_volume: number
@@ -574,6 +582,7 @@ export async function downloadLocalModel(model: string): Promise<LocalWhisperMod
 }
 
 export interface LipSyncConfigData {
+  remote_base_url: string
   sync_labs_apikey: string
   fal_latent_sync_apikey: string
   hey_gen_apikey: string

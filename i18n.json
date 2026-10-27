@@ -185,6 +185,38 @@
         "cn": "Xiaomi MiMo TTS",
         "en": "Xiaomi MiMo TTS"
       }
+    ],
+    "lip_sync": [
+      {
+        "cn": "自建服务",
+        "en": "self-built services"
+      },
+      {
+        "cn": "fal-ai/latentsync",
+        "en": "fal-ai/latentsync"
+      },
+      {
+        "cn": "sync.labs",
+        "en": "sync.labs"
+      },
+      {
+        "cn": "HeyGen",
+        "en": "HeyGen"
+      }
+    ],
+    "tts_dubbing_strategy": [
+      {
+        "cn": "不做处理",
+        "en": "Do nothing"
+      },
+      {
+        "cn": "时间对齐优先",
+        "en": "Timeline first"
+      },
+      {
+        "cn": "自然度优先",
+        "en": "Nature first"
+      }
     ]
   },
   "asr_config": {

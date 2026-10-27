@@ -6,15 +6,15 @@
         <el-tab-pane v-for="provider in providers" :key="provider.field" :name="provider.field" :label="t(provider.label)">
           <div class="tab-body">
             <div class="field">
-              <label class="field-label" :for="provider.field">API Key</label>
+              <label class="field-label" :for="provider.field">{{ provider.field === 'remote_base_url' ? t('lipSyncConfig.selfHostedUrl') : 'API Key' }}</label>
               <el-input
                 :id="provider.field"
                 v-model="form[provider.field]"
                 class="field-input"
-                type="password"
-                show-password
+                :type="provider.field === 'remote_base_url' ? 'text' : 'password'"
+                :show-password="provider.field !== 'remote_base_url'"
                 :disabled="!loaded || submitLoading"
-                :placeholder="t('lipSyncConfig.placeholder')"
+                :placeholder="t(provider.field === 'remote_base_url' ? 'lipSyncConfig.selfHostedUrlPlaceholder' : 'lipSyncConfig.placeholder')"
               />
             </div>
           </div>
@@ -42,12 +42,13 @@ import { getLipSyncConfig, updateLipSyncConfig, type LipSyncConfigData } from '@
 
 const { t } = useI18n()
 const providers: { field: keyof LipSyncConfigData; label: string }[] = [
+  { field: 'remote_base_url', label: 'lipSyncConfig.selfHostedTab' },
   { field: 'sync_labs_apikey', label: 'lipSyncConfig.syncLabsTab' },
   { field: 'fal_latent_sync_apikey', label: 'lipSyncConfig.falAiTab' },
   { field: 'hey_gen_apikey', label: 'lipSyncConfig.heyGenTab' },
 ]
-const activeTab = ref<keyof LipSyncConfigData>('sync_labs_apikey')
-const form = reactive<LipSyncConfigData>({ sync_labs_apikey: '', fal_latent_sync_apikey: '', hey_gen_apikey: '' })
+const activeTab = ref<keyof LipSyncConfigData>('remote_base_url')
+const form = reactive<LipSyncConfigData>({ remote_base_url: '', sync_labs_apikey: '', fal_latent_sync_apikey: '', hey_gen_apikey: '' })
 const loading = ref(false)
 const loaded = ref(false)
 const loadFailed = ref(false)

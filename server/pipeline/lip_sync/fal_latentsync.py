@@ -12,7 +12,6 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 import requests
-from yt_dlp.extractor import libsyn
 
 from pipeline.lip_sync.base import LipSyncBase
 

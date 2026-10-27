@@ -35,7 +35,6 @@ def build_dubbing_timeline(subs, synth_fn, synth_kwargs, cache_dir, *,
                            final_subtitle_path=None, rewrite_context="",
                            source_subtitle_ids=None, group_for_dubbing=False,
                            dubbing_strategy: int = const.DUBBING_STRATEGY_TIMELINE_FIRST):
-
     from utils.tts_utils import TTSUtils
 
     validate_dubbing_strategy(dubbing_strategy)
@@ -178,8 +177,8 @@ def build_dubbing_timeline(subs, synth_fn, synth_kwargs, cache_dir, *,
                 TTSUtils.stretch_to_duration(str(trimmed), str(fitted), window)
                 clip = AudioSegment.from_file(fitted)
             row.update(status="forced_speedup" if forced_used else
-                       "fallback_speedup" if fallback_used else
-                       ("short" if len(clip) < target * 0.5 else "accepted"),
+            "fallback_speedup" if fallback_used else
+            ("short" if len(clip) < target * 0.5 else "accepted"),
                        final_text=text, tempo=tempo,
                        tolerance_ms=0 if fallback_used or forced_used else tolerance_ms,
                        forced_speedup=forced_used,

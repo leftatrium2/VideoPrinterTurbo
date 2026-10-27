@@ -10,12 +10,13 @@ from sqlalchemy import select
 
 import utils.logger  # noqa: F401  # 确保 logging.basicConfig 在最早执行
 from config.config import init_config
-from models.model import VptTasks, VptAsrConfig, VptLlmConfig, VptTtsConfig
+from models.model import VptTasks, VptAsrConfig, VptLlmConfig, VptTtsConfig, VptLipSyncConfig
 from pipeline.bean.pipeline_data import PipeLineData
 from pipeline.bean.video_downloader_bean import VideoDownloaderBean
 from pipeline.downloader.base import DownloaderContext
 from pipeline.rendering.ffmpeg_assembly_video import FFMpegAssemblyVideo
 from pipeline.utils.pipeline_asr_utls import asr_convert, subtitle_convert, audio_separate
+from pipeline.utils.pipeline_lipsync_utils import lip_sync
 from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_material_video_utils import video_overlay
 from pipeline.utils.pipeline_tts_utils import tts_from_subtitle
@@ -142,6 +143,18 @@ class PipelineManager:
         finally:
             llm_config_db.close()
 
+    @staticmethod
+    def __get_lip_sync_config():
+        lip_sync_config_db = database.get_sync_session()
+        try:
+            lip_sync_result = lip_sync_config_db.execute(select(VptLipSyncConfig).limit(1))
+            lip_sync_item = lip_sync_result.scalar_one_or_none()
+            if not lip_sync_item:
+                raise VPTException(const.PIPELINE_ERR_LIPSYNC_CONFIG, "lip sync config not found")
+            return lip_sync_item
+        finally:
+            lip_sync_config_db.close()
+
     def __update_pipeline_status(self, task: VptTasks, pipeline_status: int):
         self.__data.status = pipeline_status
         task.pipeline_status = pipeline_status
@@ -178,6 +191,7 @@ class PipelineManager:
             self.__data.tts_bean.tts_speed = task.tts_speed
             self.__data.tts_bean.tts_voice = task.tts_voice
             self.__data.tts_bean.tts_volume = task.tts_volume
+            self.__data.tts_bean.tts_dubbing_strategy = task.tts_dubbing_strategy
         # rewrite subtitle configuration
         self.__data.is_rewrite_subtitle = task.is_rewrite_to_subtitle == 1
         if self.__data.is_rewrite_subtitle:
@@ -582,7 +596,7 @@ class PipelineManager:
                 final_srt = str(Path(tts_rewrite_dir) / f"{self.__data.task_id}_final.srt")
                 res = tts_from_subtitle(
                     tts_engine=self.__data.tts_bean.tts_server,
-                    dubbing_strategy=const.DUBBING_STRATEGY_TIMELINE_FIRST,
+                    dubbing_strategy=self.__data.tts_bean.tts_dubbing_strategy,
                     subtitle_path=subtitle_path,
                     voice=self.__data.tts_bean.tts_voice,
                     lang=get_lang_from_voice(self.__data.tts_bean.tts_voice),
@@ -603,7 +617,8 @@ class PipelineManager:
             except Exception as ex:
                 logger.exception("TTS alignment failed for task %s: %s", task.task_id, ex)
                 task.task_status = const.PIPELINE_ERR_TTS_CONVERT
-                task.task_message = str(ex) if isinstance(ex, ValueError) else "TTS synthesis failed; check provider configuration and connectivity"
+                task.task_message = str(ex) if isinstance(ex,
+                                                          ValueError) else "TTS synthesis failed; check provider configuration and connectivity"
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
                 return None
@@ -640,6 +655,36 @@ class PipelineManager:
                 proxy_url=self.__proxy
             )
             self.__data.material_video_bean.video_materials = res_list
+        # lip sync video
+        if self.__data.is_lip_sync:
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_LIP_SYNC)
+            if not self.__data.is_tts:
+                # 如果选择了 唇形同步 ，那么至少需要选择TTS语音输出，否则 做唇形同步没有意义
+                raise VPTException(const.PIPELINE_ERR_LIPSYNC_NEED_TTS,
+                                   f"If you select lip-sync, you must also choose a TTS (text-to-speech) voice output; otherwise, performing lip-sync is pointless.")
+            audio_path = self.__data.tts_bean.tts_full_path
+            video_path = self.__data.video_bean.video_full_path
+            lip_sync_config = PipelineManager.__get_lip_sync_config()
+            self.__data.lip_sync_bean.sync_labs_apikey = lip_sync_config.sync_labs_apikey
+            self.__data.lip_sync_bean.fal_latent_sync_apikey = lip_sync_config.fal_latent_sync_apikey
+            self.__data.lip_sync_bean.hey_gen_apikey = lip_sync_config.hey_gen_apikey
+            self.__data.lip_sync_bean.remote_base_url = lip_sync_config.remote_base_url
+            self.__data.lip_sync_bean.remote_api_key = lip_sync_config.remote_api_key
+            lip_sync_output_full_path = lip_sync(
+                audio_path=audio_path,
+                video_path=video_path,
+                task_id=self.__data.task_id,
+                proxy_url=self.__proxy,
+                lip_sync_type=self.__data.lip_sync_bean.lip_sync_type,
+                sync_labs_apikey=self.__data.lip_sync_bean.sync_labs_apikey,
+                fal_latent_sync_apikey=self.__data.lip_sync_bean.fal_latent_sync_apikey,
+                hey_gen_apikey=self.__data.lip_sync_bean.hey_gen_apikey,
+                remote_base_url=self.__data.lip_sync_bean.remote_base_url,
+                remote_api_key=self.__data.lip_sync_bean.remote_api_key
+            )
+            if not lip_sync_output_full_path or not Path(lip_sync_output_full_path).is_file():
+                pass
+            self.__data.lip_sync_bean.lip_sync_full_path = lip_sync_output_full_path if lip_sync_config else ""
         # assembly video(ffmpeg)
         output_path = asyncio.run(get_output_path())
         if not output_path:
@@ -696,7 +741,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20261017095139206438"
+    task_id = "20261021172733546142"
     database.start()
     db = database.get_sync_session()
     try:

@@ -145,6 +145,13 @@
           />
         </div>
 
+        <div class="dubbing-strategy-field">
+          <div class="field-label">{{ t('addTask.dubbingStrategy') }}</div>
+          <el-select v-model="form.tts_dubbing_strategy" class="full-width">
+            <el-option v-for="item in taskConfig.tts_dubbing_strategy" :key="item.value" :label="item.name" :value="item.value" />
+          </el-select>
+        </div>
+
         <div class="sliders-row">
           <div class="slider-group">
             <div class="field-label">{{ t('addTask.speechVolume') }} ({{ form.tts_volume.toFixed(1) }})</div>
@@ -213,6 +220,23 @@
           <div class="field-label">{{ t('addTask.subtitleSize') }}</div>
           <el-slider v-model="form.subtitle_size" :min="30" :max="100" :step="1" show-tooltip />
         </div>
+      </div>
+    </div>
+
+    <!-- Latent Sync -->
+    <div class="section-card lip-sync-section">
+      <div class="section-header">
+        <div class="header-left">
+          <el-icon class="section-icon"><Film /></el-icon>
+          <el-checkbox v-model="enabled.lip_sync" class="section-toggle" :aria-label="t('addTask.lipSync')" />
+          <span class="section-title">{{ t('addTask.lipSync') }}</span>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-label">{{ t('addTask.lipSyncService') }}</div>
+        <el-select v-model="form.lip_sync_type" class="full-width" :aria-label="t('addTask.lipSyncService')">
+          <el-option v-for="item in taskConfig.lip_sync" :key="item.value" :label="item.name" :value="item.value" />
+        </el-select>
       </div>
     </div>
 
@@ -389,7 +413,9 @@ const HelpPopover = defineComponent({
 const taskConfig = reactive<TaskConfigData>({
   asr: [],
   tts: [],
+  tts_dubbing_strategy: [],
   subtitle: [],
+  lip_sync: [],
   bgm: [],
   material: { source: [], splicing: [], transition: [], ratio: [] },
 })
@@ -400,6 +426,7 @@ const enabled = reactive({
   llm: false,
   voice_output: false,
   subtitle_output: false,
+  lip_sync: false,
   bgm: false,
   video_overlay: false,
   publish: false,
@@ -419,12 +446,14 @@ const form = reactive({
   tts_voice: '',
   tts_volume: 1.0,
   tts_speed: 1.0,
+  tts_dubbing_strategy: 0,
   subtitle_font: '',
   subtitle_position: 'bottom-center',
   subtitle_position_custom: '70',
   subtitle_color: '#ffffff',
   subtitle_stroke_color: '#000000',
   subtitle_size: 60,
+  lip_sync_type: undefined as number | undefined,
   bgm_library: '',
   bgm_volume: 0.5,
   video_source: '',
@@ -468,8 +497,12 @@ onMounted(async () => {
   try {
     const config = await getTaskConfig()
     taskConfig.asr = config.asr
+    taskConfig.tts_dubbing_strategy = config.tts_dubbing_strategy ?? []
+    form.tts_dubbing_strategy = taskConfig.tts_dubbing_strategy[0]?.value ?? 0
     taskConfig.tts = config.tts
     taskConfig.subtitle = config.subtitle
+    taskConfig.lip_sync = config.lip_sync ?? []
+    form.lip_sync_type = taskConfig.lip_sync[0]?.value
     taskConfig.bgm = config.bgm
     taskConfig.material = config.material
     if (config.asr.length > 0) {
@@ -761,6 +794,7 @@ async function applyTaskDetail(detail: TaskDetail) {
   form.tts_voice = detail.tts_voice
   form.tts_volume = detail.tts_volume
   form.tts_speed = detail.tts_speed
+  form.tts_dubbing_strategy = detail.tts_dubbing_strategy ?? form.tts_dubbing_strategy
 
   enabled.subtitle_output = !!detail.is_rewrite_to_subtitle
   form.subtitle_font = detail.subtitle_font
@@ -773,6 +807,11 @@ async function applyTaskDetail(detail: TaskDetail) {
   form.subtitle_color = intToHex(detail.subtitle_font_color)
   form.subtitle_stroke_color = intToHex(detail.subtitle_border_color)
   form.subtitle_size = detail.subtitle_size
+
+  enabled.lip_sync = !!detail.is_lip_sync
+  if (taskConfig.lip_sync.some(item => item.value === detail.lip_sync_type)) {
+    form.lip_sync_type = detail.lip_sync_type
+  }
 
   enabled.bgm = !!detail.is_bgm
   form.bgm_volume = detail.bgm_volume
@@ -802,6 +841,10 @@ async function applyTaskDetail(detail: TaskDetail) {
 }
 
 async function handleSubmit() {
+  if (enabled.lip_sync && !taskConfig.lip_sync.some(item => item.value === form.lip_sync_type)) {
+    ElMessage.warning(t('addTask.lipSyncServiceRequired'))
+    return
+  }
   if (enabled.transcription && hasAsrLanguage.value &&
       (asrLangLoading.value || !asrLangList.value.some(item => item.value === form.subtitle_lang))) {
     ElMessage.warning(t('addTask.asrLangRequired'))
@@ -842,6 +885,7 @@ async function handleSubmit() {
       tts_voice: form.tts_voice,
       tts_volume: form.tts_volume,
       tts_speed: form.tts_speed,
+      tts_dubbing_strategy: form.tts_dubbing_strategy,
       // 输出到字幕
       is_rewrite_to_subtitle: enabled.subtitle_output,
       subtitle_font: form.subtitle_font,
@@ -851,6 +895,8 @@ async function handleSubmit() {
       subtitle_font_color: hexToInt(form.subtitle_color),
       subtitle_border_color: hexToInt(form.subtitle_stroke_color),
       subtitle_size: form.subtitle_size,
+      is_lip_sync: enabled.lip_sync,
+      lip_sync_type: form.lip_sync_type ?? 0,
       // 背景音乐
       is_bgm: enabled.bgm,
       uploaded_bgm: (enabled.bgm && form.bgm_library === 'custom' && bgmUploadedData.value)
@@ -960,8 +1006,11 @@ async function handleSubmit() {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  margin-top: 12px;
 }
+
+.voice-role-row,
+.dubbing-strategy-field,
+.sliders-row { margin-top: 12px; }
 
 .voice-role-field { flex: 1; }
 
@@ -974,7 +1023,6 @@ async function handleSubmit() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  margin-top: 14px;
 }
 
 .slider-group {}

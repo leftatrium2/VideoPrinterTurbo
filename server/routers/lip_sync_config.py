@@ -21,6 +21,7 @@ async def get_lip_sync_config(db: AsyncSession = Depends(database.get_db)):
         "sync_labs_apikey": "",
         "fal_latent_sync_apikey": "",
         "hey_gen_apikey": "",
+        "remote_base_url": "",
     }
     if not item:
         return result_succ(ret_dict)
@@ -29,6 +30,7 @@ async def get_lip_sync_config(db: AsyncSession = Depends(database.get_db)):
         "sync_labs_apikey": item.sync_labs_apikey,
         "fal_latent_sync_apikey": item.fal_latent_sync_apikey,
         "hey_gen_apikey": item.hey_gen_apikey,
+        "remote_base_url": item.remote_base_url
     }
 
     return result_succ(ret_dict)
@@ -43,12 +45,16 @@ async def update_lip_sync_config(data: LipSyncConfigItem, db: AsyncSession = Dep
             sync_labs_apikey=data.sync_labs_apikey,
             fal_latent_sync_apikey=data.fal_latent_sync_apikey,
             hey_gen_apikey=data.hey_gen_apikey,
+            remote_base_url=data.remote_base_url,
+            remote_api_key=data.remote_api_key
         )
         db.add(item)
     else:
         item.sync_labs_apikey = data.sync_labs_apikey
         item.fal_latent_sync_apikey = data.fal_latent_sync_apikey
         item.hey_gen_apikey = data.hey_gen_apikey
+        item.remote_base_url = data.remote_base_url
+        item.remote_api_key = data.remote_api_key
     await db.commit()
     await db.refresh(item)
     return result_succ()

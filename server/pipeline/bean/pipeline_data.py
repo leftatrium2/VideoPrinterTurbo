@@ -1,10 +1,8 @@
-from sympy.abc import M
-
-from models import model
 from pipeline.bean.asr_bean import AsrBean
 from pipeline.bean.audio_separator import AudioSeparatorBean
 from pipeline.bean.bgm_bean import BgmBean
 from pipeline.bean.ffmpeg_bean import FFMPEGBean
+from pipeline.bean.lip_sync_bean import LipSyncBean
 from pipeline.bean.llm_bean import LLMBean
 from pipeline.bean.subtitle_bean import SubtitleBean
 from pipeline.bean.tts_bean import TTSBean
@@ -41,6 +39,9 @@ class PipeLineData:
     # 是否启用视频改写（如果启用，那么当前视频直接被覆盖）
     is_material: bool = False
     material_video_bean: MaterialVideoBean
+    # lip sync
+    is_lip_sync: bool = False
+    lip_sync_bean: LipSyncBean
     # 最后整理出来，往ffmpeg送的数据
     ffmpeg_bean: FFMPEGBean
 
@@ -53,6 +54,7 @@ class PipeLineData:
         self.subtitle_bean = SubtitleBean()
         self.bgm_bean = BgmBean()
         self.material_video_bean = MaterialVideoBean()
+        self.lip_sync_bean = LipSyncBean()
         self.ffmpeg_bean = FFMPEGBean()
 
     def __str__(self) -> str:
@@ -75,6 +77,8 @@ class PipeLineData:
         is_bgm: {self.is_bgm},
         bgm_bean: {self.bgm_bean if self.bgm_bean else ''},
         is_material: {self.is_material},
+        is_lip_sync: {self.is_lip_sync},
+        lip_sync_bean: {self.lip_sync_bean if self.lip_sync_bean else ''},
         material_video_bean: {self.material_video_bean if self.material_video_bean else ''},
         ffmpeg_bean: {self.ffmpeg_bean if self.ffmpeg_bean else ''}
         )

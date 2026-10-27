@@ -35,6 +35,9 @@ export default {
   },
 
   lipSyncConfig: {
+    selfHostedTab: '自建服务',
+    selfHostedUrl: '自建服务URL',
+    selfHostedUrlPlaceholder: '请输入自建服务 URL，例如 http://192.168.1.100:8081',
     title: 'LipSync 配置',
     syncLabsTab: 'SyncLab配置',
     falAiTab: 'fal-ai配置',
@@ -73,6 +76,9 @@ export default {
   },
 
   addTask: {
+    lipSync: '唇形同步',
+    lipSyncService: '唇形同步服务',
+    lipSyncServiceRequired: '请选择可用的唇形同步服务',
     downloadVideo: '下载视频',
     audioToText: '音频转文字',
     llmRewrite: 'LLM 改写',
@@ -109,6 +115,7 @@ export default {
     ttsService: 'TTS 服务',
     voiceRole: '声音角色',
     testVoice: '测试',
+    dubbingStrategy: '配音策略',
     speechVolume: '语音音量',
     speed: '速度',
     font: '字体',

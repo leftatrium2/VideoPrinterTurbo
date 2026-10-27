@@ -61,9 +61,9 @@ class TaskManager(object):
 
     async def start(self):
         logger.info("Starting TaskManager")
-        self._stop.clear()
-        self.processes_threading = threading.Thread(target=self.process, daemon=True)
-        self.processes_threading.start()
+        # self._stop.clear()
+        # self.processes_threading = threading.Thread(target=self.process, daemon=True)
+        # self.processes_threading.start()
 
     async def stop(self):
         logger.info("Stopping TaskManager")

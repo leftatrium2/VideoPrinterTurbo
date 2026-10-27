@@ -398,12 +398,11 @@ class RemoteLipSync(LipSyncBase):
 if __name__ == "__main__":
     _config.init_config()
     lip_sync = RemoteLipSync(
-        base_url="http://192.168.0.101:8081",
-        timeline="audio"
+        base_url="http://192.168.0.101:8081"
     )
     result = lip_sync.lip_sync(
         video_path="/Users/sunxiao5/Downloads/musetalk/speaker.mp4",
-        audio_path="/Users/sunxiao5/Downloads/musetalk/voice.wav",
+        audio_path="/Users/sunxiao5/Downloads/musetalk/voice_12.200.wav",
         output_path="/Users/sunxiao5/Downloads/musetalk/speaker_synced_back.mp4"
     )
     print(result)

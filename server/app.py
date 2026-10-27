@@ -51,6 +51,12 @@ async def lifespan(app: FastAPI):
             if "format_id" not in {row[1] for row in columns}:
                 await conn.execute(
                     text("ALTER TABLE vpt_tasks ADD COLUMN format_id TEXT NOT NULL DEFAULT ''"))
+            if "is_lip_sync" not in {row[1] for row in columns}:
+                await conn.execute(text("ALTER TABLE vpt_tasks ADD COLUMN is_lip_sync INTEGER NOT NULL DEFAULT 0"))
+            if "lip_sync_type" not in {row[1] for row in columns}:
+                await conn.execute(text("ALTER TABLE vpt_tasks ADD COLUMN lip_sync_type INTEGER NOT NULL DEFAULT 0"))
+            if "tts_dubbing_strategy" not in {row[1] for row in columns}:
+                await conn.execute(text("ALTER TABLE vpt_tasks add tts_dubbing_strategy integer default 1 not null"))
     # Sync config
     # Start task manager
     async_session_factory = async_sessionmaker(database.get_engine(), class_=AsyncSession, expire_on_commit=False)

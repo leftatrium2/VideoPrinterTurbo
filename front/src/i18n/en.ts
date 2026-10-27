@@ -35,6 +35,9 @@ export default {
   },
 
   lipSyncConfig: {
+    selfHostedTab: 'Self-hosted Service',
+    selfHostedUrl: 'Self-hosted Service URL',
+    selfHostedUrlPlaceholder: 'Enter service URL, e.g. http://192.168.1.100:8081',
     title: 'LipSync Config',
     syncLabsTab: 'SyncLab Config',
     falAiTab: 'fal-ai Config',
@@ -73,6 +76,9 @@ export default {
   },
 
   addTask: {
+    lipSync: 'Latent Sync',
+    lipSyncService: 'Latent Sync Service',
+    lipSyncServiceRequired: 'Please select an available Latent Sync service',
     downloadVideo: 'Download Video',
     audioToText: 'Audio to Text',
     llmRewrite: 'LLM Rewrite',
@@ -109,6 +115,7 @@ export default {
     ttsService: 'TTS Service',
     voiceRole: 'Voice Role',
     testVoice: 'Test',
+    dubbingStrategy: 'Dubbing strategy',
     speechVolume: 'Volume',
     speed: 'Speed',
     font: 'Font',

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from utils import const
 from utils.const import TTS_LIST_AZURE_TTS_V1_VAL
 
 
@@ -11,6 +12,7 @@ class TTSBean:
     tts_speed: float = 0
     tts_full_path: str = ""
     final_subtitle_path: str = ""
+    tts_dubbing_strategy: int = const.DUBBING_STRATEGY_TIMELINE_FIRST
 
     def __str__(self) -> str:
         return f"""
@@ -19,6 +21,7 @@ class TTSBean:
             tts_voice: {self.tts_voice}, 
             tts_volume: {self.tts_volume}, 
             tts_speed: {self.tts_speed}, 
-            tts_full_path: {self.tts_full_path}
+            tts_full_path: {self.tts_full_path},
+            tts_dubbing_strategy: {self.tts_dubbing_strategy}
         )
         """

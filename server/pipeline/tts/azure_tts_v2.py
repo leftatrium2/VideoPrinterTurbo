@@ -90,6 +90,8 @@ class AzureTTSV2(TTSBase):
             raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"File {subtitle_path} does not exist")
         name, ext = os.path.splitext(os.path.basename(subtitle_path))
         path = asyncio.run(get_tts_rewrite_path())
+        if not path:
+            raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, f"storage.tts_rewrite has not configured")
         subs = TTSUtils.parse_srt(subtitle_path)
         if not subs:
             raise VPTException(const.PIPELINE_ERR_TTS_SRT_PARSE, f"No subtitle in {subtitle_path}")
