@@ -2,6 +2,7 @@ import asyncio
 import json
 import os.path
 import subprocess
+from decimal import Decimal
 from pathlib import Path
 from typing import Optional
 
@@ -84,19 +85,70 @@ def _get_duration_ms(file_path: str) -> int:
 
 
 # 音视频的长度，如果长度差超过150ms，那么后续的处理会报错
-def _check_video_and_audio_duration(
+def _balance_video_and_audio_duration(
         video_path: str,
-        audio_path: str
-) -> tuple[bool, int, int]:
+        audio_path: str,
+        output_wav_path: str
+):
     if not Path(video_path).is_file():
         raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"Video file not found: {video_path}")
     if not Path(audio_path).is_file():
         raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"Audio file not found: {audio_path}")
     video_duration = _get_duration_ms(video_path)
     audio_duration = _get_duration_ms(audio_path)
-    if abs(video_duration - audio_duration) > 150:
-        return False, video_duration, audio_duration
-    return True, video_duration, audio_duration
+    _align_audio_to_video(
+        video_path=video_path,
+        video_duration_ms=video_duration,
+        audio_path=audio_path,
+        audio_duration_ms=audio_duration,
+        output_wav_path=output_wav_path
+    )
+
+
+def _align_audio_to_video(
+        video_path: str,
+        video_duration_ms: int,
+        audio_path: str,
+        audio_duration_ms: int,
+        output_wav_path: str,
+):
+    if video_duration_ms <= 0 or audio_duration_ms <= 0:
+        raise VPTException(const.PIPELINE_ERR_VIDEO_OR_AUDIO_DURATION_LESS_ZERO,
+                           f"video_duration:{video_duration_ms} or audio_duration:{audio_duration_ms} less then 0")
+    duration_seconds = format(
+        Decimal(video_duration_ms) / Decimal(1000), "f"
+    )
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-v", "error",
+                "-i", audio_path,
+                "-map", "0:a:0",
+                "-af",
+                (
+                    "asetpts=PTS-STARTPTS,"
+                    "apad,"
+                    f"atrim=duration={duration_seconds},"
+                    "asetpts=N/SR/TB"
+                ),
+                "-ar", "48000",
+                "-c:a", "pcm_s16le",
+                output_wav_path,
+            ],
+            check=True
+        )
+    except subprocess.CalledProcessError as ex:
+        raise VPTException(const.PIPELINE_ERR_FFMPEG_EXECUTION_FAILED, f"FFmpeg execution failed: {ex}", tr=ex) from ex
+    actual_ms = _get_duration_ms(output_wav_path)
+    difference_ms = abs(actual_ms - video_duration_ms)
+    if difference_ms > 150:
+        raise VPTException(
+            const.PIPELINE_ERR_LIPSYNC_DURATION,
+            f"Audio duration validation failed: video {video_duration_ms}ms, "
+            f"audio {actual_ms}ms, difference {difference_ms}ms"
+        )
 
 
 def lip_sync(
@@ -106,16 +158,24 @@ def lip_sync(
         task_id: str,
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
         proxy_url: Optional[str] = None,
+        on_progress=None,
         **args
 ) -> Optional[str]:
-    # step1. 先检查一下 音视频的长度，如果长度差超过150ms，那么后续的处理会报错
-    result, video_duration, autio_duration = _check_video_and_audio_duration(
+    lip_sync_path = asyncio.run(get_lip_sync_path())
+    if not lip_sync_path:
+        raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, "storage.lipsync is not configuration")
+    # step1. 处理一下TTS生成的音频，按照视频来做裁剪
+    # 音频超过 video_duration 秒：裁掉末尾多余内容。
+    # 音频不足 video_duration 秒：末尾补静音。
+    wav_output_path = os.path.join(lip_sync_path, f"{task_id}.wav")
+    _balance_video_and_audio_duration(
         video_path=video_path,
-        audio_path=audio_path
+        audio_path=audio_path,
+        output_wav_path=wav_output_path
     )
-    if not result:
-        raise VPTException(const.PIPELINE_ERR_LIPSYNC_DURATION,
-                           f"Video and audio duration mismatch, There must be a difference of 150 ms, video duration: {video_duration}, audio duration: {autio_duration}")
+    if not Path(wav_output_path).is_file():
+        raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND,
+                           f"_balance_video_and_audio_duration return file not exists!")
     # step2. 没问题，就开始后面的 唇形同步 处理
     lip_sync: LipSyncBase = None
     if lip_sync_type == const.TASK_CONFIG_LIP_SYNC_REMOTE:
@@ -123,7 +183,9 @@ def lip_sync(
         if not base_url:
             raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, "Remote base URL is not provided")
         lip_sync = RemoteLipSync(
-            base_url=base_url
+            base_url=base_url,
+            timeline="audio",
+            on_progress=on_progress
         )
     elif lip_sync_type == const.TASK_CONFIG_LIP_SYNC_FALLATENT:
         api_key = args.get("fal_latent_sync_apikey")
@@ -131,7 +193,8 @@ def lip_sync(
             raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, "Fal Latent Sync API key is not provided")
         lip_sync = FalLatentSync(
             api_key=api_key,
-            proxy_url=proxy_url
+            proxy_url=proxy_url,
+            on_progress=on_progress
         )
     elif lip_sync_type == const.TASK_CONFIG_LIP_SYNC_SYNCLABS:
         api_key = args.get("sync_labs_apikey")
@@ -139,7 +202,8 @@ def lip_sync(
             raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, "Sync Labs API key is not provided")
         lip_sync = SyncLabs(
             api_key=api_key,
-            proxy_url=proxy_url
+            proxy_url=proxy_url,
+            on_progress=on_progress
         )
     elif lip_sync_type == const.TASK_CONFIG_LIP_SYNC_HEYGEN:
         api_key = args.get("hey_gen_apikey")
@@ -147,20 +211,20 @@ def lip_sync(
             raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, "HeyGen API key is not provided")
         lip_sync = HeyGen(
             api_key=api_key,
-            proxy_url=proxy_url
+            proxy_url=proxy_url,
+            on_progress=on_progress
         )
-
-    output_full_path = asyncio.run(get_lip_sync_path())
-    if not output_full_path:
-        raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, "storage.lipsync is not configuration")
-    output_full_path = os.path.join(output_full_path, f"{task_id}.mp4")
-    result = lip_sync.lip_sync(
-        video_path,
-        audio_path,
-        output_path=output_full_path
-    )
-    if not Path(result).is_file():
-        raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "Lip sync output file does not exist")
+    video_output_full_path = os.path.join(lip_sync_path, f"{task_id}.mp4")
+    try:
+        result = lip_sync.lip_sync(
+            video_path,
+            audio_path,
+            output_path=video_output_full_path
+        )
+        if not Path(result).is_file():
+            raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, "Lip sync output file does not exist")
+    except Exception as ex:
+        raise VPTException(const.PIPELINE_ERR_LIPSYNC_RUNTIME, f"执行 lip_sync 失败，{ex}", tr=ex) from ex
     return result
 
 

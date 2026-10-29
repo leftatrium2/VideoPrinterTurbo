@@ -1,7 +1,8 @@
 # 对口型实现
 
-当前提供 `SyncLabs`，实现 `LipSyncBase.lip_sync(video_path, audio_path, output_path)`。
-模型调用独立于 `PipelineManager`，暂未添加任务字段或前端入口。
+当前提供自建服务、Sync Labs、HeyGen、fal.ai 四种实现，统一实现
+`LipSyncBase.lip_sync(video_path, audio_path, output_path)`，已接入任务流水线。
+进度通过可选回调及 INFO 日志显示，详见文末进度说明。
 
 ```python
 import os
@@ -38,7 +39,7 @@ result = service.lip_sync("speaker.mp4", "final_voice.m4a", "speaker_synced.mp4"
 ## fal.ai LatentSync
 
 `FalLatentSync` 实现同一个 `LipSyncBase.lip_sync()` 接口，调用固定模型
-`fal-ai/latentsync`，尚未接入任务流水线。
+`fal-ai/latentsync`，已接入任务流水线。
 
 ```python
 import os
@@ -104,7 +105,7 @@ result = service.lip_sync("speaker.mp4", "final_voice.m4a", "speaker_synced.mp4"
   失败不留下最终输出。超时不自动取消云端任务，也不自动重新提交付费任务。
 - 签名上传时原样传递 `upload_headers`，不附加 API 密钥；下载同样不携带密钥。
   上传素材保留在用户的 HeyGen 账号，代码不自动删除云端资产。
-- 尚未接入任务流水线。账号套餐权限、模型质量和真实处理时间仍需使用样片验证。
+- 已接入任务流水线。账号套餐权限、模型质量和真实处理时间仍需使用样片验证。
 
 官方契约：
 
@@ -130,7 +131,7 @@ VPT_HEYGEN_SIM_URL=http://127.0.0.1:4909/heygen .venv/bin/python -m pytest -q te
 from pipeline.lip_sync.remote import RemoteLipSync
 
 service = RemoteLipSync(base_url="http://192.168.1.100:8081", api_key="your-key",
-                        timeline="strict", readiness_timeout=600, job_timeout=7200)
+                        timeline="strict", readiness_timeout=600, job_timeout=0)
 result = service.lip_sync("speaker.mp4", "final_voice.wav", "speaker_synced.mp4")
 ```
 
@@ -152,7 +153,9 @@ result = service.lip_sync("speaker.mp4", "final_voice.wav", "speaker_synced.mp4"
 模型恢复导致的 503 使用独立 `readiness_timeout`（默认 600 秒），不受短暂网络错误的三次重试次数限制；
 重复 503 也有等待上限。401/403/422 等明确错误立即失败。已有任务恢复时直接查询原 ID，失败任务不会重做。
 `request_timeout` 是单次 HTTP 请求超时；`job_timeout` 从输入预检和哈希完成后开始，涵盖就绪等待、
-上传、排队、推理等待、下载与最终验证。客户端超时保留检查点，不取消远程工作。
+上传、排队、推理等待、下载与最终验证。自建服务客户端默认 `job_timeout=0`，不设总时限，
+适用于高分辨率长视频；可显式设置正数秒数限制总等待时间。单次请求与模型就绪超时仍然生效。
+客户端超时保留检查点，不取消远程工作；使用相同输入、输出路径和模式重试，会恢复原任务。
 
 模式保存在 `.lipsync.json` 的身份信息中；模式改变新建会话。旧版无模式字段的检查点仅在 strict 下迁移复用。
 旧 strict 服务和旧调用仍兼容；audio 模式需要同步更新客户端及服务端，不能单独取消客户端时长检查。
@@ -172,3 +175,36 @@ python -m pipeline.lip_sync.check_remote \
 
 开启鉴权时在运行环境设置 `LIPSYNC_API_KEY`。工具生成 `.remote-verification.json`（无密钥），
 记录模式、任务 ID、耗时、音视频时长和 SHA-256；播放输出验收口型和脸部融合。strict 验收应使用已对齐素材。
+
+## 进度提示（2026-10-28 核对）
+
+四种适配器现在均通过任务流水线选择，支持可选的 `on_progress(event)` 回调。
+未传回调时也会输出 INFO 进度日志。同一阶段最多每 5 秒通知一次，阶段切换立即通知；
+持续轮询会刷新已用时间。流水线将提示写入 `task_message`，任务列表沿用现有 5 秒轮询显示。
+进度回调失败只记录警告，不会中止生成或重新提交付费任务。
+
+| 实现 | 可显示信息 | 官方查询契约 |
+| --- | --- | --- |
+| 自建服务 | 排队位置、时间轴校验、已处理帧/总帧数及百分比、编码与校验阶段 | `GET /v1/jobs/{id}` 新增可选 `progress`；旧服务无此字段时显示状态和已用时 |
+| Sync Labs | 状态和真实百分比（有返回时） | `GET /v2/generate/{id}?include=progress` 的 `progress_percent` |
+| fal.ai LatentSync | 队列前方任务数、运行状态、最新运行日志 | status 查询带 `logs=true`，读取 `queue_position` 和 `logs` |
+| HeyGen | 排队、运行、完成或失败及已用时 | `GET /v3/lipsyncs/{id}`；公开文档未列出百分比字段 |
+
+百分比属于当前阶段，不是整个视频工作流的总进度。接口不提供百分比时返回 `null`，
+不会用等待时长估算。服务端生成完成后仍会显示下载、校验阶段；本地文件成功发布后才报告
+`stage=completed`、100%。上传/下载有已知大小时显示阶段字节百分比，否则仅显示阶段。
+fal 运行日志经过密钥/URL 脱敏及长度限制，不作为通用的推理百分比解析。
+
+回调字典包含 `provider`、`stage`、`percent`、`completed`、`total`、`unit`、
+`queue_position`、`job_id`、`elapsed_seconds`、`detail`，未知项为 `None`。
+日志和任务列表使用 `progress.format_progress()` 统一格式化，不需要新增数据库字段。
+
+契约来源：
+
+- https://sync.so/docs/api-reference/api/generate-api/get （`include=progress`，不能与 `wait=true` 组合）
+- https://fal.ai/docs/documentation/model-apis/inference/queue
+- https://developers.heygen.com/lipsync-precision
+
+进度回归：`python -m pytest tests/test_lipsync_progress.py`。
+三个现有 Postman 模拟用例增加进度断言，仍需按模拟服务说明启动后运行；
+未使用真实云端凭据或付费生成任务验证。

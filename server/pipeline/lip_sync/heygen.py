@@ -13,15 +13,17 @@ from urllib.parse import quote, urlsplit
 import requests
 
 from pipeline.lip_sync.base import LipSyncBase
+from pipeline.lip_sync.progress import ProgressFile, response_size
 
 logger = logging.getLogger(__name__)
 
 
 class HeyGen(LipSyncBase):
+    PROGRESS_PROVIDER = 'heygen'
     def __init__(self, api_key: str, mode: str = "precision", *,
                  base_url: str = "https://api.heygen.com/v3", proxy_url: str | None = None,
                  request_timeout: float = 60, upload_timeout: float = 600,
-                 poll_interval: float = 10, job_timeout: float = 3600):
+                 poll_interval: float = 10, job_timeout: float = 3600, on_progress=None):
         if not isinstance(api_key, str) or not api_key.strip():
             raise ValueError("HeyGen api_key is required")
         if mode not in ("speed", "precision"):
@@ -39,6 +41,7 @@ class HeyGen(LipSyncBase):
         self._upload_timeout = upload_timeout
         self._poll_interval = poll_interval
         self._job_timeout = job_timeout
+        self.on_progress = on_progress
         self.last_lipsync_id: str | None = None
 
     @staticmethod
@@ -121,7 +124,7 @@ class HeyGen(LipSyncBase):
         if isinstance(max_bytes, int) and size > max_bytes:
             raise ValueError("HeyGen asset exceeds the server's upload size limit")
         with path.open("rb") as source, self._request(
-                session, "PUT", upload_url, data=source, headers=headers, timeout=self._upload_timeout):
+                session, "PUT", upload_url, data=ProgressFile(source, self._report_progress, "upload_video" if content_type.startswith("video/") else "upload_audio", path.stat().st_size), headers=headers, timeout=self._upload_timeout):
             pass
         complete = self._api(session, "POST", f"assets/{quote(asset_id, safe='')}/complete", json={})
         if self._required(complete, "asset_id") != asset_id:
@@ -165,6 +168,8 @@ class HeyGen(LipSyncBase):
             state = self._api(session, "GET", f"lipsyncs/{quote(job_id, safe='')}",
                               timeout=min(self._request_timeout, remaining))
             status = state.get("status")
+            stage = {'pending': 'queued', 'running': 'running', 'completed': 'remote_completed'}.get(status, 'failed')
+            self._report_progress(stage, job_id=job_id)
             if status != previous:
                 logger.info("HeyGen lipsync %s: %s", job_id, status)
                 previous = status
@@ -178,6 +183,7 @@ class HeyGen(LipSyncBase):
             time.sleep(min(self._poll_interval, max(0, deadline - time.monotonic())))
 
     def lip_sync(self, video_path: str, audio_path: str, output_path: str) -> str:
+        self._start_progress(self.PROGRESS_PROVIDER)
         self.last_lipsync_id = None
         video, audio, output = [Path(p).expanduser().resolve() for p in (video_path, audio_path, output_path)]
         if output in (video, audio) or output.exists():
@@ -216,6 +222,7 @@ class HeyGen(LipSyncBase):
             video_id = self._upload(session, video, "video/mp4" if video.suffix.lower() == ".mp4" else "video/webm")
             audio_id = self._upload(session, upload_audio,
                                     "audio/wav" if upload_audio.suffix.lower() == ".wav" else "audio/mpeg")
+            self._report_progress("submitting")
             # No automatic retries: a lost response may hide an accepted paid job.
             generation = self._api(session, "POST", "lipsyncs", json={
                 "video": {"type": "asset_id", "asset_id": video_id},
@@ -229,15 +236,21 @@ class HeyGen(LipSyncBase):
             # Separate unauthenticated request: never leak the API key to storage/CDN.
             try:
                 with self._request(session, "GET", url, stream=True) as response, downloaded.open("wb") as target:
+                    self._report_progress("download")
+                    received = 0
+                    total = response_size(response)
                     deadline = time.monotonic() + self._upload_timeout
                     for chunk in response.iter_content(1024 * 1024):
                         if time.monotonic() > deadline:
                             raise TimeoutError("HeyGen output download timed out")
                         target.write(chunk)
+                        received += len(chunk)
+                        self._report_progress("download", completed=received, total=total, unit="bytes")
             except requests.RequestException as exc:
                 raise RuntimeError(f"HeyGen output transfer failed ({type(exc).__name__})") from None
             if not downloaded.stat().st_size:
                 raise RuntimeError("HeyGen returned an empty output video")
+            self._report_progress("validating")
             duration = self._probe(downloaded, "video")
             if abs(duration - video_duration) > 0.15:
                 raise ValueError("HeyGen changed the video duration; output rejected")
@@ -253,4 +266,5 @@ class HeyGen(LipSyncBase):
                 os.link(final, output)
             except FileExistsError:
                 raise ValueError("Lip sync output already exists") from None
+        self._report_progress("completed", percent=100, force=True)
         return str(output)

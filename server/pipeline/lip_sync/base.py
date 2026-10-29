@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pipeline.lip_sync.progress import ProgressReporter
 
 
 class LipSyncBase(ABC):
@@ -6,6 +7,16 @@ class LipSyncBase(ABC):
 
     模型路径、设备、服务地址和凭据等配置由具体实现的构造函数接收。
     """
+
+    def _start_progress(self, provider):
+        self._progress_reporter = ProgressReporter(provider, getattr(self, 'on_progress', None))
+        self._report_progress('preparing')
+
+    def _report_progress(self, stage, **kwargs):
+        if not hasattr(self, '_progress_reporter'):
+            self._progress_reporter = ProgressReporter(
+                self.PROGRESS_PROVIDER, getattr(self, 'on_progress', None))
+        self._progress_reporter.emit(stage, **kwargs)
 
     @abstractmethod
     def lip_sync(self, video_path: str, audio_path: str, output_path: str) -> str:

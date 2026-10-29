@@ -17,6 +17,7 @@ from pipeline.downloader.base import DownloaderContext
 from pipeline.rendering.ffmpeg_assembly_video import FFMpegAssemblyVideo
 from pipeline.utils.pipeline_asr_utls import asr_convert, subtitle_convert, audio_separate
 from pipeline.utils.pipeline_lipsync_utils import lip_sync
+from pipeline.lip_sync.progress import format_progress
 from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_material_video_utils import video_overlay
 from pipeline.utils.pipeline_tts_utils import tts_from_subtitle
@@ -218,6 +219,10 @@ class PipelineManager:
             self.__data.material_video_bean.video_material_max_duration = task.video_material_max_duration
             self.__data.material_video_bean.video_material_generate_count = task.video_material_generate_count
             self.__data.material_video_bean.video_material_keyword = task.video_material_keyword
+        # lip sync
+        self.__data.is_lip_sync = task.is_lip_sync == 1
+        if self.__data.is_lip_sync:
+            self.__data.lip_sync_bean.lip_sync_type = task.lip_sync_type
 
     @staticmethod
     def __parse_uploaded_bgm(raw: str | None) -> str:
@@ -670,20 +675,36 @@ class PipelineManager:
             self.__data.lip_sync_bean.hey_gen_apikey = lip_sync_config.hey_gen_apikey
             self.__data.lip_sync_bean.remote_base_url = lip_sync_config.remote_base_url
             self.__data.lip_sync_bean.remote_api_key = lip_sync_config.remote_api_key
-            lip_sync_output_full_path = lip_sync(
-                audio_path=audio_path,
-                video_path=video_path,
-                task_id=self.__data.task_id,
-                proxy_url=self.__proxy,
-                lip_sync_type=self.__data.lip_sync_bean.lip_sync_type,
-                sync_labs_apikey=self.__data.lip_sync_bean.sync_labs_apikey,
-                fal_latent_sync_apikey=self.__data.lip_sync_bean.fal_latent_sync_apikey,
-                hey_gen_apikey=self.__data.lip_sync_bean.hey_gen_apikey,
-                remote_base_url=self.__data.lip_sync_bean.remote_base_url,
-                remote_api_key=self.__data.lip_sync_bean.remote_api_key
-            )
-            if not lip_sync_output_full_path or not Path(lip_sync_output_full_path).is_file():
-                pass
+            try:
+                lip_sync_output_full_path = lip_sync(
+                    audio_path=audio_path,
+                    video_path=video_path,
+                    task_id=self.__data.task_id,
+                    proxy_url=self.__proxy,
+                    lip_sync_type=self.__data.lip_sync_bean.lip_sync_type,
+                    sync_labs_apikey=self.__data.lip_sync_bean.sync_labs_apikey,
+                    fal_latent_sync_apikey=self.__data.lip_sync_bean.fal_latent_sync_apikey,
+                    hey_gen_apikey=self.__data.lip_sync_bean.hey_gen_apikey,
+                    remote_base_url=self.__data.lip_sync_bean.remote_base_url,
+                    remote_api_key=self.__data.lip_sync_bean.remote_api_key,
+                    on_progress=lambda event: PipelineManager._update_download_progress(
+                        task.task_id, format_progress(event))
+                )
+                if not lip_sync_output_full_path or not Path(lip_sync_output_full_path).is_file():
+                    ret_lip_sync_path = lip_sync_output_full_path if lip_sync_output_full_path else "return none"
+                    msg = f"lip sync output path: {ret_lip_sync_path} not exists!"
+                    logger.error(msg)
+                    task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
+                    task.task_message = msg
+                    task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                    return None
+            except VPTException as ex:
+                logger.exception(f"{task.task_url} lip sync error")
+                task.task_status = ex.code
+                task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
             self.__data.lip_sync_bean.lip_sync_full_path = lip_sync_output_full_path if lip_sync_config else ""
         # assembly video(ffmpeg)
         output_path = asyncio.run(get_output_path())

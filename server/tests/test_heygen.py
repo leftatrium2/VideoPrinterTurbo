@@ -98,3 +98,12 @@ def test_preflight_keeps_existing_files(media, tmp_path):
     {'api_key':'test','job_timeout':0},{'api_key':'test','poll_interval':float('nan')}])
 def test_config_validation(options):
     with pytest.raises(ValueError): HeyGen(**options)
+
+
+def test_status_only_progress_callback_does_not_invent_percentage(simulation, media, tmp_path):
+    url, client, _ = simulation
+    events = []
+    service(url, on_progress=events.append).lip_sync(*map(str, media), str(tmp_path / 'progress.mp4'))
+    running = [event for event in events if event['stage'] in ('queued', 'running')]
+    assert running and all(event['percent'] is None for event in running)
+    assert events[-1]['stage'] == 'completed'

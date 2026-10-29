@@ -90,3 +90,13 @@ def test_preflight_does_not_call_service(media,tmp_path):
     {"api_key":"test","guidance_scale":0},{"api_key":"test","job_timeout":float('nan')}])
 def test_config(kwargs):
     with pytest.raises(ValueError): FalLatentSync(**kwargs)
+
+
+def test_queue_and_logs_reach_progress_callback(simulation, media, tmp_path):
+    url, client, _ = simulation
+    events = []
+    service(url, on_progress=events.append).lip_sync(*map(str, media), str(tmp_path / 'progress.mp4'))
+    assert any(event['stage'] == 'queued' and event['queue_position'] == 3 for event in events)
+    assert any(event['stage'] == 'running' and event['detail'] == 'Model running' for event in events)
+    assert client.get(f'{url}/state', timeout=5).json()['logsRequested']
+    assert events[-1]['stage'] == 'completed'

@@ -204,7 +204,7 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
         bgm_path = self.__resolve_bgm_path()
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
-        if self.__pipeline_data.is_material:
+        if self.__pipeline_data.is_material and not self.__pipeline_data.is_lip_sync:
             # 与输出使用同一磁盘，成功、失败都会清理中间文件。
             with TemporaryDirectory(prefix=".vpt_materials_", dir=output.parent) as directory:
                 playlist = self.__prepare_materials(Path(directory))
@@ -229,8 +229,18 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             "-y"
         ]
 
+        # 对口型结果已经包含最终人声，不能再次添加 TTS 音轨。
+        is_lip_sync = self.__pipeline_data.is_lip_sync
+        has_voice = is_lip_sync or self.__pipeline_data.is_tts
+
         # ── 视频输入 ──
-        if playlist is not None:
+        if is_lip_sync:
+            lip_sync_path = self.__pipeline_data.lip_sync_bean.lip_sync_full_path
+            if not lip_sync_path or not Path(lip_sync_path).is_file():
+                raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND,
+                                   f"对口型结果视频不存在：{lip_sync_path}")
+            command.extend(["-i", lip_sync_path])
+        elif playlist is not None:
             command.extend(["-stream_loop", "-1", "-f", "concat", "-i", str(playlist)])
         else:
             command.extend(["-i", self.__pipeline_data.video_bean.video_full_path])
@@ -278,7 +288,9 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             vsrc = "[video]"
 
         # ── 人声 ──
-        if self.__pipeline_data.is_tts:
+        if is_lip_sync:
+            filter_complex += "[0:a:0]aresample=48000,asetpts=N/SR/TB[voice];"
+        elif self.__pipeline_data.is_tts:
             tts_idx = next_input_idx
             command.append("-i")
             command.append(self.__pipeline_data.tts_bean.tts_full_path)
@@ -300,15 +312,15 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
                     f"atrim=duration={duration},"
                     f"asetpts=N/SR/TB[bgm];"
                 )
-                if self.__pipeline_data.is_tts:
-                    """ 如果配置了TTS，那么需要将bgm与TTS一起混合 """
+                if has_voice:
+                    # 将 BGM 与 TTS 或对口型视频中的人声混合。
                     filter_complex += (
                         "[voice][bgm]"
                         "amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[audio]"
                     )
-        elif self.__pipeline_data.is_need_audio_separator and self.__pipeline_data.is_tts:
-            """ 如果有人、声分离设置，并且使用了tts语音，那么需要把bgm放进来 """
-            """ 但如果只有人、声分离设置，没有tts语音，那么直接将原视频放进来就可以，能增加处理速度 """
+        elif self.__pipeline_data.is_need_audio_separator and has_voice:
+            # TTS 或对口型人声与原视频分离出的背景音混合。
+            # 没有替换人声时继续使用视频原音轨。
             bgm_idx = next_input_idx
             command.append("-i")
             command.append(self.__pipeline_data.audio_separator_bean.bgm_path)
@@ -322,14 +334,14 @@ class FFMpegAssemblyVideo(BaseAssemblyVideo):
             )
 
         # ── 映射输出流 ──
-        has_bgm_input = self.__pipeline_data.is_bgm or (self.__pipeline_data.is_need_audio_separator and self.__pipeline_data.is_tts)
-        has_audio_mix = self.__pipeline_data.is_tts and has_bgm_input
+        has_bgm_input = self.__pipeline_data.is_bgm or (self.__pipeline_data.is_need_audio_separator and has_voice)
+        has_audio_mix = has_voice and has_bgm_input
         if filter_complex:
             command.extend(["-filter_complex", filter_complex])
             command.extend(["-map", "0:v:0" if vsrc == "[0:v:0]" else vsrc])
             if has_audio_mix:
                 command.extend(["-map", "[audio]"])
-            elif self.__pipeline_data.is_tts:
+            elif has_voice:
                 command.extend(["-map", "[voice]"])
             elif has_bgm_input:
                 command.extend(["-map", "[bgm]"])

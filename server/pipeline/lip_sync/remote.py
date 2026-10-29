@@ -78,19 +78,23 @@ def _output_lock(path):
 
 
 class RemoteLipSync(LipSyncBase):
+    PROGRESS_PROVIDER = "remote"
+
     def __init__(self, base_url: str, *, api_key: str = '', request_timeout: float = 60,
-                 poll_interval: float = 2, job_timeout: float = 7200,
+                 poll_interval: float = 2, job_timeout: float = 0,
                  chunk_size: int = 8 * 1024 ** 2, retries: int = 3, retry_delay: float = 1,
-                 timeline: str = 'strict', readiness_timeout: float = 600):
+                 timeline: str = 'strict', readiness_timeout: float = 600, on_progress=None):
         parsed = urlsplit(base_url)
         if (parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username
                 or parsed.password or parsed.query or parsed.fragment):
             raise ValueError('base_url must be an HTTP(S) service URL without credentials/query/fragment')
         for name, value in (('request_timeout', request_timeout), ('poll_interval', poll_interval),
-                            ('job_timeout', job_timeout), ('retry_delay', retry_delay),
+                            ('retry_delay', retry_delay),
                             ('readiness_timeout', readiness_timeout)):
             if not math.isfinite(value) or value <= 0:
                 raise ValueError(f'{name} must be finite and positive')
+        if isinstance(job_timeout, bool) or not math.isfinite(job_timeout) or job_timeout < 0:
+            raise ValueError('job_timeout must be finite and nonnegative (0 disables the total deadline)')
         if isinstance(chunk_size, bool) or not isinstance(chunk_size, int) or not 0 < chunk_size <= 8 * 1024 ** 2:
             raise ValueError('chunk_size must be an integer in 1..8MiB')
         if isinstance(retries, bool) or not isinstance(retries, int) or retries < 0:
@@ -101,12 +105,17 @@ class RemoteLipSync(LipSyncBase):
         self.request_timeout, self.poll_interval, self.job_timeout = request_timeout, poll_interval, job_timeout
         self.chunk_size, self.retries, self.retry_delay = chunk_size, retries, retry_delay
         self.last_job_id = None
+        self.on_progress = on_progress
         self.timeline, self.readiness_timeout = timeline, readiness_timeout
 
     def _remaining(self):
         remaining = self._deadline - time.monotonic()
         if remaining <= 0:
-            raise TimeoutError('LipSync timed out; checkpoint retained, remote job may still be running')
+            raise TimeoutError(
+                f'LipSync timed out (job_timeout={self.job_timeout:g}s, '
+                f'job_id={self.last_job_id or "unknown"}); checkpoint retained, '
+                'remote job may still be running; retry with the same inputs and output '
+                'to resume, or set job_timeout=0 to disable the total deadline')
         return remaining
 
     def _pause(self, duration):
@@ -143,8 +152,10 @@ class RemoteLipSync(LipSyncBase):
             raise TimeoutError('LipSync service readiness timed out; checkpoint retained')
 
     def _wait_ready(self, deadline=None):
+        self._report_progress("waiting_ready")
         deadline = min(self._deadline, deadline if deadline is not None else time.monotonic() + self.readiness_timeout)
         while True:
+            self._report_progress('waiting_ready')
             try:
                 with self._request('GET', 'health', root=True, deadline=deadline) as response:
                     health = response.json()
@@ -226,6 +237,8 @@ class RemoteLipSync(LipSyncBase):
                 offset = current['files'][kind]['offset']
                 if not isinstance(offset, int) or not 0 <= offset <= state['identity']['files'][kind]['size']:
                     raise RuntimeError('Invalid server upload offset')
+                self._report_progress('upload_' + kind, completed=offset,
+                                      total=state['identity']['files'][kind]['size'], unit='bytes')
                 if offset == state['identity']['files'][kind]['size']:
                     break
                 with path.open('rb') as source:
@@ -253,6 +266,7 @@ class RemoteLipSync(LipSyncBase):
                     self._pause(self.retry_delay * failures)
 
     def _download(self, jid, result, part):
+        self._report_progress("download", job_id=jid)
         size, sha = result['size'], result['sha256']
         if not isinstance(size, int) or size <= 0 or not isinstance(sha, str) or len(sha) != 64:
             raise RuntimeError('Invalid LipSync result metadata')
@@ -285,6 +299,7 @@ class RemoteLipSync(LipSyncBase):
                             if offset > size:
                                 raise RuntimeError('Result download exceeds declared size')
                             target.write(chunk)
+                            self._report_progress("download", completed=offset, total=size, unit="bytes", job_id=jid)
                 if offset != size or _digest(part) != sha:
                     if offset == size:
                         part.unlink()
@@ -302,6 +317,7 @@ class RemoteLipSync(LipSyncBase):
                 self._pause(self.retry_delay * failures)
 
     def lip_sync(self, video_path: str, audio_path: str, output_path: str) -> str:
+        self._start_progress(self.PROGRESS_PROVIDER)
         self.last_job_id = None
         inputs = {kind: Path(path).expanduser().resolve() for kind, path in
                   (('video', video_path), ('audio', audio_path))}
@@ -323,7 +339,7 @@ class RemoteLipSync(LipSyncBase):
         identity = {'base_url': self.base_url, 'timeline': self.timeline, 'files': {
             kind: {'name': path.name, 'size': path.stat().st_size, 'sha256': _digest(path)}
             for kind, path in inputs.items()}}
-        self._deadline = time.monotonic() + self.job_timeout
+        self._deadline = time.monotonic() + self.job_timeout if self.job_timeout else math.inf
         with _output_lock(output.with_name(output.name + '.lipsync.lock')), requests.Session() as session:
             if output.exists():
                 raise ValueError('LipSync output already exists')
@@ -356,6 +372,7 @@ class RemoteLipSync(LipSyncBase):
                     if not state.get('job_id'):
                         self._upload(state, checkpoint, inputs)
                     if not state.get('job_id'):
+                        self._report_progress("submitting")
                         job = self._api('POST', f"uploads/{state['upload_id']}/submit",
                                         json={'timeline': self.timeline})
                         state['job_id'] = job['job_id']
@@ -365,6 +382,17 @@ class RemoteLipSync(LipSyncBase):
                     while True:
                         job = self._api('GET', f"jobs/{state['job_id']}")
                         self._validate_job(job, duration)
+                        progress = job.get('progress') if isinstance(job.get('progress'), dict) else {}
+                        stage = progress.get('stage') or {'queued': 'queued', 'running': 'running',
+                                                         'succeeded': 'remote_completed', 'failed': 'failed'}.get(job['status'], 'running')
+                        if job['status'] == 'succeeded':
+                            stage = 'remote_completed'  # Download/validation/publication are still pending.
+                        elif job['status'] == 'failed':
+                            stage = 'failed'
+                        self._report_progress(stage, percent=progress.get('percent'),
+                                              completed=progress.get('completed'), total=progress.get('total'),
+                                              unit=progress.get('unit'), queue_position=progress.get('queue_position'),
+                                              job_id=state['job_id'])
                         if job['status'] == 'failed':
                             raise RuntimeError(f"LipSync job {state['job_id']} failed: {job.get('error')}")
                         if job['status'] == 'succeeded':
@@ -380,6 +408,7 @@ class RemoteLipSync(LipSyncBase):
                     state = {'identity': identity}
                     part.unlink(missing_ok=True)
                     self._save(checkpoint, state)
+            self._report_progress('validating')
             if abs(_probe(part, 'video', min(60, self._remaining())) - duration) > .15:
                 raise ValueError('LipSync output video duration changed')
             if abs(_probe(part, 'audio', min(60, self._remaining())) - audio_duration) > .15:
@@ -392,6 +421,7 @@ class RemoteLipSync(LipSyncBase):
             publish_result(part, output)
             part.unlink(missing_ok=True)
             checkpoint.unlink(missing_ok=True)
+            self._report_progress("completed", percent=100, force=True)
             return str(output)
 
 

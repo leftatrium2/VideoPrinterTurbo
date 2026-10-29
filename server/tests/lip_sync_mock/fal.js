@@ -45,10 +45,11 @@ http.createServer(async (req,res) => {
   }
   if (path==='/fal-ai/latentsync/requests/request-1/status') {
     state.polls++;
+    state.logsRequested = new URL(req.url, 'http://localhost').searchParams.get('logs') === 'true';
     if (state.mode==='failed') return send(200,{status:'COMPLETED',error:'no face',error_type:'validation'});
     if (state.mode==='unknown') return send(200,{status:'unexpected'});
-    if (state.mode==='pending' || state.polls===1) return send(200,{status:'IN_QUEUE'});
-    if (state.polls===2) return send(200,{status:'IN_PROGRESS'});
+    if (state.mode==='pending' || state.polls===1) return send(200,{status:'IN_QUEUE',queue_position:3});
+    if (state.polls===2) return send(200,{status:'IN_PROGRESS',logs:state.logsRequested ? [{message:'Model running'}] : undefined});
     return send(200,{status:'COMPLETED'});
   }
   if (path==='/fal-ai/latentsync/requests/request-1') {

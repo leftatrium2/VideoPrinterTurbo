@@ -134,3 +134,12 @@ def test_redirected_output_rejects_invalid_redirects(simulation, media, tmp_path
     with pytest.raises((RuntimeError, ValueError), match=message):
         service(url).lip_sync(*map(str, media), str(output))
     assert not output.exists()
+
+
+def test_provider_percentage_reaches_progress_callback(simulation, media, tmp_path):
+    url, client, _ = simulation
+    events = []
+    service(url, on_progress=events.append).lip_sync(*map(str, media), str(tmp_path / 'progress.mp4'))
+    assert any(event['stage'] == 'running' and event['percent'] == 41.5 for event in events)
+    assert client.get(f'{url}/state', timeout=5).json()['jobs']['job-1']['progressRequested']
+    assert events[-1]['stage'] == 'completed'

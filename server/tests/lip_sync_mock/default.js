@@ -60,9 +60,11 @@ http.createServer(async (req, res) => {
   if (path === '/v2/generate/job-1') {
     if (!state.jobs['job-1']) return send(404, {errorCode:'not_found'});
     state.jobs['job-1'].polls++;
+    const withProgress = new URL(req.url, 'http://localhost').searchParams.get('include') === 'progress';
+    state.jobs['job-1'].progressRequested = withProgress;
     if (state.mode === 'failed' || state.mode === 'rejected')
       return send(200, {id:'job-1',status:state.mode.toUpperCase(),error:'face not found',errorCode:'no_face'});
-    if (state.mode === 'pending' || state.jobs['job-1'].polls === 1) return send(200, {id:'job-1',status:'PROCESSING'});
+    if (state.mode === 'pending' || state.jobs['job-1'].polls === 1) return send(200, {id:'job-1',status:'PROCESSING',progress_percent:withProgress ? 41.5 : undefined});
     return send(200, {id:'job-1',status:'COMPLETED',outputUrl:`${origin}/${['redirect', 'loop', 'unsafe', 'missing_location'].includes(state.mode) ? 'redirect.mp4' : 'output.mp4'}`});
   }
   return send(501, {errorCode:'endpoint_not_modeled'});

@@ -15,7 +15,8 @@ def main():
     parser.add_argument('--audio', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--timeline', choices=('strict', 'audio'), default='strict')
-    parser.add_argument('--job-timeout', type=float, default=7200)
+    parser.add_argument('--job-timeout', type=float, default=0,
+                        help='Total client deadline in seconds; 0 disables it (default)')
     parser.add_argument('--readiness-timeout', type=float, default=600)
     args = parser.parse_args()
     output = Path(args.output).expanduser().resolve()

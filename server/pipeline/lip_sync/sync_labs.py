@@ -15,15 +15,17 @@ from urllib.parse import quote, urljoin, urlsplit
 import requests
 
 from pipeline.lip_sync.base import LipSyncBase
+from pipeline.lip_sync.progress import ProgressFile, response_size
 
 logger = logging.getLogger(__name__)
 
 
 class SyncLabs(LipSyncBase):
+    PROGRESS_PROVIDER = 'sync_labs'
     def __init__(self, api_key: str, model: str = "lipsync-2", *,
                  base_url: str = "https://api.sync.so/v2", proxy_url: str | None = None,
                  request_timeout: float = 60, upload_timeout: float = 600,
-                 poll_interval: float = 10, job_timeout: float = 3600):
+                 poll_interval: float = 10, job_timeout: float = 3600, on_progress=None):
         if not isinstance(api_key, str) or not api_key.strip():
             raise ValueError("Sync Labs api_key is required")
         if not model or not isinstance(model, str):
@@ -41,6 +43,7 @@ class SyncLabs(LipSyncBase):
         self._upload_timeout = upload_timeout
         self._poll_interval = poll_interval
         self._job_timeout = job_timeout
+        self.on_progress = on_progress
         self.last_generation_id: str | None = None
 
     @staticmethod
@@ -134,7 +137,7 @@ class SyncLabs(LipSyncBase):
         asset_url = self._required(signed, "url")
         self._check_url(asset_url)
         with path.open("rb") as source:
-            with self._request(session, "PUT", upload_url, data=source,
+            with self._request(session, "PUT", upload_url, data=ProgressFile(source, self._report_progress, "upload_" + kind.lower(), path.stat().st_size),
                                headers={"Content-Type": content_type}, timeout=self._upload_timeout):
                 pass
         asset = self._api(session, "POST", "assets", json={"url": asset_url, "type": kind, "name": path.name})
@@ -171,6 +174,8 @@ class SyncLabs(LipSyncBase):
         previous_status = None
         while True:
             status = generation.get("status")
+            stage = {'PENDING': 'queued', 'PROCESSING': 'running', 'COMPLETED': 'remote_completed'}.get(status, 'failed')
+            self._report_progress(stage, percent=generation.get('progress_percent') if stage != 'failed' else None, job_id=job_id)
             if status != previous_status:
                 logger.info("Sync Labs generation %s: %s", job_id, status)
                 previous_status = status
@@ -191,9 +196,10 @@ class SyncLabs(LipSyncBase):
             if remaining <= 0:
                 continue
             generation = self._api(session, "GET", f"generate/{quote(job_id, safe='')}",
-                                   timeout=min(self._request_timeout, remaining))
+                                   params={"include": "progress"}, timeout=min(self._request_timeout, remaining))
 
     def lip_sync(self, video_path: str, audio_path: str, output_path: str) -> str:
+        self._start_progress(self.PROGRESS_PROVIDER)
         self.last_generation_id = None
         video, audio, output = [Path(p).expanduser().resolve() for p in (video_path, audio_path, output_path)]
         if output in (video, audio) or output.exists():
@@ -218,6 +224,7 @@ class SyncLabs(LipSyncBase):
                 session.proxies.update(http=self._proxy_url, https=self._proxy_url)
             video_id = self._upload(session, video, "VIDEO")
             audio_id = self._upload(session, audio, "AUDIO")
+            self._report_progress("submitting")
             generation = self._api(session, "POST", "generate", json={
                 "model": self._model,
                 "input": [{"type": "video", "assetId": video_id}, {"type": "audio", "assetId": audio_id}],
@@ -228,15 +235,21 @@ class SyncLabs(LipSyncBase):
             # Separate unauthenticated request: never leak the API key to storage/CDN.
             try:
                 with self._download_request(session, url) as response, downloaded.open("wb") as target:
+                    self._report_progress("download")
+                    received = 0
+                    total = response_size(response)
                     deadline = time.monotonic() + self._upload_timeout
                     for chunk in response.iter_content(1024 * 1024):
                         if time.monotonic() > deadline:
                             raise TimeoutError("Sync Labs output download timed out")
                         target.write(chunk)
+                        received += len(chunk)
+                        self._report_progress("download", completed=received, total=total, unit="bytes")
             except requests.RequestException as exc:
                 raise RuntimeError(f"Sync Labs output transfer failed ({type(exc).__name__})") from None
             if not downloaded.stat().st_size:
                 raise RuntimeError("Sync Labs returned an empty output video")
+            self._report_progress("validating")
             duration = self._probe(downloaded, "video")
             if abs(duration - video_duration) > 0.15:
                 raise ValueError("Sync Labs changed the video duration; output rejected")
@@ -252,4 +265,5 @@ class SyncLabs(LipSyncBase):
                 os.link(final, output)
             except FileExistsError:
                 raise ValueError("Lip sync output already exists") from None
+        self._report_progress("completed", percent=100, force=True)
         return str(output)

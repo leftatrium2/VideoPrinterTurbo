@@ -141,18 +141,22 @@ LLM 精简使用分组后的完整原文和上下文，最终字幕按配音片�
 使用该路径，初次 LLM 字幕保持独立。片段音频和测时记录保存在
 `<tts_rewrite>/segments/<task_id>/`；缓存不包含密钥，文本、音色或参数变化后重新合成。
 调整此流程时运行 `server/tests/test_dubbing_duration.py`，并对真实配音另行试听。
+最终合成启用 `is_lip_sync` 时，使用 `lip_sync_bean.lip_sync_full_path` 的画面和音频，
+跳过素材预处理与额外 TTS 输入；字幕规则保持不变，独立 BGM 优先于分离背景音。
+输出时长仍使用 `video_bean.duration`。修改合成分支时运行 `server/tests/test_assembly_lip_sync.py`。
 对口型基类为 `server/pipeline/lip_sync/base.py` 的 `LipSyncBase.lip_sync()`。
 Sync Labs 实现位于 `sync_labs.py`，fal.ai LatentSync 实现位于 `fal_latentsync.py`，
 HeyGen 实现位于 `heygen.py`（默认 precision，关闭动态时长调整）；
-均直接处理本地视频和最终配音，尚未接入任务流水线。
+均直接处理本地视频和最终配音，已通过 `pipeline_lipsync_utils` 接入任务流水线。
 调用方式、时长约束及 HTTP 模拟测试见 `server/pipeline/lip_sync/README.md`。
 自建 CUDA 服务客户端为 `server/pipeline/lip_sync/remote.py` 的 `RemoteLipSync`，
-配置通过构造函数显式传入，未接入任务流水线或前端。输出旁的 `.lipsync.json`/`.lipsync.part`
+配置通过构造函数显式传入，并由任务流水线选择调用。输出旁的 `.lipsync.json`/`.lipsync.part`
 用于上传、任务和下载恢复，`.lipsync.lock` 为保留的进程锁文件。服务端重启使会话失效时重新上传；
 失败任务不自动重新推理。后台及跨仓库测试位于相邻 `VideoPrinterTurbo_LipSync`，测试需两个仓库同级。
 `RemoteLipSync` 默认 `timeline="strict"`；显式 `audio` 模式通过 HTTP 提交，按完整音频长度
 生成结果，允许正放/倒放循环画面。模式属于任务与检查点身份，切换模式新建会话。
-就绪等待由 `readiness_timeout` 控制，受 `job_timeout` 总预算限制；既有任务优先查询原 ID。
+就绪等待由 `readiness_timeout` 控制；自建客户端 `job_timeout=0` 默认不设总时限，
+显式正数则限制总预算，单次请求和就绪等待仍有独立上限。既有任务优先查询原 ID。
 结果发布逻辑位于 `_publish.py`，不支持硬链接时使用系统独占重命名，保持完整文件原子发布及不覆盖。
 修改协议、恢复或发布逻辑时运行相邻仓库的 `tests/test_transfer.py`、`test_remote_modes.py`、
 `test_remote_readiness.py`、`test_result_publication.py`；真实 HTTP 验收使用
@@ -188,3 +192,16 @@ cd front && npm run build
 ```
 
 本文件是仓库的唯一权威协作说明。项目约定或架构事实变更时，应同步更新本文件。
+
+## 对口型进度提示
+
+四种对口型适配器现均由 `pipeline_lipsync_utils.lip_sync()` 接入任务流水线，支持
+`on_progress(event)`，统一格式化在 `server/pipeline/lip_sync/progress.py`。
+`PipelineManager` 将事件写入现有 `task_message`，任务列表通过既有轮询显示。
+Sync Labs 查询使用 `include=progress` 读取 `progress_percent`；fal status 使用
+`logs=true` 读取队列位置和脱敏后的最新日志；HeyGen 只显示公开契约中的状态，不估算百分比。
+自建服务从任务响应的可选 `progress` 读取阶段和帧数，无该字段的旧服务回退到状态提示。
+同阶段通知按 5 秒节流，阶段切换立即通知，回调失败不影响生成或触发重复提交。
+服务端生成成功不代表本地完成，下载和校验完成并发布文件后才报告 `completed`。
+修改后运行 `server/tests/test_lipsync_progress.py`、三个云适配器 HTTP 模拟测试及
+相邻 LipSync 服务仓库的 `tests/test_progress.py` 和现有传输/恢复测试。
