@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import config.config as _config
 from middleware.i18n_middleware import get_current_lang
 from models.model import VptAsrConfig, VptVideoMaterialPexelsConfig, VptVideoMaterialPixabayConfig, VptTtsVoiceConfig, \
-    VptTasks, VptProxyConfig
+    VptTasks, VptProxyConfig, VptLipSyncConfig
 from models.schemas import TaskItem
 from pipeline.utils.pipeline_video_downloader_utils import check_video
 from utils import const
@@ -52,9 +52,9 @@ async def list_tasks(page: int = Query(default=1, min=1), page_size: int = Query
         task_dict = {c.name: getattr(item, c.name) for c in item.__table__.columns}
         del task_dict['id']
         if item.pipeline_status == const.PIPELINE_STATUS_FINISH:
-            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][11][lang]
-        elif item.pipeline_status == const.PIPELINE_STATUS_ERROR:
             task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][12][lang]
+        elif item.pipeline_status == const.PIPELINE_STATUS_ERROR:
+            task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][13][lang]
         else:
             task_dict['pipeline_status_str'] = _config.i18n_config['task']['pipeline_status'][item.pipeline_status][
                 lang]
@@ -143,6 +143,9 @@ async def update_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_d
     item.video_material_keyword = task.video_material_keyword
     item.format_id = task.format_id
     item.pipeline_status = const.PIPELINE_STATUS_INIT
+    item.is_lip_sync = task.is_lip_sync
+    item.lip_sync_type = task.lip_sync_type
+    item.tts_dubbing_strategy = task.tts_dubbing_strategy
     await db.commit()
     await db.refresh(item)
     return result_succ()
@@ -155,6 +158,8 @@ async def restart_task(task_id: str, db: AsyncSession = Depends(database.get_db)
     if not item:
         return result_failure(const.TASK_RESTART_ERR_TASK_ID_NOT_VALID, f"task id is not valid, task id: {task_id}")
     item.pipeline_status = const.PIPELINE_STATUS_INIT
+    item.task_status = const.PIPELINE_STATUS_SUCCESS
+    item.task_message = ""
     await db.commit()
     await db.refresh(item)
     return result_succ({})
@@ -199,7 +204,10 @@ async def add_tasks(task: TaskItem, db: AsyncSession = Depends(database.get_db))
         video_material_generate_count=task.video_material_generate_count,
         is_publish=task.is_publish,
         video_material_keyword=task.video_material_keyword,
-        format_id=task.format_id
+        format_id=task.format_id,
+        is_lip_sync=task.is_lip_sync,
+        lip_sync_type=task.lip_sync_type,
+        tts_dubbing_strategy=task.tts_dubbing_strategy
     )
     db.add(item)
     await db.commit()
@@ -423,6 +431,47 @@ async def get_task_config(db: AsyncSession = Depends(database.get_db)):
                     {"name": _config.i18n_config['task']['tts'][3][lang],
                      "value": const.TTS_LIST_GOOGLE_GEMINI_TTS_VAL,
                      "voices": json.loads(item.tts_voice_content)})
+    # tts tts_dubbing_strategy
+    ret_dict['tts_dubbing_strategy'] = []
+    ret_dict['tts_dubbing_strategy'].append(
+        {"name": _config.i18n_config['task']['tts_dubbing_strategy'][1][lang],
+         "value": const.DUBBING_STRATEGY_TIMELINE_FIRST})
+    ret_dict['tts_dubbing_strategy'].append(
+        {"name": _config.i18n_config['task']['tts_dubbing_strategy'][2][lang],
+         "value": const.DUBBING_STRATEGY_NATURAL_FIRST})
+    # lip sync config
+    ret_dict['lip_sync'] = []
+    result = await db.execute(select(VptLipSyncConfig).limit(1))
+    item = result.scalar_one_or_none()
+    if item:
+        if item.remote_base_url:
+            ret_dict['lip_sync'].append(
+                {
+                    "name": _config.i18n_config['task']['lip_sync'][0][lang],
+                    "value": const.TASK_CONFIG_LIP_SYNC_REMOTE
+                }
+            )
+        if item.fal_latent_sync_apikey:
+            ret_dict['lip_sync'].append(
+                {
+                    "name": _config.i18n_config['task']['lip_sync'][1][lang],
+                    "value": const.TASK_CONFIG_LIP_SYNC_FALLATENT
+                }
+            )
+        if item.sync_labs_apikey:
+            ret_dict['lip_sync'].append(
+                {
+                    "name": _config.i18n_config['task']['lip_sync'][2][lang],
+                    "value": const.TASK_CONFIG_LIP_SYNC_SYNCLABS
+                }
+            )
+        if item.hey_gen_apikey:
+            ret_dict['lip_sync'].append(
+                {
+                    "name": _config.i18n_config['task']['lip_sync'][3][lang],
+                    "value": const.TASK_CONFIG_LIP_SYNC_HEYGEN
+                }
+            )
 
     return result_succ(ret_dict)
 

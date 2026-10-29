@@ -1,0 +1,5 @@
+simulation: sync-labs-adapter
+routing: path
+mocks:
+  - routeKey: sync
+    path: ./default.js

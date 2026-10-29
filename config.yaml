@@ -15,6 +15,7 @@ storage:
   llm_rewrite: storage/llm_rewrite
   tts_rewrite: storage/tts_rewrite
   material: storage/material
+  lipsync: storage/lipsync
   output: output
 
 database:

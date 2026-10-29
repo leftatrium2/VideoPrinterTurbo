@@ -64,6 +64,96 @@ describe('AddTask', () => {
     ] })
   })
 
+  it.each([false, true])('submits the selected dubbing strategy when editing=%s', async (editing) => {
+    apiMocks.getTaskConfig.mockResolvedValue({
+      asr: [], tts: [], subtitle: [], bgm: [],
+      tts_dubbing_strategy: [{ name: 'None', value: 0 }, { name: 'Timeline first', value: 1 }, { name: 'Natural first', value: 2 }],
+      material: { source: [], splicing: [], transition: [], ratio: [] },
+    })
+    if (editing) {
+      route.query = { task_id: 'task-dubbing' }
+      apiMocks.getTaskDetail.mockResolvedValue({
+        task_url: 'https://example.com/video', audio_rewrite_type: 0,
+        tts_dubbing_strategy: 2, tts_volume: 1, tts_speed: 1, bgm_volume: 0.5,
+        subtitle_font_color: 0xffffff, subtitle_border_color: 0, video_material_keyword: '',
+      })
+    }
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    const field = wrapper.get('.dubbing-strategy-field')
+    const select = field.findComponent({ name: 'el-select' })
+    expect(select.attributes('modelvalue')).toBe(editing ? '2' : '0')
+    expect(field.findAll('el-option-stub').map(option => [option.attributes('label'), option.attributes('value')]))
+      .toEqual([['None', '0'], ['Timeline first', '1'], ['Natural first', '2']])
+    select.vm.$emit('update:modelValue', 1)
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(editing ? apiMocks.updateTask : apiMocks.addTask).toHaveBeenLastCalledWith(expect.objectContaining({
+      tts_dubbing_strategy: 1,
+      ...(editing ? { task_id: 'task-dubbing' } : {}),
+    }))
+    wrapper.unmount()
+  })
+
+  it.each([false, true])('submits lip sync enabled=%s with the first returned service', async (enabled) => {
+    apiMocks.getTaskConfig.mockResolvedValue({
+      asr: [], tts: [], subtitle: [], bgm: [],
+      lip_sync: [{ name: 'Remote service', value: 7 }, { name: 'Other service', value: 9 }],
+      material: { source: [], splicing: [], transition: [], ratio: [] },
+    })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    const section = wrapper.get('.lip-sync-section')
+    expect(section.findComponent({ name: 'el-select' }).attributes('modelvalue')).toBe('7')
+    expect(section.findAll('el-option-stub').map(option => [option.attributes('label'), option.attributes('value')]))
+      .toEqual([['Remote service', '7'], ['Other service', '9']])
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await section.get('input').setValue(enabled)
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).toHaveBeenLastCalledWith(expect.objectContaining({ is_lip_sync: enabled, lip_sync_type: 7 }))
+    wrapper.unmount()
+  })
+
+  it.each([9, 99])('restores saved lip sync service %s if available, otherwise selects the first', async (saved) => {
+    route.query = { task_id: 'task-lip-sync' }
+    apiMocks.getTaskConfig.mockResolvedValue({
+      asr: [], tts: [], subtitle: [], bgm: [],
+      lip_sync: [{ name: 'Remote service', value: 7 }, { name: 'Other service', value: 9 }],
+      material: { source: [], splicing: [], transition: [], ratio: [] },
+    })
+    apiMocks.getTaskDetail.mockResolvedValue({
+      task_url: 'https://example.com/video', audio_rewrite_type: 0,
+      is_lip_sync: 1, lip_sync_type: saved, tts_volume: 1, tts_speed: 1, bgm_volume: 0.5,
+      subtitle_font_color: 0xffffff, subtitle_border_color: 0, video_material_keyword: '',
+    })
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    expect(wrapper.get('.lip-sync-section').get<HTMLInputElement>('input').element.checked).toBe(true)
+    const select = wrapper.get('.lip-sync-section').findComponent({ name: 'el-select' })
+    expect(select.attributes('modelvalue')).toBe(saved === 9 ? '9' : '7')
+    select.vm.$emit('update:modelValue', 9)
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.updateTask).toHaveBeenLastCalledWith(expect.objectContaining({
+      task_id: 'task-lip-sync', is_lip_sync: true, lip_sync_type: 9,
+    }))
+    wrapper.unmount()
+  })
+
+  it('blocks enabled lip sync when the service list is empty', async () => {
+    const wrapper = mount(AddTask, { global: { stubs } })
+    await flushPromises()
+    expect(wrapper.get('.lip-sync-section').findAll('el-option-stub')).toHaveLength(0)
+    await wrapper.get('.lip-sync-section').get('input').setValue(true)
+    await wrapper.findAll('input')[0].setValue('https://example.com/video')
+    await wrapper.get('.submit-btn').trigger('click')
+    await flushPromises()
+    expect(apiMocks.addTask).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
   it('loads resolution labels and submits the selected format ID', async () => {
     apiMocks.checkTaskUrl.mockResolvedValue({ code: 0, msg: 'success', data: [
       { '144p 分辨率': '269' }, { '1080p 分辨率': '270' },

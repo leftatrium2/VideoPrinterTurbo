@@ -1,10 +1,8 @@
-from sympy.abc import M
-
-from models import model
 from pipeline.bean.asr_bean import AsrBean
 from pipeline.bean.audio_separator import AudioSeparatorBean
 from pipeline.bean.bgm_bean import BgmBean
 from pipeline.bean.ffmpeg_bean import FFMPEGBean
+from pipeline.bean.lip_sync_bean import LipSyncBean
 from pipeline.bean.llm_bean import LLMBean
 from pipeline.bean.subtitle_bean import SubtitleBean
 from pipeline.bean.tts_bean import TTSBean
@@ -18,31 +16,46 @@ class PipeLineData:
     url: str = ""
     status: int = const.PIPELINE_STATUS_INIT
     is_remote_video: bool = True
-    video_bean: VideoDownloaderBean = VideoDownloaderBean()
+    video_bean: VideoDownloaderBean
     # 是否启用人声与背景分离
     # 只有在ASR的时候，可用，其他时候，分离没有意义
     is_need_audio_separator: bool = False
-    audio_separator_bean: AudioSeparatorBean = AudioSeparatorBean()
+    audio_separator_bean: AudioSeparatorBean
     # 是否启用ASR或者拉取字幕（从youtube.com）
     is_asr: bool = False
-    asr_bean: AsrBean = AsrBean()
+    asr_bean: AsrBean
     # 是否启用LLM改写
     is_llm: bool = False
-    llm_bean: LLMBean = LLMBean()
+    llm_bean: LLMBean
     # 是否启用TTS语音
     is_tts: bool = False
-    tts_bean: TTSBean = TTSBean()
+    tts_bean: TTSBean
     # 是否启用字幕（输出的时候，将字幕打在屏幕上）
     is_rewrite_subtitle: bool = False
-    subtitle_bean: SubtitleBean = SubtitleBean()
+    subtitle_bean: SubtitleBean
     # 是否启用BGM（如果启用，那么会在当前视频中合并一个BGM音轨进去）
     is_bgm: bool = False
-    bgm_bean: BgmBean = BgmBean()
+    bgm_bean: BgmBean
     # 是否启用视频改写（如果启用，那么当前视频直接被覆盖）
     is_material: bool = False
-    material_video_bean: MaterialVideoBean = MaterialVideoBean()
+    material_video_bean: MaterialVideoBean
+    # lip sync
+    is_lip_sync: bool = False
+    lip_sync_bean: LipSyncBean
     # 最后整理出来，往ffmpeg送的数据
-    ffmpeg_bean: FFMPEGBean = FFMPEGBean()
+    ffmpeg_bean: FFMPEGBean
+
+    def __init__(self):
+        self.video_bean = VideoDownloaderBean()
+        self.audio_separator_bean = AudioSeparatorBean()
+        self.asr_bean = AsrBean()
+        self.llm_bean = LLMBean()
+        self.tts_bean = TTSBean()
+        self.subtitle_bean = SubtitleBean()
+        self.bgm_bean = BgmBean()
+        self.material_video_bean = MaterialVideoBean()
+        self.lip_sync_bean = LipSyncBean()
+        self.ffmpeg_bean = FFMPEGBean()
 
     def __str__(self) -> str:
         return f"""
@@ -64,6 +77,8 @@ class PipeLineData:
         is_bgm: {self.is_bgm},
         bgm_bean: {self.bgm_bean if self.bgm_bean else ''},
         is_material: {self.is_material},
+        is_lip_sync: {self.is_lip_sync},
+        lip_sync_bean: {self.lip_sync_bean if self.lip_sync_bean else ''},
         material_video_bean: {self.material_video_bean if self.material_video_bean else ''},
         ffmpeg_bean: {self.ffmpeg_bean if self.ffmpeg_bean else ''}
         )

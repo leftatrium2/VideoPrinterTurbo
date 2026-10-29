@@ -22,9 +22,13 @@ def tts_from_subtitle(
         api_key: Optional[str] = None,
         region: Optional[str] = None,
         proxy_type: int = const.PROXY_CONFIG_TYPE_UNKNOWN,
-        proxy_url: Optional[str] = None
+        proxy_url: Optional[str] = None,
+        dubbing_strategy: int = const.DUBBING_STRATEGY_TIMELINE_FIRST,
+        **options
 
 ) -> Optional[str]:
+    from pipeline.tts.duration_controller import validate_dubbing_strategy
+    validate_dubbing_strategy(dubbing_strategy)
     tts_service: Optional[TTSBase] = None
     if tts_engine == const.TTS_LIST_AZURE_TTS_V1_VAL:
         tts_service = AzureTTSV1(proxy_type=proxy_type, proxy_url=proxy_url)
@@ -57,7 +61,7 @@ def tts_from_subtitle(
         )
     if not tts_service:
         raise VPTException(const.PIPELINE_ERR_TTS_SERVICE, f"tts_service cant matched, please check your {tts_engine}!")
-    return tts_service.rewrite(subtitle_path, lang, voice)
+    return tts_service.rewrite(subtitle_path, lang, voice, dubbing_strategy=dubbing_strategy, **options)
 
 
 if __name__ == "__main__":

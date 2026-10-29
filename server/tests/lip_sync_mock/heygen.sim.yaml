@@ -1,0 +1,5 @@
+simulation: heygen-lipsync-adapter
+routing: path
+mocks:
+  - routeKey: heygen
+    path: ./heygen.js

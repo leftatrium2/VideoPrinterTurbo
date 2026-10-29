@@ -17,7 +17,7 @@ def llm_rewrite(prompt: str, src_path: str, dst_path: str,
     llm: BaseLLMProvider = OpenAIProvider(
         api_key, base_url, model
     )
-    return llm.rewrite(prompt, src_path, dst_path)
+    return llm.rewrite(prompt, src_path, dst_path, dubbing=args.get("dubbing", False))
 
 
 if __name__ == "__main__":

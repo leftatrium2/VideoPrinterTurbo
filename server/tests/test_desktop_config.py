@@ -22,9 +22,12 @@ def test_sqlite_database_is_migrated_idempotently(tmp_path, monkeypatch, legacy)
         if legacy:
             db.execute('ALTER TABLE vpt_asr_config DROP COLUMN local_whisper_model')
             db.execute('ALTER TABLE vpt_tasks DROP COLUMN format_id')
+            db.execute('DROP TABLE vpt_lip_sync_config')
         db.execute('INSERT INTO vpt_asr_config DEFAULT VALUES')
         db.execute("INSERT INTO vpt_tasks (task_id, task_url) VALUES ('existing-task', 'https://example.com/video')")
         if not legacy:
+            db.execute("INSERT INTO vpt_lip_sync_config (sync_labs_apikey, fal_latent_sync_apikey) "
+                       "VALUES ('test-sync-key', 'test-fal-key')")
             db.execute("UPDATE vpt_tasks SET format_id = '270' WHERE task_id = 'existing-task'")
     monkeypatch.setitem(application._config.config['database'], 'url', f'sqlite+aiosqlite:///{target.as_posix()}')
     monkeypatch.setattr(application, 'gen_config', AsyncMock())
@@ -38,6 +41,17 @@ def test_sqlite_database_is_migrated_idempotently(tmp_path, monkeypatch, legacy)
 
     asyncio.run(boot_twice())
     with sqlite3.connect(target) as db:
+        columns = {row[1] for row in db.execute('PRAGMA table_info(vpt_lip_sync_config)')}
+        assert {'id', 'sync_labs_apikey', 'fal_latent_sync_apikey', 'hey_gen_apikey'} <= columns
+        lip_sync_rows = db.execute(
+            'SELECT sync_labs_apikey, fal_latent_sync_apikey FROM vpt_lip_sync_config').fetchall()
+        if legacy:
+            assert lip_sync_rows == []  # upgrade creates the table without inventing credentials
+            db.execute('INSERT INTO vpt_lip_sync_config DEFAULT VALUES')
+            assert db.execute('SELECT sync_labs_apikey, fal_latent_sync_apikey '
+                              'FROM vpt_lip_sync_config').fetchone() == ('', '')
+        else:
+            assert lip_sync_rows == [('test-sync-key', 'test-fal-key')]
         assert db.execute('SELECT local_whisper_model FROM vpt_asr_config').fetchone() == ('small',)
         assert db.execute('SELECT task_id, task_url, format_id FROM vpt_tasks').fetchone() == (
             'existing-task', 'https://example.com/video', '' if legacy else '270',

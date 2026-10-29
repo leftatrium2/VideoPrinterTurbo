@@ -113,6 +113,55 @@ API 处理位于 `front/src/services/api.ts`，任务轮询位于
   涉及此区域时请核实该行为。其试听接口还要求 `vpt_tts_config` 中存在
   `tts_server=1` 的记录，即使 V1 不需要凭据。
 
+## 配音时长控制
+
+配音启用时，首次 LLM 改写前由 `server/pipeline/tts/dubbing_segments.py`
+按源字幕分组：只合并近乎连续、未遇句末标点或显式说话人标记的字幕，
+间隔最多 150ms，每组最多 10 秒、6 条；单条本身超长时保持原样。
+这些规则是保守启发式，不代替说话人识别。未启用 LLM 时在 TTS 前执行同样分组。
+LLM 精简使用分组后的完整原文和上下文，最终字幕按配音片段输出；
+`alignment.json` 的 `source_subtitle_ids` 保留原字幕映射。调整分组时运行
+`server/tests/test_dubbing_segments.py`。
+
+配音启用时，LLM 改写接收片段时间窗口作为软约束；实际对齐由
+`server/pipeline/tts/duration_controller.py` 统一处理。偏短保留原速和静音，
+`tts_from_subtitle()` 接收整数 `dubbing_strategy`，复用 `utils/const.py` 的
+`DUBBING_STRATEGY_TIMELINE_FIRST=1`（默认）和 `DUBBING_STRATEGY_NATURAL_FIRST=2`，
+未知值直接报错；当前 `PipelineManager` 显式选择时间对齐优先。
+两种策略均先尝试最多两次精简，保留更短的完整候选，再尝试借用后方最多 500ms 空白。
+自然度优先以 1.1 倍为常规上限，允许调速后 30ms 容差和最高 1.2 倍兜底；
+仍超限则检查完全部片段后汇总失败。时间对齐优先对剩余超限片段强制适配窗口，
+记录 `forced_speedup` 和 WARNING，不因时长超限停止任务。非法时间轴、空音频及合成失败
+仍报错；两种策略都按绝对时间定位，音频不顺延到下一片段。
+`alignment.json` 包含整数策略、候选选择、最终文本、原始时长、窗口和倍率；
+切换策略复用原始音频，但重新执行适配判断。有超限片段时自然度优先不导出最终字幕和音轨。
+未启用 LLM 的任务不调用自动精简。
+
+最终配音字幕保存在 TTS 输出目录的 `<task_id>_final.srt`，视频烧录及素材步骤
+使用该路径，初次 LLM 字幕保持独立。片段音频和测时记录保存在
+`<tts_rewrite>/segments/<task_id>/`；缓存不包含密钥，文本、音色或参数变化后重新合成。
+调整此流程时运行 `server/tests/test_dubbing_duration.py`，并对真实配音另行试听。
+最终合成启用 `is_lip_sync` 时，使用 `lip_sync_bean.lip_sync_full_path` 的画面和音频，
+跳过素材预处理与额外 TTS 输入；字幕规则保持不变，独立 BGM 优先于分离背景音。
+输出时长仍使用 `video_bean.duration`。修改合成分支时运行 `server/tests/test_assembly_lip_sync.py`。
+对口型基类为 `server/pipeline/lip_sync/base.py` 的 `LipSyncBase.lip_sync()`。
+Sync Labs 实现位于 `sync_labs.py`，fal.ai LatentSync 实现位于 `fal_latentsync.py`，
+HeyGen 实现位于 `heygen.py`（默认 precision，关闭动态时长调整）；
+均直接处理本地视频和最终配音，已通过 `pipeline_lipsync_utils` 接入任务流水线。
+调用方式、时长约束及 HTTP 模拟测试见 `server/pipeline/lip_sync/README.md`。
+自建 CUDA 服务客户端为 `server/pipeline/lip_sync/remote.py` 的 `RemoteLipSync`，
+配置通过构造函数显式传入，并由任务流水线选择调用。输出旁的 `.lipsync.json`/`.lipsync.part`
+用于上传、任务和下载恢复，`.lipsync.lock` 为保留的进程锁文件。服务端重启使会话失效时重新上传；
+失败任务不自动重新推理。后台及跨仓库测试位于相邻 `VideoPrinterTurbo_LipSync`，测试需两个仓库同级。
+`RemoteLipSync` 默认 `timeline="strict"`；显式 `audio` 模式通过 HTTP 提交，按完整音频长度
+生成结果，允许正放/倒放循环画面。模式属于任务与检查点身份，切换模式新建会话。
+就绪等待由 `readiness_timeout` 控制；自建客户端 `job_timeout=0` 默认不设总时限，
+显式正数则限制总预算，单次请求和就绪等待仍有独立上限。既有任务优先查询原 ID。
+结果发布逻辑位于 `_publish.py`，不支持硬链接时使用系统独占重命名，保持完整文件原子发布及不覆盖。
+修改协议、恢复或发布逻辑时运行相邻仓库的 `tests/test_transfer.py`、`test_remote_modes.py`、
+`test_remote_readiness.py`、`test_result_publication.py`；真实 HTTP 验收使用
+`python -m pipeline.lip_sync.check_remote`，凭据仅通过 `LIPSYNC_API_KEY` 环境变量提供。
+
 ## 常用 API 接口
 
 基础地址：`http://localhost:8080`。Vite 开发代理会将 `/api/*` 映射到后端，
@@ -143,3 +192,16 @@ cd front && npm run build
 ```
 
 本文件是仓库的唯一权威协作说明。项目约定或架构事实变更时，应同步更新本文件。
+
+## 对口型进度提示
+
+四种对口型适配器现均由 `pipeline_lipsync_utils.lip_sync()` 接入任务流水线，支持
+`on_progress(event)`，统一格式化在 `server/pipeline/lip_sync/progress.py`。
+`PipelineManager` 将事件写入现有 `task_message`，任务列表通过既有轮询显示。
+Sync Labs 查询使用 `include=progress` 读取 `progress_percent`；fal status 使用
+`logs=true` 读取队列位置和脱敏后的最新日志；HeyGen 只显示公开契约中的状态，不估算百分比。
+自建服务从任务响应的可选 `progress` 读取阶段和帧数，无该字段的旧服务回退到状态提示。
+同阶段通知按 5 秒节流，阶段切换立即通知，回调失败不影响生成或触发重复提交。
+服务端生成成功不代表本地完成，下载和校验完成并发布文件后才报告 `completed`。
+修改后运行 `server/tests/test_lipsync_progress.py`、三个云适配器 HTTP 模拟测试及
+相邻 LipSync 服务仓库的 `tests/test_progress.py` 和现有传输/恢复测试。
