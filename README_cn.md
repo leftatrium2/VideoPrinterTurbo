@@ -4,14 +4,18 @@
 <h3> <a href="README.md">English</a> | 简体中文</h3>
 <br>
 </div>
-
-**1.0.3 版本：新增 Sync Labs、fal.ai LatentSync、HeyGen 和自建服务对口型支持，任务列表同步显示处理进度。**
+** 🎉🎉🎉 1.1.0 版本：
+新增 唇形同步 功能，具体效果参照：
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
+【专门处理，做了音频翻译后，口型与音频对不上的问题】
+任务列表同步显示处理进度。
+**
 
 **1.0.3 版本发布，增加下载视频的分辨率下载功能**
 
 **1.0.2 版本紧急发布，修复bilibili.com的下载问题**
 
-**🎉 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交**
+** 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交**
 
 ### 最新免安装版本
 
@@ -204,6 +208,19 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
     + 【备注：一旦配置后，可以在”添加任务“中选中，选中后，所有的网络部分都会走配置的代理服务】
   
   + ![asr_config_1](doc/cn/proxy_config.png)
+  
+  + 关于 LipSync 配置 
+  
+    + 什么是 LipSync 配置
+    + 如何配置：
+    + ![lip_sync_config_1](doc/cn/lip_sync_config_1.png)
+    + 什么是自建服务？
+      + https://github.com/leftatrium2/VideoPrinterTurbo_LipSync   具体参照我开源的这个服务
+    + 其他云服务如何配置？
+      + 去下面的地址，申请apikey即可（备注：都是收费服务，除了 heygen 之外，都要求包月付费）
+      + https://sync.so/   
+      + https://app.heygen.com/home
+      + https://fal.ai/models/fal-ai/latentsync
   
 + 开始第一个任务
 

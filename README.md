@@ -4,14 +4,17 @@
 <h3>English | <a href="README_cn.md">简体中文</a></h3>
 <br>
 </div>
+**🎉🎉🎉 Version 1.1.0: Adds lip sync support. See it in action:**
 
-**Version 1.0.3: Adds lip sync support for Sync Labs, fal.ai LatentSync, HeyGen, and self-hosted services, with progress updates in the task list.**
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
+
+**Addresses mismatches between lip movements and translated audio. Processing progress is displayed in the task list.**
 
 **Version 1.0.3 is released: You can now select the video resolution for downloads.**
 
 **Urgent release v1.0.2: Fixes download issues with bilibili.com**
 
-**🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.** 
+**Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.**
 
 ### Latest version
 
@@ -184,6 +187,18 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
     + HTTP and SOCKS5 proxies are supported.
     + **Note:** Once a proxy is configured, you can enable it when adding a task. When enabled, all network operations use the configured proxy service.
     + ![Proxy configuration](doc/en/proxy_config.png)
+
+  + LipSync configuration
+    + What is LipSync configuration?
+    + How do I configure it?
+    + ![LipSync configuration](doc/en/lip_sync_config_1.png)
+    + What is a self-hosted service?
+      + See my open-source service for details: https://github.com/leftatrium2/VideoPrinterTurbo_LipSync
+    + How do I configure the other cloud services?
+      + Visit the following sites to apply for an API key. **Note:** These are paid services; all except HeyGen require a monthly subscription.
+      + https://sync.so/
+      + https://app.heygen.com/home
+      + https://fal.ai/models/fal-ai/latentsync
 
 + Start your first task
   + After completing the configuration, start with the simplest task: downloading a video.

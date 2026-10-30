@@ -25,7 +25,9 @@
 - `logs`、`storage`、`output`：日志、素材和结果。
 
 EXE 内包含仓库中的 `config.yaml`、`downloader.json`、程序依赖、前端、FFmpeg/ffprobe 和资源，
-不包含数据库或 Whisper 模型。首次运行将内置配置复制到持久数据目录；已有配置不会被覆盖。
+不包含数据库或 Whisper 模型。每次启动取得实例锁后，用内置 `config.yaml` 原子替换持久数据目录中的同名文件，
+确保升级后使用完整的新版配置；对该文件的本机修改会被覆盖。
+`downloader.json` 仅在持久数据目录中不存在时复制，已有文件保留。
 仓库配置会随桌面版和 Docker 镜像一起分发，应只保存可公开的默认值，不要写入个人 API 密钥。单文件启动会解压依赖到临时目录，首次启动可能较慢。
 本机默认端口 18080；已有同端口桌面实例时打开现有实例，端口被其他程序占用时使用空闲端口。
 
@@ -40,6 +42,7 @@ EXE 内包含仓库中的 `config.yaml`、`downloader.json`、程序依赖、前
 
 默认使用 `server/.venv/Scripts/python.exe`，可通过 `-Python` 指定其他构建环境。
 产物：`dist/VideoPrinterTurbo.exe`。构建脚本临时设置前端 API 地址为 `/api`。
+打包后运行产物的 `--check-binaries`，内置 FFmpeg/ffprobe 无法运行时构建失败。
 FFmpeg 应包含目标 Windows 架构所需 DLL；优先使用可信的静态构建。
 分发时需遵守所用 FFmpeg 构建、依赖和模型各自的许可证。
 

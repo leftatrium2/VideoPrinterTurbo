@@ -24,4 +24,6 @@ Push-Location $repo
 try {
     & $Python -m PyInstaller --noconfirm --clean desktop/VideoPrinterTurbo.spec
     if ($LASTEXITCODE -ne 0) { throw 'EXE build failed' }
+    & "$repo/dist/VideoPrinterTurbo.exe" --check-binaries
+    if ($LASTEXITCODE -ne 0) { throw 'Bundled FFmpeg/ffprobe check failed' }
 } finally { Pop-Location }

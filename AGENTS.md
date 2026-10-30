@@ -38,7 +38,8 @@ cd front && npm run build
 `utils/const.py` 是任务及配置常量的唯一来源。
 
 根目录的 `config.yaml` 与 `downloader.json` 纳入版本控制，作为源码启动、Docker 镜像和
-桌面版的默认配置来源。源码启动要求两个文件存在；桌面版仅在用户配置不存在时复制内置配置。
+桌面版的默认配置来源。源码启动要求两个文件存在；桌面版每次启动取得实例锁后，用内置
+`config.yaml` 原子替换用户数据目录中的同名文件，`downloader.json` 仅在不存在时复制。
 配置只保存可公开的默认值，个人密钥通过运行环境或本机配置管理。
 
 任务工作线程已启用，调用 `PipelineManager.process_now` 顺序执行任务；
