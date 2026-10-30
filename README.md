@@ -5,6 +5,8 @@
 <br>
 </div>
 
+**Version 1.0.3: Adds lip sync support for Sync Labs, fal.ai LatentSync, HeyGen, and self-hosted services, with progress updates in the task list.**
+
 **Version 1.0.3 is released: You can now select the video resolution for downloads.**
 
 **Urgent release v1.0.2: Fixes download issues with bilibili.com**
@@ -47,26 +49,29 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 
 #### Original video:
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/prYDpMaoM3c)
 
 #### With translated subtitles:
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/EYAjBkKGeRQ)
 
 + AI video redubbing
 
 #### With translated subtitles and new dubbing:
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/UGJeTIepc5g)
 
 + Full video footage replacement
 
 #### With translated subtitles, new dubbing, and replacement footage:
 
-[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
+[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/shorts/cmzkgMi2QFM)
 
-+ And more…
-  + Explore other possibilities. If you have a new idea, please open an issue.
++ Lip sync
+
+#### With translated subtitles, new dubbing, and lip sync:
+
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
 
 ### System Requirements
 
@@ -90,7 +95,7 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 ### Quick Start
 
 + Download a video
-  + Find the video's playback page, for example: https://www.youtube.com/watch?v=E7YiKBeOneo&t=6s
+  + Find the video's playback page, for example: https://www.youtube.com/shorts/prYDpMaoM3c
   + Copy the URL, open VideoPrinterTurbo, click **Add Task**, and paste the URL into **Video URL**.
   + ![Enter a video URL](doc/en/quick_start_1.png)
   + Click **Start Task**.
