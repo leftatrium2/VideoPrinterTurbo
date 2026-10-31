@@ -18,11 +18,11 @@
 
 ### Latest version
 
-[[macOS]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-macos-arm64.zip) Apple Silicon version
+[[macOS]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.1.0/VideoPrinterTurbo-1.1.0-macos-arm64.zip) Apple Silicon version
 
 **After unzip, run directly.**
 
-[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-windows-x64.exe)
+[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.1.0/VideoPrinterTurbo-1.1.0-windows-x64.exe)
 
 **run directly**
 
