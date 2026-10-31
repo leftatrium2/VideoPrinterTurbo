@@ -322,8 +322,8 @@ class RemoteLipSync(LipSyncBase):
         inputs = {kind: Path(path).expanduser().resolve() for kind, path in
                   (('video', video_path), ('audio', audio_path))}
         output = Path(output_path).expanduser().resolve()
-        if output in inputs.values() or output.exists() or output.suffix.lower() != '.mp4':
-            raise ValueError('output_path must be a new .mp4 file distinct from inputs')
+        if output.exists():
+            output.unlink()
         for path in inputs.values():
             if not path.is_file() or not path.stat().st_size:
                 raise ValueError(f'Input missing or empty: {path.name}')
@@ -384,7 +384,8 @@ class RemoteLipSync(LipSyncBase):
                         self._validate_job(job, duration)
                         progress = job.get('progress') if isinstance(job.get('progress'), dict) else {}
                         stage = progress.get('stage') or {'queued': 'queued', 'running': 'running',
-                                                         'succeeded': 'remote_completed', 'failed': 'failed'}.get(job['status'], 'running')
+                                                          'succeeded': 'remote_completed', 'failed': 'failed'}.get(
+                            job['status'], 'running')
                         if job['status'] == 'succeeded':
                             stage = 'remote_completed'  # Download/validation/publication are still pending.
                         elif job['status'] == 'failed':

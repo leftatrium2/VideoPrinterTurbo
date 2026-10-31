@@ -104,7 +104,7 @@ async def get_tts_voice_list(engine: int = Query(default=0), db: AsyncSession = 
 @router.get("/tts_voice_preview")
 async def get_tts_voice_preview(engine: int = Query(default=0), voice: str = Query(default=""),
                                 db: AsyncSession = Depends(database.get_db)):
-    cwd = f"{Path.cwd().parent}"
+    cwd = get_current_path()
     out_path = os.path.join(cwd, "storage/tts_sample/")
     await anyio.to_thread.run_sync(lambda: os.makedirs(out_path, exist_ok=True))
     voice_file_name = voice.replace("/", "_")

@@ -535,6 +535,13 @@ class PipelineManager:
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
                 return None
+            except Exception as ex:
+                logger.exception(f"{task.task_url} llm rewrite error")
+                task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_message = str(ex)
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
         # rewrite to tts
         if self.__data.is_tts:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_TTS)
@@ -705,6 +712,13 @@ class PipelineManager:
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
                 return None
+            except Exception as ex:
+                logger.exception(f"{task.task_url} lip sync error")
+                task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_message = str(ex)
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
             self.__data.lip_sync_bean.lip_sync_full_path = lip_sync_output_full_path if lip_sync_config else ""
         # assembly video(ffmpeg)
         output_path = asyncio.run(get_output_path())
@@ -730,18 +744,32 @@ class PipelineManager:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
             output_path = os.path.join(output_path, f"{task.task_id}.mp4")
             assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
-            full_file_path = assembly_video.assembly(output_path)
-            if full_file_path:
-                task.pipeline_status = const.PIPELINE_STATUS_FINISH
-                task.task_status = const.PIPELINE_STATUS_SUCCESS
-                task.task_message = ""
-                task.output_path = full_file_path
+            full_file_path = None
+            try:
+                full_file_path = assembly_video.assembly(output_path)
+                if full_file_path:
+                    task.pipeline_status = const.PIPELINE_STATUS_FINISH
+                    task.task_status = const.PIPELINE_STATUS_SUCCESS
+                    task.task_message = ""
+                    task.output_path = full_file_path
+                    PipelineManager._update_db_task(task)
+                else:
+                    task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
+                    task.task_status = const.PIPELINE_ERR_FILE_SAVE
+                    task.task_message = "full file path is none"
+                    task.output_path = ""
+                    PipelineManager._update_db_task(task)
+            except VPTException as ex:
+                logger.exception(f"{task.task_url} assembly video error")
+                task.task_status = ex.code
+                task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
-            else:
-                task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
-                task.task_status = const.PIPELINE_ERR_FILE_SAVE
-                task.task_message = "full file path is none"
-                task.output_path = ""
+            except Exception as ex:
+                logger.exception(f"{task.task_url} assembly video error")
+                task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_message = str(ex)
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
             return full_file_path
 

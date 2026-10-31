@@ -44,14 +44,17 @@ async def gen_config(db: AsyncSession):
     result = await db.execute(
         select(VptTtsVoiceConfig).where(VptTtsVoiceConfig.tts_server_name == const.TTS_LIST_AZURE_TTS_V2_VAL))
     item = result.scalar_one_or_none()
-    if not item:
+    if not item or item.tts_voice_content == "[]":
         voices = await get_azure_tts_v2_voices(db)
-        item = VptTtsVoiceConfig(
-            tts_server_name=const.TTS_LIST_AZURE_TTS_V2_VAL,
-            tts_voice_content=json.dumps(voices),
-            tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
-        )
-        db.add(item)
+        if not item:
+            item = VptTtsVoiceConfig(
+                tts_server_name=const.TTS_LIST_AZURE_TTS_V2_VAL,
+                tts_voice_content=json.dumps(voices),
+                tts_server_time=datetime.now().strftime(DATETIME_FORMAT_STR),
+            )
+            db.add(item)
+        elif item.tts_voice_content == "[]":
+            item.tts_voice_content = json.dumps(voices)
     else:
         the_update_datetime = datetime.now()
         dt_str = item.tts_server_time
