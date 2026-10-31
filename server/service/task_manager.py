@@ -72,7 +72,6 @@ class TaskManager(object):
             await asyncio.to_thread(self.processes_threading.join)
 
 
-
 task_manager = TaskManager()
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy import Index, Integer, REAL, Text, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -27,6 +29,17 @@ class VptAsrConfig(Base):
     remote_vllm_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     remote_whisper_cpp_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     local_whisper_model: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'small'"))
+
+
+class VptLipSyncConfig(Base):
+    __tablename__ = 'vpt_lip_sync_config'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sync_labs_apikey: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    fal_latent_sync_apikey: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    hey_gen_apikey: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    remote_base_url: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    remote_api_key: Mapped[Optional[str]] = mapped_column(Text, server_default=text("''"))
 
 
 class VptLlmConfig(Base):
@@ -99,6 +112,9 @@ class VptTasks(Base):
     output_path: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     is_need_audio_separator: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     format_id: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    is_lip_sync: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    lip_sync_type: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    tts_dubbing_strategy: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('1'))
 
 
 class VptTtsConfig(Base):

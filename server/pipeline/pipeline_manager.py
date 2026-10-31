@@ -10,12 +10,14 @@ from sqlalchemy import select
 
 import utils.logger  # noqa: F401  # 确保 logging.basicConfig 在最早执行
 from config.config import init_config
-from models.model import VptTasks, VptAsrConfig, VptLlmConfig, VptTtsConfig
+from models.model import VptTasks, VptAsrConfig, VptLlmConfig, VptTtsConfig, VptLipSyncConfig
 from pipeline.bean.pipeline_data import PipeLineData
 from pipeline.bean.video_downloader_bean import VideoDownloaderBean
 from pipeline.downloader.base import DownloaderContext
 from pipeline.rendering.ffmpeg_assembly_video import FFMpegAssemblyVideo
 from pipeline.utils.pipeline_asr_utls import asr_convert, subtitle_convert, audio_separate
+from pipeline.utils.pipeline_lipsync_utils import lip_sync
+from pipeline.lip_sync.progress import format_progress
 from pipeline.utils.pipeline_llm_utils import llm_rewrite
 from pipeline.utils.pipeline_material_video_utils import video_overlay
 from pipeline.utils.pipeline_tts_utils import tts_from_subtitle
@@ -142,6 +144,18 @@ class PipelineManager:
         finally:
             llm_config_db.close()
 
+    @staticmethod
+    def __get_lip_sync_config():
+        lip_sync_config_db = database.get_sync_session()
+        try:
+            lip_sync_result = lip_sync_config_db.execute(select(VptLipSyncConfig).limit(1))
+            lip_sync_item = lip_sync_result.scalar_one_or_none()
+            if not lip_sync_item:
+                raise VPTException(const.PIPELINE_ERR_LIPSYNC_CONFIG, "lip sync config not found")
+            return lip_sync_item
+        finally:
+            lip_sync_config_db.close()
+
     def __update_pipeline_status(self, task: VptTasks, pipeline_status: int):
         self.__data.status = pipeline_status
         task.pipeline_status = pipeline_status
@@ -178,6 +192,7 @@ class PipelineManager:
             self.__data.tts_bean.tts_speed = task.tts_speed
             self.__data.tts_bean.tts_voice = task.tts_voice
             self.__data.tts_bean.tts_volume = task.tts_volume
+            self.__data.tts_bean.tts_dubbing_strategy = task.tts_dubbing_strategy
         # rewrite subtitle configuration
         self.__data.is_rewrite_subtitle = task.is_rewrite_to_subtitle == 1
         if self.__data.is_rewrite_subtitle:
@@ -204,6 +219,10 @@ class PipelineManager:
             self.__data.material_video_bean.video_material_max_duration = task.video_material_max_duration
             self.__data.material_video_bean.video_material_generate_count = task.video_material_generate_count
             self.__data.material_video_bean.video_material_keyword = task.video_material_keyword
+        # lip sync
+        self.__data.is_lip_sync = task.is_lip_sync == 1
+        if self.__data.is_lip_sync:
+            self.__data.lip_sync_bean.lip_sync_type = task.lip_sync_type
 
     @staticmethod
     def __parse_uploaded_bgm(raw: str | None) -> str:
@@ -285,6 +304,8 @@ class PipelineManager:
         return args
 
     def __get_subtitle_path(self):
+        if self.__data.tts_bean.final_subtitle_path:
+            return self.__data.tts_bean.final_subtitle_path
         if self.__data.is_llm:
             return self.__data.llm_bean.llm_full_path
         else:
@@ -306,6 +327,7 @@ class PipelineManager:
         :param task: 任务信息
         :return: 生成的最终视频文件全路径
         """
+        self.clear_data()
         self.__process_task_info(task)
         # set status to start
         self.__update_pipeline_status(task, const.PIPELINE_STATUS_START)
@@ -370,7 +392,7 @@ class PipelineManager:
             # 过滤后的相对路径：storage/downloads/20260913190132110313.mp4
             self.__data.video_bean.video_full_path = local_video_path
             self.__data.video_bean.title = res.get('title') or ''
-            self.__data.video_bean.duration = int(res.get('duration') or 0)
+            self.__data.video_bean.duration = float(res.get('duration') or 0)
             self.__data.video_bean.width = int(res.get('width') or 0)
             self.__data.video_bean.height = int(res.get('height') or 0)
             self.__data.video_bean.metadata = res.get('metadata') or {}
@@ -494,7 +516,8 @@ class PipelineManager:
                     dst_path=str(llm_rewrite_path),
                     api_key=api_key,
                     base_url=base_url,
-                    model=model
+                    model=model,
+                    dubbing=self.__data.is_tts
                 )
                 if not llm_rewrite_path.is_file():
                     msg = f"{task.task_url} llm rewrite error, llm rewrite path is None"
@@ -509,6 +532,13 @@ class PipelineManager:
                 logger.exception(f"{task.task_url} llm rewrite error")
                 task.task_status = ex.code
                 task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
+            except Exception as ex:
+                logger.exception(f"{task.task_url} llm rewrite error")
+                task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_message = str(ex)
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
                 return None
@@ -551,15 +581,59 @@ class PipelineManager:
                 task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
                 return None
-            res = tts_from_subtitle(
-                tts_engine=self.__data.tts_bean.tts_server,
-                subtitle_path=subtitle_path,
-                voice=self.__data.tts_bean.tts_voice,
-                lang=get_lang_from_voice(self.__data.tts_bean.tts_voice),
-                api_key=tts_config_item.tts_apikey,
-                region=tts_config_item.tts_area,
-                proxy_url=self.__proxy
-            )
+            try:
+                from pipeline.tts.dubbing_segments import group_subtitles
+                from utils.tts_utils import TTSUtils
+                sources, mappings = group_subtitles(
+                    TTSUtils.parse_srt(self.__data.asr_bean.subtitle_full_path))
+                shorten = None
+                if self.__data.is_llm:
+                    from openai import OpenAI
+                    from pipeline.llm.llm_utils import LLMUtils
+                    from utils.tts_utils import TTSUtils
+                    cfg = PipelineManager.__get_llm_config()
+                    client = OpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
+
+                    def shorten(index, text, actual_ms, target_ms):
+                        source = sources[index].content
+                        context = " ".join(s.content for s in sources[max(0, index - 1):index + 2])
+                        instruction = (f"{self.__data.llm_bean.llm_text}\n"
+                                       f"精简当前配音，保持当前语言及原意，不得删去事实、数字、名称和关键含义。"
+                                       f"实际时长 {actual_ms}ms，目标 {target_ms}ms，时长只是软约束。"
+                                       f"只改写当前原文对应的内容，禁止加入相邻片段的信息，即使当前原文是半句话。"
+                                       f"上下文仅帮助理解，不是本片段需要朗读的内容。"
+                                       f"当前原文：{source}\n参考上下文：{context}")
+                        return LLMUtils.rewrite_batch(client, cfg.llm_model_name, [text], instruction)[0]
+
+                final_srt = str(Path(tts_rewrite_dir) / f"{self.__data.task_id}_final.srt")
+                res = tts_from_subtitle(
+                    tts_engine=self.__data.tts_bean.tts_server,
+                    dubbing_strategy=self.__data.tts_bean.tts_dubbing_strategy,
+                    subtitle_path=subtitle_path,
+                    voice=self.__data.tts_bean.tts_voice,
+                    lang=get_lang_from_voice(self.__data.tts_bean.tts_voice),
+                    api_key=tts_config_item.tts_apikey,
+                    region=tts_config_item.tts_area,
+                    proxy_url=self.__proxy,
+                    shorten=shorten,
+                    rewrite_context=self.__data.llm_bean.llm_text if self.__data.is_llm else "",
+                    source_subs=sources,
+                    source_subtitle_ids=mappings,
+                    group_for_dubbing=not self.__data.is_llm,
+                    cache_dir=str(Path(tts_rewrite_dir) / "segments" / str(self.__data.task_id)),
+                    video_duration_ms=round((self.__data.video_bean.duration or
+                                             get_video_or_audio_duration(get_absolute_path(
+                                                 self.__data.video_bean.video_full_path))) * 1000),
+                    final_subtitle_path=final_srt,
+                )
+            except Exception as ex:
+                logger.exception("TTS alignment failed for task %s: %s", task.task_id, ex)
+                task.task_status = const.PIPELINE_ERR_TTS_CONVERT
+                task.task_message = str(ex) if isinstance(ex,
+                                                          ValueError) else "TTS synthesis failed; check provider configuration and connectivity"
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
             if not res:
                 msg = f"tts return empty!"
                 logger.error(msg)
@@ -578,6 +652,7 @@ class PipelineManager:
                 PipelineManager._update_db_task(task)
                 return None
             self.__data.tts_bean.tts_full_path = str(res_path)
+            self.__data.tts_bean.final_subtitle_path = final_srt
         # material video
         if self.__data.is_material:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_OVERLAY)
@@ -592,6 +667,59 @@ class PipelineManager:
                 proxy_url=self.__proxy
             )
             self.__data.material_video_bean.video_materials = res_list
+        # lip sync video
+        if self.__data.is_lip_sync:
+            self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_LIP_SYNC)
+            if not self.__data.is_tts:
+                # 如果选择了 唇形同步 ，那么至少需要选择TTS语音输出，否则 做唇形同步没有意义
+                raise VPTException(const.PIPELINE_ERR_LIPSYNC_NEED_TTS,
+                                   f"If you select lip-sync, you must also choose a TTS (text-to-speech) voice output; otherwise, performing lip-sync is pointless.")
+            audio_path = self.__data.tts_bean.tts_full_path
+            video_path = self.__data.video_bean.video_full_path
+            lip_sync_config = PipelineManager.__get_lip_sync_config()
+            self.__data.lip_sync_bean.sync_labs_apikey = lip_sync_config.sync_labs_apikey
+            self.__data.lip_sync_bean.fal_latent_sync_apikey = lip_sync_config.fal_latent_sync_apikey
+            self.__data.lip_sync_bean.hey_gen_apikey = lip_sync_config.hey_gen_apikey
+            self.__data.lip_sync_bean.remote_base_url = lip_sync_config.remote_base_url
+            self.__data.lip_sync_bean.remote_api_key = lip_sync_config.remote_api_key
+            try:
+                lip_sync_output_full_path = lip_sync(
+                    audio_path=audio_path,
+                    video_path=video_path,
+                    task_id=self.__data.task_id,
+                    proxy_url=self.__proxy,
+                    lip_sync_type=self.__data.lip_sync_bean.lip_sync_type,
+                    sync_labs_apikey=self.__data.lip_sync_bean.sync_labs_apikey,
+                    fal_latent_sync_apikey=self.__data.lip_sync_bean.fal_latent_sync_apikey,
+                    hey_gen_apikey=self.__data.lip_sync_bean.hey_gen_apikey,
+                    remote_base_url=self.__data.lip_sync_bean.remote_base_url,
+                    remote_api_key=self.__data.lip_sync_bean.remote_api_key,
+                    on_progress=lambda event: PipelineManager._update_download_progress(
+                        task.task_id, format_progress(event))
+                )
+                if not lip_sync_output_full_path or not Path(lip_sync_output_full_path).is_file():
+                    ret_lip_sync_path = lip_sync_output_full_path if lip_sync_output_full_path else "return none"
+                    msg = f"lip sync output path: {ret_lip_sync_path} not exists!"
+                    logger.error(msg)
+                    task.task_status = const.PIPELINE_ERR_FILE_NOT_FOUND
+                    task.task_message = msg
+                    task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                    return None
+            except VPTException as ex:
+                logger.exception(f"{task.task_url} lip sync error")
+                task.task_status = ex.code
+                task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
+            except Exception as ex:
+                logger.exception(f"{task.task_url} lip sync error")
+                task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_message = str(ex)
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
+                PipelineManager._update_db_task(task)
+                return None
+            self.__data.lip_sync_bean.lip_sync_full_path = lip_sync_output_full_path if lip_sync_config else ""
         # assembly video(ffmpeg)
         output_path = asyncio.run(get_output_path())
         if not output_path:
@@ -616,18 +744,32 @@ class PipelineManager:
             self.__update_pipeline_status(task, const.PIPELINE_STATUS_VIDEO_ASSEMBLY)
             output_path = os.path.join(output_path, f"{task.task_id}.mp4")
             assembly_video = FFMpegAssemblyVideo(pipeline_data=self.__data)
-            full_file_path = assembly_video.assembly(output_path)
-            if full_file_path:
-                task.pipeline_status = const.PIPELINE_STATUS_FINISH
-                task.task_status = const.PIPELINE_STATUS_SUCCESS
-                task.task_message = ""
-                task.output_path = full_file_path
+            full_file_path = None
+            try:
+                full_file_path = assembly_video.assembly(output_path)
+                if full_file_path:
+                    task.pipeline_status = const.PIPELINE_STATUS_FINISH
+                    task.task_status = const.PIPELINE_STATUS_SUCCESS
+                    task.task_message = ""
+                    task.output_path = full_file_path
+                    PipelineManager._update_db_task(task)
+                else:
+                    task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
+                    task.task_status = const.PIPELINE_ERR_FILE_SAVE
+                    task.task_message = "full file path is none"
+                    task.output_path = ""
+                    PipelineManager._update_db_task(task)
+            except VPTException as ex:
+                logger.exception(f"{task.task_url} assembly video error")
+                task.task_status = ex.code
+                task.task_message = ex.message
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
-            else:
-                task.pipeline_status = const.PIPELINE_ERR_UNKNOWN
-                task.task_status = const.PIPELINE_ERR_FILE_SAVE
-                task.task_message = "full file path is none"
-                task.output_path = ""
+            except Exception as ex:
+                logger.exception(f"{task.task_url} assembly video error")
+                task.task_status = const.PIPELINE_ERR_UNKNOWN
+                task.task_message = str(ex)
+                task.pipeline_status = const.PIPELINE_STATUS_ERROR
                 PipelineManager._update_db_task(task)
             return full_file_path
 
@@ -648,7 +790,7 @@ pipeline = PipelineManager()
 if __name__ == "__main__":
     init_config()
     init_downloader()
-    task_id = "20261012112651686947"
+    task_id = "20261021172733546142"
     database.start()
     db = database.get_sync_session()
     try:

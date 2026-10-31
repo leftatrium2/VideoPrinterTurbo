@@ -30,6 +30,11 @@ const router = createRouter({
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.taskList'] },
         },
         {
+          path: 'settings/lip_sync',
+          component: () => import('@/views/LipSyncConfig.vue'),
+          meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.lipSync'] },
+        },
+        {
           path: 'settings/asr',
           component: () => import('@/views/AsrConfig.vue'),
           meta: { breadcrumb: ['breadcrumb.appName', 'breadcrumb.settings', 'breadcrumb.asr'] },

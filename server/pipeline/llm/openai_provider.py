@@ -20,7 +20,7 @@ class OpenAIProvider(BaseLLMProvider):
         self.__api_key = api_key
         self.__model = model
 
-    def rewrite(self, prompt: str, src: str, dst: str) -> bool:
+    def rewrite(self, prompt: str, src: str, dst: str, dubbing=False) -> bool:
         if not prompt:
             raise VPTException(const.PIPELINE_ERR_VALUE, "prompt is empty!")
         if not self.__base_url:
@@ -34,12 +34,17 @@ class OpenAIProvider(BaseLLMProvider):
             base_url=self.__base_url,
         )
         subtitles = SubTitleUtils.parse_srt(src)
+        if dubbing:
+            from utils.tts_utils import TTSUtils
+            from pipeline.tts.dubbing_segments import group_subtitles, as_rewrite_subtitles
+            grouped, _ = group_subtitles(TTSUtils.parse_srt(src))
+            subtitles = as_rewrite_subtitles(grouped)
         #  batch_size 怎么定
         # 太大容易超 context 或者模型漏译/漏返回；
         # 太小请求次数多、成本高。
         # 中文字幕一般每批 30~80 条比较稳，长字幕（每条很多字）适当调小。
         dst_subtitles = LLMUtils.rewrite_srt(
-            client, self.__model, subtitles, prompt, batch_size=50
+            client, self.__model, subtitles, prompt, batch_size=50, dubbing=dubbing
         )
         SubTitleUtils.write_srt(dst_subtitles, dst)
         return Path(dst).is_file()

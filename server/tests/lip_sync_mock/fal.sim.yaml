@@ -1,0 +1,5 @@
+simulation: fal-latentsync-adapter
+routing: path
+mocks:
+  - routeKey: fal
+    path: ./fal.js

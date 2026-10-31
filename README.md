@@ -4,20 +4,25 @@
 <h3>English | <a href="README_cn.md">简体中文</a></h3>
 <br>
 </div>
+**🎉🎉🎉 Version 1.1.0: Adds lip sync support. See it in action:**
+
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
+
+**Addresses mismatches between lip movements and translated audio. Processing progress is displayed in the task list.**
 
 **Version 1.0.3 is released: You can now select the video resolution for downloads.**
 
 **Urgent release v1.0.2: Fixes download issues with bilibili.com**
 
-**🎉 Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.** 
+**Version 1.0.1 is officially released! Batch downloads now support up to 100 links. Paste links one at a time or upload a text file.**
 
 ### Latest version
 
-[[macOS]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-macos-arm64.zip) Apple Silicon version
+[[macOS]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.1.0/VideoPrinterTurbo-1.1.0-macos-arm64.zip) Apple Silicon version
 
 **After unzip, run directly.**
 
-[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-windows-x64.exe)
+[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.1.0/VideoPrinterTurbo-1.1.0-windows-x64.exe)
 
 **run directly**
 
@@ -47,26 +52,29 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 
 #### Original video:
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/prYDpMaoM3c)
 
 #### With translated subtitles:
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/EYAjBkKGeRQ)
 
 + AI video redubbing
 
 #### With translated subtitles and new dubbing:
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/UGJeTIepc5g)
 
 + Full video footage replacement
 
 #### With translated subtitles, new dubbing, and replacement footage:
 
-[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
+[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/shorts/cmzkgMi2QFM)
 
-+ And more…
-  + Explore other possibilities. If you have a new idea, please open an issue.
++ Lip sync
+
+#### With translated subtitles, new dubbing, and lip sync:
+
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
 
 ### System Requirements
 
@@ -90,7 +98,7 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
 ### Quick Start
 
 + Download a video
-  + Find the video's playback page, for example: https://www.youtube.com/watch?v=E7YiKBeOneo&t=6s
+  + Find the video's playback page, for example: https://www.youtube.com/shorts/prYDpMaoM3c
   + Copy the URL, open VideoPrinterTurbo, click **Add Task**, and paste the URL into **Video URL**.
   + ![Enter a video URL](doc/en/quick_start_1.png)
   + Click **Start Task**.
@@ -179,6 +187,18 @@ VideoPrinterTurbo provides only video processing and assisted content creation f
     + HTTP and SOCKS5 proxies are supported.
     + **Note:** Once a proxy is configured, you can enable it when adding a task. When enabled, all network operations use the configured proxy service.
     + ![Proxy configuration](doc/en/proxy_config.png)
+
+  + LipSync configuration
+    + What is LipSync configuration?
+    + How do I configure it?
+    + ![LipSync configuration](doc/en/lip_sync_config_1.png)
+    + What is a self-hosted service?
+      + See my open-source service for details: https://github.com/leftatrium2/VideoPrinterTurbo_LipSync
+    + How do I configure the other cloud services?
+      + Visit the following sites to apply for an API key. **Note:** These are paid services; all except HeyGen require a monthly subscription.
+      + https://sync.so/
+      + https://app.heygen.com/home
+      + https://fal.ai/models/fal-ai/latentsync
 
 + Start your first task
   + After completing the configuration, start with the simplest task: downloading a video.

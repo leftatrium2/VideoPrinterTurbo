@@ -123,6 +123,15 @@ async def get_material_path() -> Optional[str]:
     return path
 
 
+async def get_lip_sync_path() -> Optional[str]:
+    path = _config.config['storage']['lipsync']
+    if not path:
+        return None
+    path = get_absolute_path(path)
+    await anyio.to_thread.run_sync(lambda: Path(path).mkdir(parents=True, exist_ok=True))
+    return path
+
+
 async def get_output_path() -> Optional[str]:
     path = _config.config['storage']['output']
     if not path:
@@ -151,8 +160,6 @@ async def remove_download_video(task_id: str):
 
     download_mp4_file = Path(download_path, f"{task_id}.mp4")
     download_mp3_file = Path(download_path, f"{task_id}.mp3")
-
-
 
     try:
         await anyio.to_thread.run_sync(lambda: download_mp4_file.unlink(missing_ok=True))

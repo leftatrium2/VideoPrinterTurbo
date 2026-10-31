@@ -2,7 +2,7 @@ app:
   name: VideoPrinterTurbo
   port: 8080
   debug: true
-  version: 1.0.1
+  version: 1.1.0
 
 storage:
   path: storage
@@ -15,6 +15,7 @@ storage:
   llm_rewrite: storage/llm_rewrite
   tts_rewrite: storage/tts_rewrite
   material: storage/material
+  lipsync: storage/lipsync
   output: output
 
 database:

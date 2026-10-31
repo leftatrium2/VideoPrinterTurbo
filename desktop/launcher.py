@@ -9,6 +9,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.request
@@ -62,14 +63,29 @@ def prepare():
     os.environ.setdefault("VPT_MODEL_DIR", str(model_dir))
     for directory in ("db", "logs", "storage", "output"):
         (data / directory).mkdir(exist_ok=True)
-    for name in ("config.yaml", "downloader.json"):
-        if not (data / name).exists():
-            shutil.copyfile(resource / name, data / name)
     os.environ["PATH"] = str(resource / "bin") + os.pathsep + os.environ.get("PATH", "")
     # Legacy relative SQLite URLs resolve here; application storage uses VPT_DATA_DIR.
     os.chdir(data)
     sys.path.insert(0, str(resource / "server"))
     return resource, data
+
+
+def install_config(resource, data):
+    """Refresh bundled defaults only while holding the instance lock."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=data, prefix=".config-", suffix=".tmp", delete=False) as target:
+            temporary = Path(target.name)
+            with (resource / "config.yaml").open("rb") as source:
+                shutil.copyfileobj(source, target)
+            target.flush()
+            os.fsync(target.fileno())
+        os.replace(temporary, data / "config.yaml")
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    if not (data / "downloader.json").exists():
+        shutil.copyfile(resource / "downloader.json", data / "downloader.json")
 
 
 
@@ -138,6 +154,7 @@ def main():
     resource, data = prepare()
     if not acquire_instance(data, args.no_browser):
         return
+    install_config(resource, data)
     migrate_legacy_models()
     # Keep the socket reserved through server startup, preventing port races.
     listener = socket.socket()

@@ -77,7 +77,7 @@ class SiliconFlowTTS(TTSBase):
         self.__proxy_url = proxy_url
         self.__bitrate = "128k"
 
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str, **options) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             logger.error(f"File {subtitle_path} does not exist")
             return None
@@ -96,7 +96,7 @@ class SiliconFlowTTS(TTSBase):
             synth_kwargs["proxy"] = self.__proxy_url
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            timeline = TTSUtils.build_timeline(subs, SiliconFlowTTS.synthesize, synth_kwargs, tmp_dir)
+            timeline = TTSUtils.build_timeline(subs, SiliconFlowTTS.synthesize, synth_kwargs, tmp_dir, **options)
             TTSUtils.export_timeline(timeline, tts_file_path, bitrate=self.__bitrate)
         return tts_file_path
 

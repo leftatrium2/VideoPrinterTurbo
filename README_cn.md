@@ -4,20 +4,26 @@
 <h3> <a href="README.md">English</a> | 简体中文</h3>
 <br>
 </div>
+** 🎉🎉🎉 1.1.0 版本：
+新增 唇形同步 功能，具体效果参照：
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
+【专门处理，做了音频翻译后，口型与音频对不上的问题】
+任务列表同步显示处理进度。
+**
 
 **1.0.3 版本发布，增加下载视频的分辨率下载功能**
 
 **1.0.2 版本紧急发布，修复bilibili.com的下载问题**
 
-**🎉 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交**
+** 1.0.1版本郑重发布，支持批量下载，最大100个链接，可以一个一个粘贴，也支持文本文件方式提交**
 
 ### 最新免安装版本
 
-[[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-macos-arm64.zip)
+[[macOS] Apple Silicon](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.1.0/VideoPrinterTurbo-1.1.0-macos-arm64.zip)
 
 ***解压后，直接运行***
 
-[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.0.3/VideoPrinterTurbo-1.0.3-windows-x64.exe)
+[[windows]](https://github.com/leftatrium2/VideoPrinterTurbo/releases/download/v1.1.0/VideoPrinterTurbo-1.1.0-windows-x64.exe)
 
 ***无需解压，直接运行***
 
@@ -46,23 +52,24 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
   + 调用链：下载->ASR->LLM改写->字幕配置->输出成品
 #### 原视频：
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=E7YiKBeOneo&t=1s)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/prYDpMaoM3c)
 
 #### 增加翻译字幕后：
 
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=AiSW3_SyaKs)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/EYAjBkKGeRQ)
 
 + 视频 AI 重配音
 
 #### 增加翻译字幕并重新配音：
-[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/watch?v=08dmRF8JVaI)
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/UGJeTIepc5g)
 
 + 视频全覆盖
 #### 增加翻译字幕、重新配音并修改视频：
-[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/watch?v=321RVhF8ok8)
+[![Watch the demo](doc/thumbnails_2.webp)](https://www.youtube.com/shorts/cmzkgMi2QFM)
 
-+ 其他……
-  + 等待你发掘，有新的想法，请给我提交一下issue
++ 唇形同步
+#### 增加翻译字幕并重新配音并增加唇形同步：
+[![Watch the demo](doc/thumbnails.webp)](https://www.youtube.com/shorts/RnOhREOIXtc)
 
 
 ### 配置要求
@@ -89,7 +96,7 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
 ### 快速开始
 
 + 纯下载视频
-  + 找到视频的播放页，比如：https://www.youtube.com/watch?v=LxPf_bzZXXw
+  + 找到视频的播放页，比如：https://www.youtube.com/shorts/prYDpMaoM3c
   + 拷贝此 Url，打开 VideoPrinterTurbo，点击 “添加任务”，将Url 拷贝到 视频链接 中
 	+ ![](doc/cn/quick_start_1.png)
   + 点击“开始任务”
@@ -201,6 +208,19 @@ VideoPrinterTurbo 仅提供视频处理与辅助创作功能，不授予任何�
     + 【备注：一旦配置后，可以在”添加任务“中选中，选中后，所有的网络部分都会走配置的代理服务】
   
   + ![asr_config_1](doc/cn/proxy_config.png)
+  
+  + 关于 LipSync 配置 
+  
+    + 什么是 LipSync 配置
+    + 如何配置：
+    + ![lip_sync_config_1](doc/cn/lip_sync_config_1.png)
+    + 什么是自建服务？
+      + https://github.com/leftatrium2/VideoPrinterTurbo_LipSync   具体参照我开源的这个服务
+    + 其他云服务如何配置？
+      + 去下面的地址，申请apikey即可（备注：都是收费服务，除了 heygen 之外，都要求包月付费）
+      + https://sync.so/   
+      + https://app.heygen.com/home
+      + https://fal.ai/models/fal-ai/latentsync
   
 + 开始第一个任务
 

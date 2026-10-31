@@ -85,11 +85,13 @@ class AzureTTSV2(TTSBase):
         self.__proxy_type = proxy_type
         self.__proxy_url = proxy_url
 
-    def rewrite(self, subtitle_path: str, lang: str, voice: str) -> Optional[str]:
+    def rewrite(self, subtitle_path: str, lang: str, voice: str, **options) -> Optional[str]:
         if not os.path.exists(subtitle_path):
             raise VPTException(const.PIPELINE_ERR_FILE_NOT_FOUND, f"File {subtitle_path} does not exist")
         name, ext = os.path.splitext(os.path.basename(subtitle_path))
         path = asyncio.run(get_tts_rewrite_path())
+        if not path:
+            raise VPTException(const.PIPELINE_ERR_INVALID_CONFIG, f"storage.tts_rewrite has not configured")
         subs = TTSUtils.parse_srt(subtitle_path)
         if not subs:
             raise VPTException(const.PIPELINE_ERR_TTS_SRT_PARSE, f"No subtitle in {subtitle_path}")
@@ -103,9 +105,11 @@ class AzureTTSV2(TTSBase):
             synth_kwargs["proxy"] = self.__proxy_url
         try:
             with tempfile.TemporaryDirectory() as tmp_dir:
-                timeline = TTSUtils.build_timeline(subs, AzureTTSV2.synthesize, synth_kwargs, tmp_dir)
+                timeline = TTSUtils.build_timeline(subs, AzureTTSV2.synthesize, synth_kwargs, tmp_dir, **options)
                 TTSUtils.export_timeline(timeline, tts_file_path, bitrate=self.__bitrate)
                 return tts_file_path
+        except ValueError:
+            raise
         except Exception as ex:
             raise VPTException(const.PIPELINE_ERR_TTS_CONVERT, str(ex), ex) from ex
 

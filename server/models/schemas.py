@@ -65,6 +65,14 @@ class QuickDownloadTaskItem(BaseModel):
     is_use_proxy: bool = False
 
 
+class LipSyncConfigItem(BaseModel):
+    sync_labs_apikey: str = ""
+    fal_latent_sync_apikey: str = ""
+    hey_gen_apikey: str = ""
+    remote_base_url: str = ""
+    remote_api_key: str = ""
+
+
 class TaskItem(BaseModel):
     task_id: str = ""
     task_url: str = ""
@@ -134,3 +142,8 @@ class TaskItem(BaseModel):
     video_material_keyword: str = ""
     # video download format id (from yt-dlp)
     format_id: str = ""
+    # lip_sync config
+    is_lip_sync: bool = False
+    lip_sync_type: int = 0
+    # tts dubbing strategy
+    tts_dubbing_strategy: int = 1
